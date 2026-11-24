@@ -1,0 +1,30 @@
+name: Feature Request / 功能建议
+description: 提出新功能、插件扩展或体验优化建议 / Suggest a feature or enhancement
+title: "[Feat]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: target
+    attributes:
+      label: 适用范围 / Target Area
+      options:
+        - 全局启动器 / 宿主能力 (Host / Launcher / purekit)
+        - PureShot (截图 / 标注 / 贴图)
+        - PureClip (剪贴板历史)
+        - PureImage (看图 / 空格预览)
+        - PureZip (压缩与解压)
+        - 新插件提议 / New Plugin Proposal
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 希望解决的场景与问题 / Use Case & Problem
+      description: 描述您在日常使用中遇到的痛点 / Describe what problem this solves.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: 建议方案或交互形式 / Proposed Solution
+      description: 可附上期望快捷键、命令行参数或 UI 交互描述 / Optional UX, shortcuts, or CLI details.

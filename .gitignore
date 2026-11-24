@@ -1,0 +1,32 @@
+# Go & Windows build output
+PureUtils.exe
+ynm3000.exe
+ShotClip.exe
+*.exe
+*.test
+*.out
+artifacts/
+
+# Local runtime data & caches
+.tmp-*
+*.db
+*.db-shm
+*.db-wal
+settings.json
+modules.json
+logs/
+images/
+blobs/
+
+# IDE & temporary files
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+TestResults/
+*.binlog
+*.log
+*.user
+.DS_Store
+Thumbs.db

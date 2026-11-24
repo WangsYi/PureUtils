@@ -1,0 +1,46 @@
+name: Bug Report / 问题反馈
+description: 报告 PureUtils 使用或构建中的异常与 Bug / Report a bug in PureUtils
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈问题！请尽量填写以下信息，帮助我们快速定位。 / Thanks for reporting! Please fill in the details below.
+  - type: dropdown
+    id: component
+    attributes:
+      label: 相关组件 / Component
+      multiple: false
+      options:
+        - Host / 全局热键 / 快捷启动器 (Alt+Space) / 设置
+        - PureShot (截图 / 标注 / 贴图)
+        - PureClip (剪贴板历史)
+        - PureImage (看图 / 空格预览)
+        - PureZip (压缩 / 解压 / 右键菜单)
+        - 安装包 / 构建脚本 (Inno Setup / build.ps1)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本与系统 / Version & Windows Build
+      placeholder: "例如 / e.g. PureUtils v1.0.0, Windows 11 24H2 x64"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述与复现步骤 / Description & Steps to Reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        期望结果 / Expected: ...
+        实际结果 / Actual: ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志或截图 / Logs or Screenshots (可选 / Optional)
+      description: "注意检查日志中是否包含个人路径或敏感剪贴板内容 / Please redact personal paths or sensitive content."

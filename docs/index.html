@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PureUtils — Windows 原生效率工具集</title>
+  <meta name="description" content="PureUtils：单文件、零 WebView 的 Windows 原生工具集，包含 PureShot 截图贴图、PureClip 剪贴板历史、PureImage 看图与空格预览、PureZip 压缩管理及 Alt+Space 启动器（AGPL-3.0）。" />
+  <link rel="icon" type="image/png" href="assets/icon.png" />
+  <style>
+    :root {
+      --bg: #fafaf9;
+      --bg-band: #f3f3f0;
+      --surface: #ffffff;
+      --surface-hover: #f5f5f2;
+      --border: #e5e5e0;
+      --border-strong: #d4d4cd;
+      --ink: #141413;
+      --ink-secondary: #57534e;
+      --ink-muted: #78716c;
+      --accent: #0f62fe;
+      --btn-primary-bg: #141413;
+      --btn-primary-fg: #fafaf9;
+      --btn-primary-hover: #292927;
+      --stage-bg: #161615;
+      --code-bg: #f3f3f0;
+      --code-ink: #1c1917;
+      --frame-shadow: 0 10px 30px rgba(20, 20, 19, 0.08);
+      --kbd-shadow: 0 1px 0 #d4d4cd;
+      --sans: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: "Cascadia Mono", "JetBrains Mono", Consolas, ui-monospace, SFMono-Regular, monospace;
+    }
+
+    html[data-theme="dark"] {
+      --bg: #111110;
+      --bg-band: #171715;
+      --surface: #171715;
+      --surface-hover: #20201d;
+      --border: #262623;
+      --border-strong: #383833;
+      --ink: #f2f2ef;
+      --ink-secondary: #a1a19a;
+      --ink-muted: #7a7a74;
+      --accent: #3b82f6;
+      --btn-primary-bg: #f2f2ef;
+      --btn-primary-fg: #111110;
+      --btn-primary-hover: #ffffff;
+      --stage-bg: #0c0c0b;
+      --code-bg: #171715;
+      --code-ink: #e5e5e0;
+      --frame-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
+      --kbd-shadow: 0 1px 0 #1c1c19;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+
+    kbd {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 6px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 5px;
+      box-shadow: var(--kbd-shadow);
+      white-space: nowrap;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.9em;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Top Bar */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar-inner {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+    .brand img {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+    }
+    .brand-ver {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--ink-muted);
+      white-space: nowrap;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 13.5px;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: var(--ink-secondary);
+    }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-sep {
+      width: 1px;
+      height: 16px;
+      background: var(--border);
+    }
+    .nav-tools {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .text-toggle {
+      padding: 4px 6px;
+      border: none;
+      background: transparent;
+      color: var(--ink-secondary);
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .text-toggle:hover { color: var(--ink); }
+    .gh-link {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .gh-link:hover { color: var(--accent); }
+
+    /* Hero */
+    .hero {
+      padding: 56px 0 44px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-copy {
+      max-width: 760px;
+      text-align: left;
+    }
+    .hero h1 {
+      margin: 0 0 14px;
+      font-size: clamp(28px, 4.1vw, 44px);
+      font-weight: 650;
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+      color: var(--ink);
+    }
+    .hero-desc {
+      margin: 0 0 24px;
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--ink-secondary);
+      max-width: 680px;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .btn-primary {
+      height: 40px;
+      padding: 0 18px;
+      border-radius: 7px;
+      background: var(--btn-primary-bg);
+      color: var(--btn-primary-fg);
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.14s;
+    }
+    .btn-primary:hover { background: var(--btn-primary-hover); }
+    .btn-secondary {
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 7px;
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.14s;
+    }
+    .btn-secondary:hover { background: var(--surface-hover); }
+    .hero-spec {
+      margin: 0 0 36px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--ink-muted);
+    }
+
+    /* Native Window Showcase Frame */
+    .showcase-frame {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      box-shadow: var(--frame-shadow);
+      overflow: hidden;
+    }
+    .stage-tabs {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 4px;
+      padding: 0 12px;
+      background: var(--bg-band);
+      border-bottom: 1px solid var(--border);
+    }
+    .stage-tab {
+      position: relative;
+      padding: 10px 12px;
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--ink-secondary);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .stage-tab:hover { color: var(--ink); }
+    .stage-tab.active {
+      color: var(--ink);
+      border-bottom-color: var(--accent);
+    }
+    .stage-canvas {
+      background: var(--stage-bg);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 360px;
+      cursor: zoom-in;
+    }
+    .stage-canvas img {
+      max-height: 520px;
+      width: auto;
+      border-radius: 6px;
+    }
+    .stage-foot {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--bg-band);
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--ink-secondary);
+    }
+    .stage-keys {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+
+    /* Sections */
+    .section {
+      padding: 52px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-head {
+      margin-bottom: 28px;
+      max-width: 680px;
+    }
+    .section-head h2 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .section-head p {
+      margin: 0;
+      color: var(--ink-secondary);
+      font-size: 14.5px;
+    }
+
+    /* Specification Ledger */
+    .spec-table {
+      border-top: 1px solid var(--border);
+    }
+    .spec-row {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 24px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      align-items: start;
+    }
+    .spec-left {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .spec-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .spec-name img {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+    }
+    .spec-id {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+    .spec-keys {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .spec-right p {
+      margin: 0 0 6px;
+      color: var(--ink);
+      font-size: 14.5px;
+    }
+    .spec-meta {
+      font-size: 13px;
+      color: var(--ink-secondary);
+    }
+
+    /* Contact Sheet Gallery */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .contact-item {
+      margin: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+      cursor: zoom-in;
+      transition: border-color 0.14s;
+    }
+    .contact-item:hover { border-color: var(--border-strong); }
+    .contact-img {
+      background: var(--stage-bg);
+      aspect-ratio: 16 / 10;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .contact-img img {
+      max-height: 100%;
+      width: auto;
+      border-radius: 4px;
+    }
+    .contact-cap {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+    }
+    .contact-num {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-muted);
+      flex-shrink: 0;
+    }
+    .contact-cap strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .contact-cap span {
+      display: block;
+      font-size: 13px;
+      color: var(--ink-secondary);
+    }
+
+    /* Architecture & Build */
+    .arch-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .arch-ledger {
+      border-top: 1px solid var(--border);
+    }
+    .arch-row {
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .arch-row strong {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .arch-row p {
+      margin: 4px 0 0;
+      font-size: 13.5px;
+      color: var(--ink-secondary);
+    }
+    .tier-note {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--ink-secondary);
+    }
+    .tier-note a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .code-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--code-bg);
+      overflow: hidden;
+    }
+    .code-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+    .copy-btn {
+      padding: 3px 9px;
+      border-radius: 5px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .copy-btn:hover { background: var(--surface-hover); }
+    .code-box pre {
+      margin: 0;
+      padding: 16px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: var(--code-ink);
+    }
+
+    /* Footer */
+    footer {
+      padding: 28px 0 40px;
+      font-size: 13px;
+      color: var(--ink-muted);
+    }
+    .footer-inner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+    }
+    .footer-links a:hover { color: var(--ink); }
+
+    /* Lightbox */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(12, 12, 11, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      cursor: zoom-out;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img {
+      max-width: 94%;
+      max-height: 90%;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    @media (max-width: 820px) {
+      .nav-links, .nav-sep { display: none; }
+      .spec-row { grid-template-columns: 1fr; gap: 10px; }
+      .contact-grid, .arch-split { grid-template-columns: 1fr; }
+      .hero { padding-top: 34px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a href="#" class="brand">
+        <img src="assets/icon.png" alt="PureUtils" />
+        <span>PureUtils</span>
+        <span class="brand-ver">v1.0.0</span>
+      </a>
+      <div class="nav-right">
+        <nav class="nav-links">
+          <a href="#modules" data-i18n="nav_modules">模块</a>
+          <a href="#gallery" data-i18n="nav_gallery">界面</a>
+          <a href="#architecture" data-i18n="nav_arch">架构</a>
+          <a href="#build" data-i18n="nav_build">构建</a>
+        </nav>
+        <span class="nav-sep"></span>
+        <div class="nav-tools">
+          <button id="langToggle" class="text-toggle" type="button">EN</button>
+          <button id="themeToggle" class="text-toggle" type="button">深色</button>
+          <a class="gh-link" href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-copy">
+        <h1 data-i18n="hero_title">Windows 原生效率工具集，单文件、零 WebView。</h1>
+        <p class="hero-desc" data-i18n="hero_desc">
+          将截图贴图（PureShot）、剪贴板历史（PureClip）、多格式看图与空格预览（PureImage）、压缩包管理（PureZip）以及 Alt+Space 上下文启动器整合进同一个 Go + MyGo 原生应用。支持编译期裁剪、安装勾选与设置页实时启停。
+        </p>
+        <div class="hero-actions">
+          <a class="btn-primary" href="https://github.com/WangsYi/PureUtils/releases/latest" target="_blank" rel="noopener" data-i18n="cta_download">下载安装程序 (v1.0.0 · 18.3 MB)</a>
+          <a class="btn-secondary" href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener" data-i18n="cta_repo">GitHub 源码</a>
+        </div>
+        <p class="hero-spec" data-i18n="hero_spec">
+          Windows 10/11 x64 · Go 1.27 + MyGo GPU UI · 零 cgo / 零 JS · GNU AGPL-3.0 · 无需管理员权限
+        </p>
+      </div>
+
+      <div class="showcase-frame">
+        <div class="stage-tabs" role="tablist">
+          <button class="stage-tab active" data-shot="screenshots/launcher.png" data-key="launcher" data-i18n="tab_launcher">全局启动器</button>
+          <button class="stage-tab" data-shot="screenshots/history.png" data-key="history" data-i18n="tab_history">PureClip 双栏</button>
+          <button class="stage-tab" data-shot="screenshots/history-compact.png" data-key="compact" data-i18n="tab_compact">PureClip 浮窗</button>
+          <button class="stage-tab" data-shot="screenshots/overlay.png" data-key="overlay" data-i18n="tab_overlay">PureShot 标注</button>
+          <button class="stage-tab" data-shot="screenshots/zip.png" data-key="zip" data-i18n="tab_zip">PureZip 压缩</button>
+          <button class="stage-tab" data-shot="screenshots/settings.png" data-key="settings" data-i18n="tab_settings">设置与热开关</button>
+        </div>
+        <div class="stage-canvas" id="heroStageWrap">
+          <img id="heroPreviewImg" src="screenshots/launcher.png" alt="PureUtils interface" />
+        </div>
+        <div class="stage-foot">
+          <span id="stageCaption">识别前景资源管理器选中项与剪贴板内容，支持多词检索与 Ctrl+1–9 快速执行</span>
+          <span class="stage-keys" id="stageShortcut"><kbd>Alt</kbd>+<kbd>Space</kbd></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="modules" class="section">
+      <div class="section-head">
+        <h2 data-i18n="mod_title">功能模块规格</h2>
+        <p data-i18n="mod_sub">四个内置插件均以独立 purekit.Plugin 实现，跨模块能力通过 Capability Bus 按需联动，禁用任意模块均自动降级。</p>
+      </div>
+
+      <div class="spec-table">
+        <div class="spec-row">
+          <div class="spec-left">
+            <div class="spec-name">PureShot <span class="spec-id">capture</span></div>
+            <div class="spec-keys"><kbd>F1</kbd><kbd>Ctrl+F1</kbd><kbd>F3</kbd></div>
+          </div>
+          <div class="spec-right">
+            <p data-i18n="ps_p">屏幕冻结选区、窗口锚点自动吸附、像素放大镜取色（按 C 复制 HEX 色值）以及桌面置顶悬浮贴图。</p>
+            <div class="spec-meta" data-i18n="ps_meta">内置矩形、椭圆、直线、箭头、画笔、高亮、文字、马赛克、序号 9 种矢量标注工具，支持双击快速完成与 F3 历史队列贴图。</div>
+          </div>
+        </div>
+
+        <div class="spec-row">
+          <div class="spec-left">
+            <div class="spec-name">PureClip <span class="spec-id">history</span></div>
+            <div class="spec-keys"><kbd>Ctrl+Shift+V</kbd><kbd>Tab</kbd></div>
+          </div>
+          <div class="spec-right">
+            <p data-i18n="pc_p">隔离 SQLite WAL 存储与 SHA-1 内容寻址图片库，呼出后直接键入即可在内存索引中完成毫秒级多词过滤。</p>
+            <div class="spec-meta" data-i18n="pc_meta">缩略图与预览图异步后台解码缓存；支持双栏详情与精简浮窗切换、敏感进程排除以及旧版 DB 严格只读兼容。</div>
+          </div>
+        </div>
+
+        <div class="spec-row">
+          <div class="spec-left">
+            <div class="spec-name"><img src="assets/image.png" alt="PureImage" />PureImage <span class="spec-id">viewer</span></div>
+            <div class="spec-keys"><kbd>Space</kbd><kbd>P</kbd></div>
+          </div>
+          <div class="spec-right">
+            <p data-i18n="pi_p">支持 40+ 图片格式与资源管理器空格快速预览，自带 EXIF 信息读取及一键贴图联动。</p>
+            <div class="spec-meta" data-i18n="pi_meta">覆盖 JPG / PNG / GIF / WebP / HEIC / AVIF / JPEG XL 及 24 种相机 RAW；可选 libjpeg-turbo 1/2·1/4·1/8 缩放加速，可用 -CoreOnly 彻底裁剪。</div>
+          </div>
+        </div>
+
+        <div class="spec-row">
+          <div class="spec-left">
+            <div class="spec-name"><img src="assets/zip.png" alt="PureZip" />PureZip <span class="spec-id">zip</span></div>
+            <div class="spec-keys"><kbd>Explorer 右键</kbd></div>
+          </div>
+          <div class="spec-right">
+            <p data-i18n="pz_p">纯 Go 实现的多格式压缩与解压管理器，支持树形目录浏览、智能解压与包内图片直接调用 PureImage 查看。</p>
+            <div class="spec-meta" data-i18n="pz_meta">读写 ZIP / 7Z / TAR / TGZ / TBZ2 / TXZ / TZST，只读 RAR v4/v5 及单文件压缩；支持 AES-256、-mhe、文件名编码切换与 HKCU 右键关联。</div>
+          </div>
+        </div>
+
+        <div class="spec-row">
+          <div class="spec-left">
+            <div class="spec-name">Launcher &amp; Host <span class="spec-id">host</span></div>
+            <div class="spec-keys"><kbd>Alt+Space</kbd><kbd>Win+…</kbd></div>
+          </div>
+          <div class="spec-right">
+            <p data-i18n="host_p">Alt+Space 全局上下文启动器自动识别资源管理器选中文件与剪贴板内容，统一托盘、热键调度与模块热开关。</p>
+            <div class="spec-meta" data-i18n="host_meta">支持在设置页实时启用/停用任意模块而不重启进程，并可选 WH_KEYBOARD_LL 底层钩子接管 Win+ 快捷键且抑制开始菜单。</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gallery" class="section">
+      <div class="section-head">
+        <h2 data-i18n="gal_title">界面实拍</h2>
+        <p data-i18n="gal_sub">以下截图均由代码仓库内的无头 UI 渲染测试实时生成；点击图片可查看原尺寸。</p>
+      </div>
+
+      <div class="contact-grid">
+        <figure class="contact-item" data-full="screenshots/launcher.png">
+          <div class="contact-img"><img src="screenshots/launcher.png" alt="Launcher" /></div>
+          <figcaption class="contact-cap">
+            <span class="contact-num">01</span>
+            <div>
+              <strong data-i18n="g1_t">全局上下文启动器 (Alt+Space)</strong>
+              <span data-i18n="g1_d">自动识别选中压缩包与剪贴板图片，Ctrl+1–9 快捷执行</span>
+            </div>
+          </figcaption>
+        </figure>
+
+        <figure class="contact-item" data-full="screenshots/history.png">
+          <div class="contact-img"><img src="screenshots/history.png" alt="PureClip Split" /></div>
+          <figcaption class="contact-cap">
+            <span class="contact-num">02</span>
+            <div>
+              <strong data-i18n="g2_t">PureClip 双栏详情模式</strong>
+              <span data-i18n="g2_d">分类筛选标签、来源进程展示与右侧详情/图片预览区</span>
+            </div>
+          </figcaption>
+        </figure>
+
+        <figure class="contact-item" data-full="screenshots/history-compact.png">
+          <div class="contact-img"><img src="screenshots/history-compact.png" alt="PureClip Compact" /></div>
+          <figcaption class="contact-cap">
+            <span class="contact-num">03</span>
+            <div>
+              <strong data-i18n="g3_t">PureClip 精简浮窗模式</strong>
+              <span data-i18n="g3_d">呼出即聚焦搜索框，输入即筛，Tab 切换双栏视图</span>
+            </div>
+          </figcaption>
+        </figure>
+
+        <figure class="contact-item" data-full="screenshots/overlay.png">
+          <div class="contact-img"><img src="screenshots/overlay.png" alt="PureShot Overlay" /></div>
+          <figcaption class="contact-cap">
+            <span class="contact-num">04</span>
+            <div>
+              <strong data-i18n="g4_t">PureShot 选区标注与取色器</strong>
+              <span data-i18n="g4_d">矢量标注工具条配合实时 RGB/HEX 像素放大镜</span>
+            </div>
+          </figcaption>
+        </figure>
+
+        <figure class="contact-item" data-full="screenshots/zip.png">
+          <div class="contact-img"><img src="screenshots/zip.png" alt="PureZip" /></div>
+          <figcaption class="contact-cap">
+            <span class="contact-num">05</span>
+            <div>
+              <strong data-i18n="g5_t">PureZip 压缩包管理器</strong>
+              <span data-i18n="g5_d">左侧目录树、面包屑导航、编码切换与包内即时搜索</span>
+            </div>
+          </figcaption>
+        </figure>
+
+        <figure class="contact-item" data-full="screenshots/settings.png">
+          <div class="contact-img"><img src="screenshots/settings.png" alt="Settings" /></div>
+          <figcaption class="contact-cap">
+            <span class="contact-num">06</span>
+            <div>
+              <strong data-i18n="g6_t">统一设置与热键录制</strong>
+              <span data-i18n="g6_d">各插件独立配置分区，支持热键冲突检测与运行时模块开关</span>
+            </div>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="architecture" class="section">
+      <div class="section-head">
+        <h2 data-i18n="arch_title">分层架构与构建方式</h2>
+        <p data-i18n="arch_sub">通过 Go AST 测试自动约束依赖方向，确保宿主、核心库与各插件可自由组合、独立演进。</p>
+      </div>
+
+      <div class="arch-split">
+        <div>
+          <div class="arch-ledger">
+            <div class="arch-row">
+              <strong>main.go</strong>
+              <p data-i18n="l1_d">读取同目录 modules.json、单实例锁消息转发与 CLI 参数路由。</p>
+            </div>
+            <div class="arch-row">
+              <strong>internal/host · builtin_*.go</strong>
+              <p data-i18n="l2_d">条件编译注册桥装配活跃插件，管理动态托盘、热键、启动器与统一设置。</p>
+            </div>
+            <div class="arch-row">
+              <strong>plugins/{pureshot,pureclip,pureimage,purezip}</strong>
+              <p data-i18n="l3_d">彼此零直接 Go import，跨插件动作完全通过 Capability Bus 契约调用。</p>
+            </div>
+            <div class="arch-row">
+              <strong>pkg/purekit</strong>
+              <p data-i18n="l4_d">可复用插件 SDK（Bus/Contracts、WAL 存储、配置 v2、剪贴板总线、Win32 与 UI 组件）。</p>
+            </div>
+          </div>
+          <p class="tier-note" data-i18n-html="arch_doc_link">
+            支持三层裁剪：编译期（<code>-tags</code>）、安装期（<code>modules.json</code>）与运行时设置热开关。完整说明见 <a href="https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">docs/ARCHITECTURE.md</a>。
+          </p>
+        </div>
+
+        <div id="build" class="code-box">
+          <div class="code-bar">
+            <span>PowerShell · Windows 10/11 · Go 1.27.3+</span>
+            <button id="copyBuildBtn" class="copy-btn" type="button" data-i18n="copy_btn">复制</button>
+          </div>
+          <pre id="buildSnippet"># 构建完整版 PureUtils.exe（零 cgo / 零 WebView）
+.\build.ps1 build
+
+# 裁剪 PureImage 解码器与 turbojpeg.dll
+.\build.ps1 build -CoreOnly
+
+# 按插件精确裁剪
+.\build.ps1 build -Exclude purezip,pureimage
+
+# 全量单元测试 + Go AST 架构边界检查
+.\build.ps1 test
+.\build.ps1 test -CoreOnly
+
+# 编译双版本并用 Inno Setup 打包安装程序
+.\build.ps1 pack</pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <div>PureUtils · Go 1.27 + MyGo · GNU AGPL-3.0</div>
+      <div class="footer-links">
+        <a href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/WangsYi/PureUtils/releases" target="_blank" rel="noopener">Releases</a>
+        <a href="https://github.com/WangsYi/PureUtils/issues" target="_blank" rel="noopener">Issues</a>
+        <a id="footerArchLink" href="https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener" data-i18n="f_arch">架构文档</a>
+        <a href="https://github.com/WangsYi/PureUtils/blob/main/LICENSE" target="_blank" rel="noopener">LICENSE</a>
+        <a href="https://github.com/WangsYi/PureUtils/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener" data-i18n="f_contrib">贡献指南</a>
+      </div>
+    </div>
+  </footer>
+
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <img id="lightboxImg" src="" alt="Screenshot preview" />
+  </div>
+
+  <script>
+    const STAGE_META = {
+      zh: {
+        launcher: {
+          caption: "自动采集前景资源管理器选中项与剪贴板内容，支持跨插件与历史即时检索",
+          keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> · <kbd>Ctrl+1–9</kbd>"
+        },
+        history: {
+          caption: "双栏视图提供格式筛选、毫秒级内存多词过滤与高清预览面板",
+          keys: "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> · <kbd>Tab</kbd>"
+        },
+        compact: {
+          caption: "精简浮窗呼出即聚焦输入框，直接敲字搜索历史记录",
+          keys: "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> · <kbd>Esc</kbd>"
+        },
+        overlay: {
+          caption: "冻结选区配合 9 种矢量标注与实时像素级取色放大镜",
+          keys: "<kbd>F1</kbd> · <kbd>C</kbd> 复制色值"
+        },
+        zip: {
+          caption: "纯 Go 多格式读写加密、文件名编码切换与包内即时查找",
+          keys: "<kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>Enter</kbd>"
+        },
+        settings: {
+          caption: "按模块隔离配置分区，支持快捷键录制与组件实时热启停",
+          keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> → 设置"
+        }
+      },
+      en: {
+        launcher: {
+          caption: "Detects Explorer selection and clipboard content, searching plugin actions and history",
+          keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> · <kbd>Ctrl+1–9</kbd>"
+        },
+        history: {
+          caption: "Split view with category filters, sub-ms multi-token search and live preview pane",
+          keys: "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> · <kbd>Tab</kbd>"
+        },
+        compact: {
+          caption: "Compact popup auto-focuses search on open for instant keyboard filtering",
+          keys: "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> · <kbd>Esc</kbd>"
+        },
+        overlay: {
+          caption: "Frozen screen region capture with 9 vector tools and pixel RGB/HEX magnifier",
+          keys: "<kbd>F1</kbd> · <kbd>C</kbd> Copy HEX"
+        },
+        zip: {
+          caption: "Pure-Go archive engine with AES-256 encryption, encoding switch and in-archive search",
+          keys: "<kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>Enter</kbd>"
+        },
+        settings: {
+          caption: "Isolated plugin namespaces, global shortcut recorder and live module hot-toggles",
+          keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> → Settings"
+        }
+      }
+    };
+
+    const I18N = {
+      zh: {
+        _title: "PureUtils — Windows 原生效率工具集",
+        nav_modules: "模块",
+        nav_gallery: "界面",
+        nav_arch: "架构",
+        nav_build: "构建",
+        hero_title: "Windows 原生效率工具集，单文件、零 WebView。",
+        hero_desc: "将截图贴图（PureShot）、剪贴板历史（PureClip）、多格式看图与空格预览（PureImage）、压缩包管理（PureZip）以及 Alt+Space 上下文启动器整合进同一个 Go + MyGo 原生应用。支持编译期裁剪、安装勾选与设置页实时启停。",
+        cta_download: "下载安装程序 (v1.0.0 · 18.3 MB)",
+        cta_repo: "GitHub 源码",
+        hero_spec: "Windows 10/11 x64 · Go 1.27 + MyGo GPU UI · 零 cgo / 零 JS · GNU AGPL-3.0 · 无需管理员权限",
+        tab_launcher: "全局启动器",
+        tab_history: "PureClip 双栏",
+        tab_compact: "PureClip 浮窗",
+        tab_overlay: "PureShot 标注",
+        tab_zip: "PureZip 压缩",
+        tab_settings: "设置与热开关",
+        mod_title: "功能模块规格",
+        mod_sub: "四个内置插件均以独立 purekit.Plugin 实现，跨模块能力通过 Capability Bus 按需联动，禁用任意模块均自动降级。",
+        ps_p: "屏幕冻结选区、窗口锚点自动吸附、像素放大镜取色（按 C 复制 HEX 色值）以及桌面置顶悬浮贴图。",
+        ps_meta: "内置矩形、椭圆、直线、箭头、画笔、高亮、文字、马赛克、序号 9 种矢量标注工具，支持双击快速完成与 F3 历史队列贴图。",
+        pc_p: "隔离 SQLite WAL 存储与 SHA-1 内容寻址图片库，呼出后直接键入即可在内存索引中完成毫秒级多词过滤。",
+        pc_meta: "缩略图与预览图异步后台解码缓存；支持双栏详情与精简浮窗切换、敏感进程排除以及旧版 DB 严格只读兼容。",
+        pi_p: "支持 40+ 图片格式与资源管理器空格快速预览，自带 EXIF 信息读取及一键贴图联动。",
+        pi_meta: "覆盖 JPG / PNG / GIF / WebP / HEIC / AVIF / JPEG XL 及 24 种相机 RAW；可选 libjpeg-turbo 1/2·1/4·1/8 缩放加速，可用 -CoreOnly 彻底裁剪。",
+        pz_p: "纯 Go 实现的多格式压缩与解压管理器，支持树形目录浏览、智能解压与包内图片直接调用 PureImage 查看。",
+        pz_meta: "读写 ZIP / 7Z / TAR / TGZ / TBZ2 / TXZ / TZST，只读 RAR v4/v5 及单文件压缩；支持 AES-256、-mhe、文件名编码切换与 HKCU 右键关联。",
+        host_p: "Alt+Space 全局上下文启动器自动识别资源管理器选中文件与剪贴板内容，统一托盘、热键调度与模块热开关。",
+        host_meta: "支持在设置页实时启用/停用任意模块而不重启进程，并可选 WH_KEYBOARD_LL 底层钩子接管 Win+ 快捷键且抑制开始菜单。",
+        gal_title: "界面实拍",
+        gal_sub: "以下截图均由代码仓库内的无头 UI 渲染测试实时生成；点击图片可查看原尺寸。",
+        g1_t: "全局上下文启动器 (Alt+Space)",
+        g1_d: "自动识别选中压缩包与剪贴板图片，Ctrl+1–9 快捷执行",
+        g2_t: "PureClip 双栏详情模式",
+        g2_d: "分类筛选标签、来源进程展示与右侧详情/图片预览区",
+        g3_t: "PureClip 精简浮窗模式",
+        g3_d: "呼出即聚焦搜索框，输入即筛，Tab 切换双栏视图",
+        g4_t: "PureShot 选区标注与取色器",
+        g4_d: "矢量标注工具条配合实时 RGB/HEX 像素放大镜",
+        g5_t: "PureZip 压缩包管理器",
+        g5_d: "左侧目录树、面包屑导航、编码切换与包内即时搜索",
+        g6_t: "统一设置与热键录制",
+        g6_d: "各插件独立配置分区，支持热键冲突检测与运行时模块开关",
+        arch_title: "分层架构与构建方式",
+        arch_sub: "通过 Go AST 测试自动约束依赖方向，确保宿主、核心库与各插件可自由组合、独立演进。",
+        l1_d: "读取同目录 modules.json、单实例锁消息转发与 CLI 参数路由。",
+        l2_d: "条件编译注册桥装配活跃插件，管理动态托盘、热键、启动器与统一设置。",
+        l3_d: "彼此零直接 Go import，跨插件动作完全通过 Capability Bus 契约调用。",
+        l4_d: "可复用插件 SDK（Bus/Contracts、WAL 存储、配置 v2、剪贴板总线、Win32 与 UI 组件）。",
+        copy_btn: "复制",
+        copied_btn: "已复制",
+        f_arch: "架构文档",
+        f_contrib: "贡献指南"
+      },
+      en: {
+        _title: "PureUtils — Native Windows Utility Suite",
+        nav_modules: "Modules",
+        nav_gallery: "Screenshots",
+        nav_arch: "Architecture",
+        nav_build: "Build",
+        hero_title: "Native Windows utilities in one lightweight binary.",
+        hero_desc: "Screenshot & desktop pins (PureShot), clipboard history (PureClip), fast 40+ format viewer & Spacebar preview (PureImage), pure-Go archive manager (PureZip), and an Alt+Space contextual launcher built on Go + MyGo GPU UI without WebView2 or cgo.",
+        cta_download: "Download Installer (v1.0.0 · 18.3 MB)",
+        cta_repo: "GitHub Repository",
+        hero_spec: "Windows 10/11 x64 · Go 1.27 + MyGo GPU UI · Zero cgo / Zero JS · GNU AGPL-3.0 · Per-user setup",
+        tab_launcher: "Launcher",
+        tab_history: "PureClip Split",
+        tab_compact: "PureClip Compact",
+        tab_overlay: "PureShot Capture",
+        tab_zip: "PureZip Archive",
+        tab_settings: "Settings",
+        mod_title: "Module Specifications",
+        mod_sub: "Each built-in tool is an isolated purekit.Plugin communicating strictly over Capability Bus contracts with graceful fallback.",
+        ps_p: "Frozen region capture, automatic window snapping, pixel magnifier (press C to copy HEX), and always-on-top pins.",
+        ps_meta: "Includes 9 vector annotation tools (rect, ellipse, line, arrow, pen, highlight, text, mosaic, badge), double-click finish, and F3 sequential clipboard pinning.",
+        pc_p: "Isolated SQLite WAL database & SHA-1 blob storage with pre-indexed in-memory multi-token filtering on every keystroke.",
+        pc_meta: "Async thumbnail/preview decoding cache, Split / Compact switcher, sensitive process exclusions, and strict read-only legacy DB compatibility.",
+        pi_p: "Opens 40+ image and RAW formats quickly, adds Explorer Spacebar quick preview, reads EXIF metadata, and pins images to desktop.",
+        pi_meta: "Supports JPG, PNG, GIF, WebP, HEIC, AVIF, JPEG XL, and 24 camera RAW formats; optional libjpeg-turbo scaling can be omitted via -CoreOnly.",
+        pz_p: "Pure-Go archive manager featuring folder tree navigation, smart extraction, and direct PureImage previews for archived images.",
+        pz_meta: "Reads/writes ZIP, 7Z, TAR, TGZ, TBZ2, TXZ, TZST and reads RAR v4/v5; supports AES-256, -mhe headers, encoding switch, and HKCU context menus.",
+        host_p: "Alt+Space contextual launcher detects Explorer selection & clipboard items, paired with unified tray, hotkeys, and live toggles.",
+        host_meta: "Enable/disable modules live in Settings without restart, and optionally hook WH_KEYBOARD_LL to rebind Win+ combos cleanly.",
+        gal_title: "Interface Screenshots",
+        gal_sub: "All screenshots below are rendered directly from the headless UI test suite in this repository; click to inspect full size.",
+        g1_t: "Contextual Launcher (Alt+Space)",
+        g1_d: "Surfaces Explorer archive & clipboard image actions with Ctrl+1–9 execution",
+        g2_t: "PureClip Split Inspector",
+        g2_d: "Category filter tabs, source process metadata, and live right-hand preview",
+        g3_t: "PureClip Compact Popup",
+        g3_d: "Search bar auto-focuses on open; press Tab to expand to split view",
+        g4_t: "PureShot Overlay & Magnifier",
+        g4_d: "Vector annotation dock paired with live RGB/HEX pixel magnifier",
+        g5_t: "PureZip Archive Manager",
+        g5_d: "Folder tree, breadcrumb path, encoding selector, and live search",
+        g6_t: "Unified Settings & Hotkey Recorder",
+        g6_d: "Per-plugin isolated tabs, conflict detection, and live module switches",
+        arch_title: "Architecture & Building",
+        arch_sub: "Enforced by Go AST dependency tests on every test run so the host, SDK, and plugins stay clean and composable.",
+        l1_d: "Reads modules.json next to executable, handles single-instance forwarding and CLI routing.",
+        l2_d: "Conditional builtin_*.go bridges assemble active plugins into tray, hotkeys, launcher, and Settings.",
+        l3_d: "Zero direct Go imports between plugins; cross-module actions go strictly via Capability Bus.",
+        l4_d: "Reusable plugin SDK (Bus/Contracts, WAL storage, v2 config, clipboard bus, Win32 & UI kit).",
+        copy_btn: "Copy",
+        copied_btn: "Copied",
+        f_arch: "Architecture",
+        f_contrib: "Contributing"
+      }
+    };
+
+    const ARCH_HTML = {
+      zh: '支持三层裁剪：编译期（<code>-tags</code>）、安装期（<code>modules.json</code>）与运行时设置热开关。完整说明见 <a href="https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">docs/ARCHITECTURE.md</a>。',
+      en: 'Trim at compile time (<code>-tags</code>), install time (<code>modules.json</code>), or runtime in Settings. See <a href="https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.en.md" target="_blank" rel="noopener">docs/ARCHITECTURE.en.md</a>.'
+    };
+
+    let currentLang = "zh";
+    let currentTheme = "light";
+    let activeShotKey = "launcher";
+
+    function updateStageFooter() {
+      const m = STAGE_META[currentLang][activeShotKey];
+      if (!m) return;
+      document.getElementById("stageCaption").textContent = m.caption;
+      document.getElementById("stageShortcut").innerHTML = m.keys;
+    }
+
+    function applyLang(lang) {
+      currentLang = I18N[lang] ? lang : "zh";
+      document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
+      const dict = I18N[currentLang];
+      document.title = dict._title;
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (dict[key]) el.textContent = dict[key];
+      });
+      const archNote = document.querySelector("[data-i18n-html='arch_doc_link']");
+      if (archNote) archNote.innerHTML = ARCH_HTML[currentLang];
+      document.getElementById("langToggle").textContent = currentLang === "zh" ? "EN" : "中文";
+      document.getElementById("themeToggle").textContent = currentTheme === "dark"
+        ? (currentLang === "zh" ? "浅色" : "Light")
+        : (currentLang === "zh" ? "深色" : "Dark");
+      const footerArch = document.getElementById("footerArchLink");
+      if (footerArch) {
+        footerArch.href = currentLang === "zh"
+          ? "https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md"
+          : "https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.en.md";
+      }
+      updateStageFooter();
+      try { localStorage.setItem("pureutils_lang", currentLang); } catch {}
+    }
+
+    function applyTheme(theme) {
+      currentTheme = theme === "dark" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", currentTheme);
+      document.getElementById("themeToggle").textContent = currentTheme === "dark"
+        ? (currentLang === "zh" ? "浅色" : "Light")
+        : (currentLang === "zh" ? "深色" : "Dark");
+      try { localStorage.setItem("pureutils_theme", currentTheme); } catch {}
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const urlLang = params.get("lang");
+    let savedLang = null;
+    let savedTheme = null;
+    try {
+      savedLang = localStorage.getItem("pureutils_lang");
+      savedTheme = localStorage.getItem("pureutils_theme");
+    } catch {}
+    const sysDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyTheme(savedTheme || (sysDark ? "dark" : "light"));
+    applyLang(urlLang || savedLang || "zh");
+
+    document.getElementById("langToggle").addEventListener("click", () => {
+      applyLang(currentLang === "zh" ? "en" : "zh");
+    });
+    document.getElementById("themeToggle").addEventListener("click", () => {
+      applyTheme(currentTheme === "dark" ? "light" : "dark");
+    });
+
+    const heroImg = document.getElementById("heroPreviewImg");
+    document.querySelectorAll(".stage-tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".stage-tab").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        heroImg.src = btn.getAttribute("data-shot");
+        activeShotKey = btn.getAttribute("data-key");
+        updateStageFooter();
+      });
+    });
+
+    const lb = document.getElementById("lightbox");
+    const lbImg = document.getElementById("lightboxImg");
+    function openLightbox(src) {
+      lbImg.src = src;
+      lb.classList.add("open");
+    }
+    document.getElementById("heroStageWrap").addEventListener("click", () => openLightbox(heroImg.src));
+    document.querySelectorAll(".contact-item").forEach((card) => {
+      card.addEventListener("click", () => openLightbox(card.getAttribute("data-full")));
+    });
+    lb.addEventListener("click", () => lb.classList.remove("open"));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") lb.classList.remove("open");
+    });
+
+    document.getElementById("copyBuildBtn").addEventListener("click", async () => {
+      const txt = document.getElementById("buildSnippet").textContent;
+      const btn = document.getElementById("copyBuildBtn");
+      try {
+        await navigator.clipboard.writeText(txt);
+        btn.textContent = I18N[currentLang].copied_btn;
+        setTimeout(() => { btn.textContent = I18N[currentLang].copy_btn; }, 1400);
+      } catch {}
+    });
+  </script>
+</body>
+</html>

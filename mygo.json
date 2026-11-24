@@ -1,0 +1,12 @@
+{
+  "name": "PureUtils",
+  "slug": "pureutils",
+  "identifier": "com.pureutils.app",
+  "version": "1.0.0",
+  "copyright": "© 2026 PureUtils",
+  "publisher": "PureUtils",
+  "license": "AGPL-3.0-only",
+  "icon": "resources/icon.png",
+  "main": ".",
+  "out": "artifacts/mygo"
+}

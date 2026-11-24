@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  verify-windows:
+    name: Windows Vet, Test & Build
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run go vet
+        shell: pwsh
+        run: go vet -buildvcs=false -unsafeptr=false ./...
+
+      - name: Run full test suite
+        shell: pwsh
+        run: .\build.ps1 test
+
+      - name: Run core-only test suite (-tags nofreeimage)
+        shell: pwsh
+        run: .\build.ps1 test -CoreOnly
+
+      - name: Build release binaries
+        shell: pwsh
+        run: |
+          .\build.ps1 build
+          .\build.ps1 build -CoreOnly
