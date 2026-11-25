@@ -272,7 +272,7 @@ echo "=== [10/10] Building libplacebo $LIBPLACEBO_VER & libmpv $MPV_VER ==="
 rm -rf "$SRC_DIR/libplacebo"
 git clone --depth=1 --branch "$LIBPLACEBO_VER" https://github.com/haasn/libplacebo.git "$SRC_DIR/libplacebo"
 git -C "$SRC_DIR/libplacebo" submodule update --init \
-  3rdparty/glad 3rdparty/jinja 3rdparty/markupsafe 3rdparty/fast_float
+  3rdparty/glad 3rdparty/jinja 3rdparty/markupsafe 3rdparty/fast_float 3rdparty/Vulkan-Headers
 
 meson setup "$BUILD_DIR/libplacebo" "$SRC_DIR/libplacebo" \
   --cross-file "$CROSS_FILE" \
