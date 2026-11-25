@@ -195,11 +195,8 @@ meson setup "$BUILD_DIR/libass" "$SRC_DIR/libass" \
   -Dcoretext=disabled \
   -Dlibunibreak=enabled \
   -Dasm=enabled \
-  -Dtest=disabled \
-  -Dcompare=disabled \
-  -Dprofile=disabled \
-  -Dfuzz=disabled \
-  -Dcheckasm=disabled
+  -Dtest=false \
+  -Dprofile=false
 ninja -C "$BUILD_DIR/libass" -j"$NPROC"
 ninja -C "$BUILD_DIR/libass" install
 
@@ -214,7 +211,8 @@ meson setup "$BUILD_DIR/dav1d" "$SRC_DIR/dav1d" \
   -Denable_tests=false \
   -Denable_examples=false \
   -Denable_docs=false \
-  -Denable_asm=true
+  -Denable_asm=true \
+  -Dxxhash_muxer=disabled
 ninja -C "$BUILD_DIR/dav1d" -j"$NPROC"
 ninja -C "$BUILD_DIR/dav1d" install
 
