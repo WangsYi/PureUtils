@@ -43,13 +43,13 @@ ar = '${HOST}-ar'
 strip = '${HOST}-strip'
 windres = '${HOST}-windres'
 dlltool = '${HOST}-dlltool'
-pkgconfig = 'pkg-config'
+pkg-config = 'pkg-config'
 
 [built-in options]
 c_args = ['-Os', '-ffunction-sections', '-fdata-sections', '-DNDEBUG', '-I${PREFIX}/include']
 cpp_args = ['-Os', '-ffunction-sections', '-fdata-sections', '-DNDEBUG', '-I${PREFIX}/include']
-c_link_args = ['-L${PREFIX}/lib', '-Wl,--gc-sections', '-static-libgcc', '-static-libstdc++']
-cpp_link_args = ['-L${PREFIX}/lib', '-Wl,--gc-sections', '-static-libgcc', '-static-libstdc++']
+c_link_args = ['-L${PREFIX}/lib', '-Wl,--gc-sections', '-Wl,--exclude-libs,ALL', '-static-libgcc', '-static-libstdc++']
+cpp_link_args = ['-L${PREFIX}/lib', '-Wl,--gc-sections', '-Wl,--exclude-libs,ALL', '-static-libgcc', '-static-libstdc++']
 
 [properties]
 pkg_config_libdir = ['${PREFIX}/lib/pkgconfig', '${PREFIX}/share/pkgconfig']
@@ -304,6 +304,30 @@ fi
 # Ensure no accidental shared import libraries exist in our staging prefix
 find "$PREFIX/lib" -name "*.dll.a" -print -delete || true
 
+STDCPP_A="$("${HOST}-g++" -print-file-name=libstdc++.a)"
+ATOMIC_A="$("${HOST}-gcc" -print-file-name=libatomic.a)"
+if [[ ! -f "$STDCPP_A" || ! -f "$ATOMIC_A" ]]; then
+  echo "ERROR: Missing static runtime archives: STDCPP_A=$STDCPP_A ATOMIC_A=$ATOMIC_A" >&2
+  exit 1
+fi
+cp -f "$STDCPP_A" "$PREFIX/lib/libstdc++.a"
+cp -f "$ATOMIC_A" "$PREFIX/lib/libatomic.a"
+
+for pc in "$PREFIX"/lib/pkgconfig/*.pc; do
+  sed -i -E "s|[^[:space:]]*libatomic\.dll\.a|${PREFIX}/lib/libatomic.a|g" "$pc"
+  sed -i -E "s|[^[:space:]]*libstdc\+\+\.dll\.a|${PREFIX}/lib/libstdc++.a|g" "$pc"
+  sed -i -E "s|(^|[[:space:]])-latomic([[:space:]]|$)|\\1${PREFIX}/lib/libatomic.a\\2|g" "$pc"
+  sed -i -E "s|(^|[[:space:]])-lstdc\+\+([[:space:]]|$)|\\1${PREFIX}/lib/libstdc++.a\\2|g" "$pc"
+done
+
+if grep -q '^Libs\.private:' "$PREFIX/lib/pkgconfig/libplacebo.pc"; then
+  if ! grep -q 'libstdc++\.a' "$PREFIX/lib/pkgconfig/libplacebo.pc"; then
+    sed -i "s|^Libs\.private:|Libs.private: ${PREFIX}/lib/libstdc++.a |" "$PREFIX/lib/pkgconfig/libplacebo.pc"
+  fi
+else
+  echo "Libs.private: ${PREFIX}/lib/libstdc++.a" >> "$PREFIX/lib/pkgconfig/libplacebo.pc"
+fi
+
 fetch_tar "mpv" "https://github.com/mpv-player/mpv/archive/refs/tags/${MPV_VER}.tar.gz"
 meson setup "$BUILD_DIR/mpv" "$SRC_DIR/mpv" \
   --cross-file "$CROSS_FILE" \
@@ -381,6 +405,9 @@ meson setup "$BUILD_DIR/mpv" "$SRC_DIR/mpv" \
   -Dmanpage-build=disabled \
   -Dhtml-build=disabled \
   -Dpdf-build=disabled
+sed -i -E "s|[^[:space:]]*libatomic\.dll\.a|${PREFIX}/lib/libatomic.a|g" "$BUILD_DIR/mpv/build.ninja"
+sed -i -E "s|[^[:space:]]*libstdc\+\+\.dll\.a|${PREFIX}/lib/libstdc++.a|g" "$BUILD_DIR/mpv/build.ninja"
+sed -i -E "s|(^|[[:space:]])-latomic([[:space:]]|$)|\\1${PREFIX}/lib/libatomic.a\\2|g" "$BUILD_DIR/mpv/build.ninja"
 ninja -C "$BUILD_DIR/mpv" -j"$NPROC"
 ninja -C "$BUILD_DIR/mpv" install
 
@@ -400,7 +427,7 @@ echo "$IMPORTS"
 while IFS= read -r dll; do
   [[ -z "$dll" ]] && continue
   case "$dll" in
-    advapi32.dll|api-ms-win-*.dll|avrt.dll|bcrypt.dll|cfgmgr32.dll|comctl32.dll|crypt32.dll|d3d11.dll|d3d9.dll|dwmapi.dll|dxgi.dll|dxva2.dll|dwrite.dll|gdi32.dll|imm32.dll|kernel32.dll|ksuser.dll|mfplat.dll|msvcrt.dll|ntdll.dll|ole32.dll|oleaut32.dll|opengl32.dll|powrprof.dll|propsys.dll|rpcrt4.dll|secur32.dll|setupapi.dll|shell32.dll|shlwapi.dll|ucrtbase.dll|user32.dll|uxtheme.dll|version.dll|winmm.dll|ws2_32.dll)
+    advapi32.dll|api-ms-win-*.dll|avrt.dll|bcrypt.dll|cfgmgr32.dll|comctl32.dll|comdlg32.dll|crypt32.dll|d3d11.dll|d3d9.dll|dwmapi.dll|dxgi.dll|dxva2.dll|dwrite.dll|gdi32.dll|imm32.dll|kernel32.dll|ksuser.dll|mfplat.dll|msvcrt.dll|ntdll.dll|ole32.dll|oleaut32.dll|opengl32.dll|pathcch.dll|powrprof.dll|propsys.dll|rpcrt4.dll|secur32.dll|setupapi.dll|shcore.dll|shell32.dll|shlwapi.dll|ucrtbase.dll|user32.dll|uxtheme.dll|version.dll|winmm.dll|winspool.drv|ws2_32.dll)
       ;;
     *)
       echo "ERROR: Non-system DLL dependency detected: $dll" >&2
