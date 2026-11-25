@@ -12,6 +12,7 @@ type Palette struct {
 	BgElevated    ui.Color
 	BgInset       ui.Color
 	CardBg        ui.Color
+	ControlBg     ui.Color
 	CardHover     ui.Color
 	CardActive    ui.Color
 	Border        ui.Color
@@ -81,16 +82,17 @@ func PaletteFor(dark bool) Palette {
 	if dark {
 		return Palette{
 			Dark:          true,
-			Bg:            ui.Hex("#0F1117"),
-			SidebarBg:     ui.Hex("#141720"),
-			BgElevated:    ui.Hex("#181C27"),
+			Bg:            ui.Hex("#0E1015"),
+			SidebarBg:     ui.Hex("#12151C"),
+			BgElevated:    ui.Hex("#151821"),
 			BgInset:       ui.Hex("#0B0D12"),
-			CardBg:        ui.Hex("#1A1E28"),
-			CardHover:     ui.Hex("#222736"),
-			CardActive:    ui.Hex("#2A3142"),
-			Border:        ui.Hex("#262C3A"),
-			BorderStrong:  ui.Hex("#374054"),
-			Specular:      ui.RGBA(255, 255, 255, 0.08),
+			CardBg:        ui.Hex("#171B24"),
+			ControlBg:     ui.Hex("#202533"),
+			CardHover:     ui.Hex("#262C3C"),
+			CardActive:    ui.Hex("#2E3548"),
+			Border:        ui.RGBA(255, 255, 255, 0.05),
+			BorderStrong:  ui.RGBA(255, 255, 255, 0.10),
+			Specular:      ui.RGBA(255, 255, 255, 0.06),
 			Text:          ui.Hex("#F3F4F6"),
 			TextSecondary: ui.Hex("#C4C9D4"),
 			TextMuted:     ui.Hex("#8B92A5"),
@@ -101,7 +103,7 @@ func PaletteFor(dark bool) Palette {
 			AccentPressed: ui.Hex("#2563EB"),
 			AccentText:    ui.Hex("#FFFFFF"),
 			AccentSoft:    ui.RGBA(59, 130, 246, 0.16),
-			AccentBorder:  ui.RGBA(96, 165, 250, 0.44),
+			AccentBorder:  ui.RGBA(96, 165, 250, 0.24),
 
 			Success:     ui.Hex("#22C55E"),
 			SuccessSoft: ui.RGBA(34, 197, 94, 0.16),
@@ -133,15 +135,16 @@ func PaletteFor(dark bool) Palette {
 
 	return Palette{
 		Dark:          false,
-		Bg:            ui.Hex("#F5F7FB"),
-		SidebarBg:     ui.Hex("#EEF1F6"),
+		Bg:            ui.Hex("#F3F5F9"),
+		SidebarBg:     ui.Hex("#ECEFF4"),
 		BgElevated:    ui.Hex("#FFFFFF"),
-		BgInset:       ui.Hex("#EBF0F7"),
+		BgInset:       ui.Hex("#E9EDF4"),
 		CardBg:        ui.Hex("#FFFFFF"),
-		CardHover:     ui.Hex("#F2F5FA"),
-		CardActive:    ui.Hex("#E5ECF7"),
-		Border:        ui.Hex("#DFE4EE"),
-		BorderStrong:  ui.Hex("#C5CEDE"),
+		ControlBg:     ui.Hex("#EEF1F6"),
+		CardHover:     ui.Hex("#E4E9F2"),
+		CardActive:    ui.Hex("#DAE1EE"),
+		Border:        ui.RGBA(15, 23, 42, 0.055),
+		BorderStrong:  ui.RGBA(15, 23, 42, 0.11),
 		Specular:      ui.RGBA(255, 255, 255, 0.85),
 		Text:          ui.Hex("#111827"),
 		TextSecondary: ui.Hex("#374151"),
@@ -199,7 +202,7 @@ func ApplyTheme(c *ui.Context) Palette {
 	t := *base
 	t.Dark = dark
 	t.Background = pal.Bg
-	t.Surface = pal.CardBg
+	t.Surface = pal.ControlBg
 	t.SurfaceHover = pal.CardHover
 	t.SurfacePressed = pal.CardActive
 	t.Border = pal.Border
@@ -213,7 +216,7 @@ func ApplyTheme(c *ui.Context) Palette {
 	t.Warning = pal.Warning
 	t.Success = pal.Success
 	t.Selection = pal.AccentSoft
-	t.Focus = pal.Accent.Alpha(0.6)
+	t.Focus = pal.Accent.Alpha(0.32)
 	t.Radius = 8
 	t.Spacing = 4
 	t.ScrollbarWidth = 6

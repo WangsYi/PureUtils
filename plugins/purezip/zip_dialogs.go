@@ -341,26 +341,26 @@ func (d *compressDialog) view(c *ui.Context) {
 					ui.Row(c).Gap(8).Children(func() {
 						ui.Button(c, "添加文件…").OnClick(func() {
 							d.plugin.pickFiles(d.win, "选择要压缩的文件", false, true, nil, d.addSources)
-						})
+						}).Border(0, ui.Transparent)
 						ui.Button(c, "添加文件夹…").OnClick(func() {
 							d.plugin.pickFiles(d.win, "选择要压缩的文件夹", true, true, nil, d.addSources)
-						})
+						}).Border(0, ui.Transparent)
 						if len(d.sources) > 0 {
-							ui.Button(c, "清空").OnClick(func() { d.sources = nil })
+							ui.Button(c, "清空").OnClick(func() { d.sources = nil }).Border(0, ui.Transparent)
 						}
 					})
 				})
 				pureui.SettingCard(c, "压缩文件", "", pal, func() {
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.TextInput(c, &d.dest).Grow(1).Placeholder("压缩文件保存路径").Label("压缩文件名")
-						ui.Button(c, "浏览…").OnClick(d.browse)
+						ui.TextInput(c, &d.dest).Grow(1).Placeholder("压缩文件保存路径").Label("压缩文件名").Border(0, ui.Transparent).FocusRing(false)
+						ui.Button(c, "浏览…").OnClick(d.browse).Border(0, ui.Transparent)
 					})
 					pureui.SettingRow(c, "格式", "ZIP 兼容性最好；7Z 压缩率更高；TAR 系列适合 Linux", pal, func() {
-						ui.Select(c, &d.format, zipFormatLabels()).Width(130).Label("压缩格式")
+						ui.Select(c, &d.format, zipFormatLabels()).Width(130).Label("压缩格式").Border(0, ui.Transparent)
 					})
 					ui.Divider(c)
 					pureui.SettingRow(c, "压缩级别", "级别越高文件越小、速度越慢", pal, func() {
-						ui.Segmented(c, &d.levelIdx, zipLevelLabels...).Label("压缩级别")
+						ui.Segmented(c, &d.levelIdx, zipLevelLabels...).Label("压缩级别").Border(0, ui.Transparent)
 					})
 				})
 				pureui.SettingCard(c, "加密", "", pal, func() {
@@ -375,6 +375,8 @@ func (d *compressDialog) view(c *ui.Context) {
 							p1.Password()
 							p2.Password()
 						}
+						p1.Border(0, ui.Transparent).FocusRing(false)
+						p2.Border(0, ui.Transparent).FocusRing(false)
 						icon := pureui.IconEye
 						if d.showPw {
 							icon = iconEyeOff
@@ -385,7 +387,7 @@ func (d *compressDialog) view(c *ui.Context) {
 					})
 					if f == archive.FormatZip {
 						pureui.SettingRow(c, "加密方式", "AES-256 更安全；ZipCrypto 兼容 Windows 自带解压", pal, func() {
-							ui.Segmented(c, &d.encIdx, "AES-256", "ZipCrypto").Label("加密方式")
+							ui.Segmented(c, &d.encIdx, "AES-256", "ZipCrypto").Label("加密方式").Border(0, ui.Transparent)
 						})
 					}
 					if f == archive.Format7z {
@@ -410,7 +412,7 @@ func (d *compressDialog) view(c *ui.Context) {
 			})
 		})
 		dialogFooter(c, pal, "Ctrl+Enter 开始压缩", d.errText, func() {
-			ui.Button(c, "取消").OnClick(d.close)
+			ui.Button(c, "取消").OnClick(d.close).Border(0, ui.Transparent)
 			if ui.PrimaryButton(c, "开始压缩").Clicked() && d.start() {
 				d.close()
 			}
@@ -556,20 +558,20 @@ func (d *extractDialog) view(c *ui.Context) {
 			ui.Column(c).Padding(14, 20).Gap(12).Children(func() {
 				pureui.SettingCard(c, "目标文件夹", d.preview(), pal, func() {
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.TextInput(c, &d.dest).Grow(1).Placeholder("解压到…").Label("解压目标文件夹")
+						ui.TextInput(c, &d.dest).Grow(1).Placeholder("解压到…").Label("解压目标文件夹").Border(0, ui.Transparent).FocusRing(false)
 						ui.Button(c, "浏览…").OnClick(func() {
 							d.plugin.pickFiles(d.win, "选择解压目标文件夹", true, false, nil, func(p []string) { d.dest = p[0] })
-						})
+						}).Border(0, ui.Transparent)
 					})
 					if len(d.paths) == 0 {
 						pureui.SettingRow(c, "解压方式", "", pal, func() {
-							ui.Segmented(c, &d.modeIdx, "智能解压", "新建同名文件夹", "直接解压").Label("解压方式")
+							ui.Segmented(c, &d.modeIdx, "智能解压", "新建同名文件夹", "直接解压").Label("解压方式").Border(0, ui.Transparent)
 						})
 					}
 				})
 				pureui.SettingCard(c, "选项", "", pal, func() {
 					pureui.SettingRow(c, "文件已存在时", "", pal, func() {
-						ui.Segmented(c, &d.overIdx, zipOverwriteLabels...).Label("覆盖方式")
+						ui.Segmented(c, &d.overIdx, zipOverwriteLabels...).Label("覆盖方式").Border(0, ui.Transparent)
 					})
 					ui.Divider(c)
 					pureui.SettingRow(c, "完成后打开文件夹", "", pal, func() {
@@ -585,7 +587,7 @@ func (d *extractDialog) view(c *ui.Context) {
 			})
 		})
 		dialogFooter(c, pal, "Enter 开始解压", d.errText, func() {
-			ui.Button(c, "取消").OnClick(d.close)
+			ui.Button(c, "取消").OnClick(d.close).Border(0, ui.Transparent)
 			if ui.PrimaryButton(c, "解压").Clicked() && d.start() {
 				d.close()
 			}

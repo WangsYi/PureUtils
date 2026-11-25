@@ -105,6 +105,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 		ui.Divider(c)
 		pureui.SettingRow(c, "界面语言", "PureImage 看图窗口工具栏与菜单的显示语言", pal, func() {
 			seg := ui.Segmented(c, &v.langIdx, "简体中文", "English", "跟随系统").Label("看图界面语言")
+			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
 				v.draft.Language = viewerLangFromIndex(v.langIdx)
 			}
@@ -114,6 +115,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 	pureui.SettingCard(c, "性能与幻灯片", "配置幻灯片播放速度、相邻图片预读数量及原生 JPEG 解码状态", pal, func() {
 		pureui.SettingRow(c, "幻灯片间隔", "按 S 开启幻灯片播放时每张图片的停留时间", pal, func() {
 			seg := ui.Segmented(c, &v.slideIdx, "2 秒", "4 秒", "6 秒", "10 秒").Label("看图幻灯片间隔")
+			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
 				v.draft.SlideshowSeconds = viewerSlideSecondsFromIndex(v.slideIdx)
 			}
@@ -121,6 +123,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 		ui.Divider(c)
 		pureui.SettingRow(c, "预读数量", "后台提前解码后续图片，翻页更顺滑但会占用适量内存", pal, func() {
 			seg := ui.Segmented(c, &v.preloadIdx, "关闭", "1 张", "2 张", "3 张").Label("看图预读数量")
+			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
 				v.draft.PreloadCount = v.preloadIdx
 			}
@@ -147,7 +150,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 					if !v.headless() {
 						v.plugin.Open("")
 					}
-				})
+				}).Border(0, ui.Transparent)
 			})
 		})
 	})
@@ -171,7 +174,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 						c.Toast("已加入打开方式列表")
 					}
 				}
-			})
+			}).Border(0, ui.Transparent)
 			ui.Button(c, "移除文件关联").OnClick(func() {
 				if !v.headless() {
 					if err := UnregisterFileAssoc(); err != nil {
@@ -182,7 +185,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 						c.Toast("已移除文件关联")
 					}
 				}
-			})
+			}).Border(0, ui.Transparent)
 			ui.Button(c, "打开系统默认应用设置").OnClick(func() {
 				if !v.headless() {
 					if !FileAssocRegistered() {
@@ -192,7 +195,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 					}
 					_ = mygo.Shell.OpenExternal(DefaultAppsURI)
 				}
-			})
+			}).Border(0, ui.Transparent)
 		})
 		if v.status != "" {
 			ui.Text(c, v.status).FontSize(11.5).TextColor(pal.TextMuted)

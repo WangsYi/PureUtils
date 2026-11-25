@@ -577,15 +577,12 @@ func (l *launcherView) view(c *ui.Context) {
 
 	ui.Column(c).Fill().Radius(14).Background(pal.BgElevated).
 		Border(1, pal.BorderStrong).InsetShadow(0, 1, 0, 0, pal.Specular).Clip().Children(func() {
-		// Search header
-		ui.Row(c).Height(56).Padding(10, 14).Gap(10).AlignItems(ui.Center).
-			Gradient(pal.BgElevated, pal.SidebarBg, 180).DragWindow().Children(func() {
-			ui.Box(c).Size(28, 28).Radius(8).Gradient(pal.Accent, pal.AccentEnd, 135).
-				Center().Shrink(0).Children(func() {
-				ui.Icon(c, pureui.IconSearch).Size(14, 14).TextColor(pal.AccentText)
-			})
+		// Seamless command search header
+		ui.Row(c).Height(54).Padding(10, 14).Gap(10).AlignItems(ui.Center).
+			Background(pal.BgElevated).DragWindow().Children(func() {
 			field := ui.SearchField(c, &l.query).
 				Placeholder("搜索插件功能、剪贴板历史，或直接回车执行…").
+				Background(ui.Transparent).Border(0, ui.Transparent).FocusRing(false).
 				Grow(1).MinWidth(120).Bind(&l.search)
 			if l.needFocus {
 				l.search.Focus()
@@ -660,7 +657,7 @@ func (l *launcherView) view(c *ui.Context) {
 		ui.Row(c).Height(32).Padding(0, 14).Gap(8).AlignItems(ui.Center).Background(pal.SidebarBg).Children(func() {
 			ui.Text(c, "↑↓ 选择 · Enter 执行 · Ctrl+1–9 快捷执行 · Esc 关闭").
 				FontSize(10.5).SingleLine().TextColor(pal.TextMuted).Grow(1)
-			pureui.PillBadgeBordered(c, fmt.Sprintf("%d 项", len(l.items)), pal.TextSecondary, pal.CardBg, pal.Border)
+			pureui.PillBadge(c, fmt.Sprintf("%d 项", len(l.items)), pal.TextMuted, pal.ControlBg)
 		})
 	})
 }
@@ -675,20 +672,20 @@ func (l *launcherView) contextRibbon(c *ui.Context, pal pureui.Palette) {
 			} else {
 				label = "已选中 · " + label
 			}
-			pureui.PillBadgeBordered(c, label, pal.KindFiles, pal.KindFilesSoft, pal.Border)
+			pureui.PillBadge(c, label, pal.KindFiles, pal.KindFilesSoft)
 		}
 		if l.ctx.Clipboard != nil && !l.ctx.Clipboard.IsEmpty() {
 			switch l.ctx.Clipboard.PrimaryKind() {
 			case core.KindImage:
-				pureui.PillBadgeBordered(c, "剪贴板图片", pal.KindImage, pal.KindImageSoft, pal.Border)
+				pureui.PillBadge(c, "剪贴板图片", pal.KindImage, pal.KindImageSoft)
 			case core.KindFiles:
-				pureui.PillBadgeBordered(c, "剪贴板文件", pal.KindFiles, pal.KindFilesSoft, pal.Border)
+				pureui.PillBadge(c, "剪贴板文件", pal.KindFiles, pal.KindFilesSoft)
 			default:
-				pureui.PillBadgeBordered(c, "剪贴板文本", pal.KindText, pal.KindTextSoft, pal.Border)
+				pureui.PillBadge(c, "剪贴板文本", pal.KindText, pal.KindTextSoft)
 			}
 		}
 		ui.Spacer(c)
-		ui.Button(c, "清除上下文").OnClick(func() { l.clearContext() })
+		ui.Button(c, "清除上下文").Background(pal.ControlBg).Border(0, ui.Transparent).OnClick(func() { l.clearContext() })
 	})
 }
 
@@ -702,10 +699,8 @@ func (l *launcherView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg 
 	bg := ui.Transparent
 	if selected {
 		bg = selectedBg
-		r.Border(1, pal.AccentBorder)
 	} else if r.Hovered() {
-		bg = pal.CardBg
-		r.Border(1, pal.Border)
+		bg = pal.CardHover
 	}
 	r.Background(bg)
 	if r.Clicked() {
@@ -714,7 +709,7 @@ func (l *launcherView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg 
 		return
 	}
 
-	iconBg := pal.CardBg
+	iconBg := pal.ControlBg
 	iconFg := pal.TextSecondary
 	if selected || item.IsMatch {
 		iconBg = pal.AccentSoft
@@ -726,7 +721,7 @@ func (l *launcherView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg 
 	}
 
 	r.Children(func() {
-		ui.Box(c).Size(30, 30).Radius(8).Background(iconBg).Border(1, pal.Border).Center().Shrink(0).Children(func() {
+		ui.Box(c).Size(30, 30).Radius(8).Background(iconBg).Center().Shrink(0).Children(func() {
 			ui.Icon(c, icon).Size(15, 15).TextColor(iconFg)
 		})
 		ui.Column(c).Grow(1).MinWidth(0).Gap(1).Children(func() {
@@ -743,7 +738,7 @@ func (l *launcherView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg 
 			if item.IsMatch {
 				pureui.PillBadge(c, item.Badge, pal.Accent, pal.AccentSoft)
 			} else {
-				pureui.PillBadgeBordered(c, item.Badge, pal.TextSecondary, pal.CardBg, pal.Border)
+				pureui.PillBadge(c, item.Badge, pal.TextSecondary, pal.ControlBg)
 			}
 		}
 		if item.Shortcut != "" {

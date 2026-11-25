@@ -126,25 +126,25 @@ func (v *settingsTabView) ResetDefaults() {
 func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 	pureui.SettingCard(c, "默认压缩设置", "新建压缩包与快速右键压缩的默认格式、级别及加密方式", pal, func() {
 		pureui.SettingRow(c, "默认压缩格式", "ZIP 兼容性最好；7Z 压缩率更高；TAR 系列适合 Linux", pal, func() {
-			ui.Select(c, &v.zipFormat, zipFormatLabels()).Width(130).Label("默认压缩格式")
+			ui.Select(c, &v.zipFormat, zipFormatLabels()).Width(130).Label("默认压缩格式").Border(0, ui.Transparent)
 		})
 		ui.Divider(c)
 		pureui.SettingRow(c, "默认压缩级别", "级别越高体积越小但耗时更久", pal, func() {
-			ui.Segmented(c, &v.zipLevelIdx, zipLevelLabels...).Label("默认压缩级别")
+			ui.Segmented(c, &v.zipLevelIdx, zipLevelLabels...).Label("默认压缩级别").Border(0, ui.Transparent)
 		})
 		ui.Divider(c)
 		pureui.SettingRow(c, "ZIP 默认加密方式", "AES-256 安全性更高；ZipCrypto 兼容 Windows 自带解压", pal, func() {
-			ui.Segmented(c, &v.zipEncIdx, "AES-256", "ZipCrypto").Label("ZIP 默认加密")
+			ui.Segmented(c, &v.zipEncIdx, "AES-256", "ZipCrypto").Label("ZIP 默认加密").Border(0, ui.Transparent)
 		})
 	})
 
 	pureui.SettingCard(c, "解压与浏览", "配置冲突处理策略、非 UTF-8 压缩包文件名编码与浏览行为", pal, func() {
 		pureui.SettingRow(c, "文件冲突处理", "解压目标已存在同名文件时的默认动作", pal, func() {
-			ui.Segmented(c, &v.zipOverIdx, zipOverwriteLabels...).Label("默认覆盖方式")
+			ui.Segmented(c, &v.zipOverIdx, zipOverwriteLabels...).Label("默认覆盖方式").Border(0, ui.Transparent)
 		})
 		ui.Divider(c)
 		pureui.SettingRow(c, "默认文件名编码", "打开无 UTF-8 标记的旧版 ZIP 时使用的编码", pal, func() {
-			ui.Select(c, &v.zipEncLabel, zipEncodingLabels).Width(170).Label("默认文件名编码")
+			ui.Select(c, &v.zipEncLabel, zipEncodingLabels).Width(170).Label("默认文件名编码").Border(0, ui.Transparent)
 		})
 		ui.Divider(c)
 		pureui.SettingRow(c, "解压后打开文件夹", "快速解压或对话框解压完成后在资源管理器中显示结果", pal, func() {
@@ -160,7 +160,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 				if !v.headless() {
 					v.plugin.OpenZipManager("")
 				}
-			})
+			}).Border(0, ui.Transparent)
 		})
 	})
 
@@ -183,7 +183,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 						c.Toast("已注册右键菜单")
 					}
 				}
-			})
+			}).Border(0, ui.Transparent)
 			ui.Button(c, "移除右键菜单").OnClick(func() {
 				if !v.headless() {
 					if err := zipshell.UnregisterContextMenu(); err != nil {
@@ -194,7 +194,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 						c.Toast("已移除右键菜单")
 					}
 				}
-			})
+			}).Border(0, ui.Transparent)
 		})
 		ui.Divider(c)
 		pureui.SettingRow(c, "压缩文件关联状态", "将 zip、7z、rar、tar 等格式加入系统“打开方式”与默认应用", pal, func() {
@@ -215,7 +215,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 						c.Toast("已加入打开方式列表")
 					}
 				}
-			})
+			}).Border(0, ui.Transparent)
 			ui.Button(c, "移除文件关联").OnClick(func() {
 				if !v.headless() {
 					if err := zipshell.UnregisterFileAssoc(); err != nil {
@@ -226,7 +226,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 						c.Toast("已移除压缩文件关联")
 					}
 				}
-			})
+			}).Border(0, ui.Transparent)
 			ui.Button(c, "打开系统默认应用设置").OnClick(func() {
 				if !v.headless() {
 					if !zipshell.FileAssocRegistered() {
@@ -236,7 +236,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 					}
 					_ = mygo.Shell.OpenExternal(zipshell.DefaultAppsURI)
 				}
-			})
+			}).Border(0, ui.Transparent)
 		})
 		if v.status != "" {
 			ui.Text(c, v.status).FontSize(11.5).TextColor(pal.TextMuted)

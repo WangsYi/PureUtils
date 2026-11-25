@@ -1262,7 +1262,7 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 	dock.Children(func() {
 		// Primary dock row: 9 tools rail | Undo/Redo/Reset rail | Actions
 		ui.Row(c).Gap(6).Wrap().AlignItems(ui.Center).Children(func() {
-			ui.Row(c).Padding(3).Gap(2).Radius(10).Background(pal.HudWell).Border(1, ui.RGBA(255, 255, 255, 0.06)).Children(func() {
+			ui.Row(c).Padding(3).Gap(2).Radius(10).Background(pal.HudWell).Children(func() {
 				for i, tool := range annotate.Tools {
 					tip := fmt.Sprintf("%s (%d)", annotate.ToolLabel(tool), i+1)
 					btn := pureui.HudIconButton(c, toolIcon(tool), annotate.ToolLabel(tool), tip, s.tool == tool, false, false, pal)
@@ -1276,7 +1276,7 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 
 			ui.Box(c).Width(1).Height(20).Background(pal.HudDivider)
 
-			ui.Row(c).Padding(3).Gap(2).Radius(10).Background(pal.HudWell).Border(1, ui.RGBA(255, 255, 255, 0.06)).Children(func() {
+			ui.Row(c).Padding(3).Gap(2).Radius(10).Background(pal.HudWell).Children(func() {
 				canUndo, canRedo := false, false
 				if s.doc != nil {
 					canUndo, canRedo = s.doc.CanUndo(), s.doc.CanRedo()
@@ -1317,7 +1317,7 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 
 		// Contextual properties sub-row
 		ui.Row(c).FillWidth().Gap(6).Wrap().AlignItems(ui.Center).Children(func() {
-			ui.Row(c).Padding(3, 6).Gap(5).Radius(999).Background(pal.HudWell).Border(1, ui.RGBA(255, 255, 255, 0.06)).AlignItems(ui.Center).Children(func() {
+			ui.Row(c).Padding(3, 6).Gap(5).Radius(999).Background(pal.HudWell).AlignItems(ui.Center).Children(func() {
 				for i, col := range core.Palette {
 					colUI := ui.RGBA(col.R(), col.G(), col.B(), float32(col.A())/255)
 					swatch := ui.ButtonBase(c).Size(18, 18).Radius(9).Label(fmt.Sprintf("颜色 %d", i+1)).
@@ -1334,13 +1334,13 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 				}
 			})
 
-			ui.Row(c).Padding(2, 4).Gap(2).Radius(8).Background(pal.HudWell).Border(1, ui.RGBA(255, 255, 255, 0.06)).AlignItems(ui.Center).Children(func() {
+			ui.Row(c).Padding(2, 4).Gap(2).Radius(8).Background(pal.HudWell).AlignItems(ui.Center).Children(func() {
 				for _, th := range core.Thicknesses {
 					active := s.thickness == th
 					btn := ui.ButtonBase(c).Size(24, 24).Radius(6).Center().Label(fmt.Sprintf("粗细 %.0f", th)).
 						Tooltip(fmt.Sprintf("线宽 %.0f px", th))
 					if active {
-						btn.Background(pal.AccentSoft).Border(1, pal.AccentBorder)
+						btn.Background(pal.AccentSoft)
 					} else if btn.Hovered() {
 						btn.Background(pal.HudHover)
 					}
@@ -1421,26 +1421,21 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 func (s *captureSession) actionPill(c *ui.Context, icon *ui.SVG, label, tooltip string, danger bool, pal pureui.Palette, fn func()) {
 	b := ui.ButtonBase(c).Height(28).Padding(0, 8).Radius(8).Gap(4).AlignItems(ui.Center).Label(label).Tooltip(tooltip)
 	bg := pal.HudWell
-	border := ui.RGBA(255, 255, 255, 0.10)
 	fg := pal.HudText
 	if danger {
 		if b.Pressed() {
 			bg = pal.Danger.Alpha(0.30)
-			border = pal.Danger.Alpha(0.45)
 			fg = ui.RGB(254, 180, 180)
 		} else if b.Hovered() {
 			bg = pal.Danger.Alpha(0.22)
-			border = pal.Danger.Alpha(0.35)
 			fg = ui.RGB(254, 165, 165)
 		}
 	} else if b.Pressed() {
 		bg = ui.RGBA(255, 255, 255, 0.18)
-		border = ui.RGBA(255, 255, 255, 0.22)
 	} else if b.Hovered() {
 		bg = ui.RGBA(255, 255, 255, 0.14)
-		border = ui.RGBA(255, 255, 255, 0.18)
 	}
-	b.Background(bg).Border(1, border)
+	b.Background(bg)
 	b.Children(func() {
 		if icon != nil {
 			ui.Icon(c, icon).Size(12, 12).TextColor(fg)
@@ -1453,17 +1448,14 @@ func (s *captureSession) actionPill(c *ui.Context, icon *ui.SVG, label, tooltip 
 func (s *captureSession) toggleChip(c *ui.Context, icon *ui.SVG, label string, on bool, pal pureui.Palette, fn func()) {
 	b := ui.ButtonBase(c).Padding(4, 8).Radius(7).Gap(4).AlignItems(ui.Center).Label(label)
 	bg := pal.HudWell
-	border := ui.RGBA(255, 255, 255, 0.10)
 	fg := pal.HudText
 	if on {
 		bg = pal.AccentSoft
 		fg = pal.AccentHover
-		border = pal.AccentBorder
 	} else if b.Hovered() {
 		bg = pal.HudHover
-		border = ui.RGBA(255, 255, 255, 0.18)
 	}
-	b.Background(bg).Border(1, border)
+	b.Background(bg)
 	b.Children(func() {
 		if icon != nil {
 			ui.Icon(c, icon).Size(12, 12).TextColor(fg)
@@ -1476,17 +1468,14 @@ func (s *captureSession) toggleChip(c *ui.Context, icon *ui.SVG, label string, o
 func (s *captureSession) optionChip(c *ui.Context, label string, on bool, pal pureui.Palette, fn func()) {
 	b := ui.ButtonBase(c).Padding(3, 7).Radius(7).Center().Label(label)
 	bg := pal.HudWell
-	border := ui.RGBA(255, 255, 255, 0.10)
 	fg := pal.HudText
 	if on {
 		bg = pal.Accent
-		border = pal.AccentBorder
 		fg = pal.AccentText
 	} else if b.Hovered() {
 		bg = pal.HudHover
-		border = ui.RGBA(255, 255, 255, 0.18)
 	}
-	b.Background(bg).Border(1, border)
+	b.Background(bg)
 	b.Children(func() {
 		ui.Text(c, label).FontSize(10).FontWeight(600).SingleLine().TextColor(fg)
 	})

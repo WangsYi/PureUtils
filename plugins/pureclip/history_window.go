@@ -722,7 +722,8 @@ func (h *historyView) searchHeader(c *ui.Context, pal pureui.Palette) {
 		placeholder = "搜索剪贴板历史…"
 	}
 	ui.Row(c).Height(height).Padding(8, 12).Gap(7).AlignItems(ui.Center).Background(pal.BgElevated).DragWindow().Children(func() {
-		field := ui.SearchField(c, &h.query).Placeholder(placeholder).Grow(1).MinWidth(120).Bind(&h.search)
+		field := ui.SearchField(c, &h.query).Placeholder(placeholder).Grow(1).MinWidth(120).Bind(&h.search).
+		Background(pal.ControlBg).Border(0, ui.Transparent).FocusRing(false)
 		if h.focusSearch {
 			h.search.Focus()
 			h.focusSearch = false
@@ -884,7 +885,7 @@ func (h *historyView) emptyBody(c *ui.Context, pal pureui.Palette) {
 		}
 		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).AlignItems(ui.Center).Children(func() {
 			for _, tip := range tips {
-				ui.Row(c).Padding(5, 10).Gap(6).Radius(8).Background(pal.CardBg).Border(1, pal.Border).AlignItems(ui.Center).Children(func() {
+				ui.Row(c).Padding(5, 10).Gap(6).Radius(8).Background(pal.CardBg).AlignItems(ui.Center).Children(func() {
 					pureui.Keycap(c, tip.k, pal)
 					ui.Text(c, tip.v).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.TextSecondary)
 				})
@@ -1017,7 +1018,6 @@ func (h *historyView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg u
 	bg := ui.Transparent
 	if selected {
 		bg = selectedBg
-		r.Border(1, pal.AccentBorder)
 	} else if r.Hovered() {
 		bg = pal.CardHover
 	}
@@ -1028,11 +1028,11 @@ func (h *historyView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg u
 		switch rec.Kind {
 		case core.KindImage:
 			if thumb := h.loadThumbnail(&rec); thumb != nil {
-				ui.Box(c).Size(34, 26).Radius(5).Border(1, pal.Border).Clip().Shrink(0).Children(func() {
+				ui.Box(c).Size(34, 26).Radius(5).Clip().Shrink(0).Children(func() {
 					ui.Image(c, thumb).Fit(ui.Cover).Size(34, 26)
 				})
 			} else {
-				ui.Box(c).Size(34, 26).Radius(5).Background(pal.BgInset).Border(1, pal.Border).Center().Shrink(0).Children(func() {
+				ui.Box(c).Size(34, 26).Radius(5).Background(pal.ControlBg).Center().Shrink(0).Children(func() {
 					ui.Icon(c, pureui.IconImage).Size(14, 14).TextColor(pal.TextMuted)
 				})
 			}
@@ -1150,7 +1150,7 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 			case core.KindFiles:
 				payload = DecodePayload(rec.PayloadJSON)
 				leftMeta = fmt.Sprintf("%d 个文件", len(payload.Files))
-				ui.Box(c).Fill().Padding(10, 12).Radius(10).Background(pal.CardBg).Border(1, pal.Border).Children(func() {
+				ui.Box(c).Fill().Padding(10, 12).Radius(10).Background(pal.CardBg).Children(func() {
 					ui.Scroll(c).Fill().Children(func() {
 						ui.Column(c).Gap(6).Children(func() {
 							for _, p := range payload.Files {
@@ -1184,7 +1184,7 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 				lines := strings.Count(bodyStr, "\n") + 1
 				chars := utf8.RuneCountInString(bodyStr)
 				leftMeta = fmt.Sprintf("%d 字符 · %d 行", chars, lines)
-				ui.Box(c).Fill().Padding(12, 14).Radius(10).Background(pal.CardBg).Border(1, pal.Border).Children(func() {
+				ui.Box(c).Fill().Padding(12, 14).Radius(10).Background(pal.CardBg).Children(func() {
 					ui.Scroll(c).Fill().Children(func() {
 						ui.Text(c, bodyStr).FontSize(12.5).LineHeight(1.55).Selectable().TextColor(pal.Text)
 					})
@@ -1279,7 +1279,7 @@ func (h *historyView) drawImageStage(c *ui.Context, rec *Record, pal pureui.Pale
 	if maxH > 0 {
 		box.MaxHeight(maxH)
 	}
-	box.Radius(9).Border(1, pal.Border).Clip().Draw(func(p *ui.Painter, r ui.Rect) {
+	box.Radius(9).Clip().Draw(func(p *ui.Painter, r ui.Rect) {
 		const tile = float32(12)
 		c1 := ui.RGB(18, 22, 32)
 		c2 := ui.RGB(24, 29, 42)
@@ -1405,7 +1405,7 @@ func (h *historyView) previewPopoverView(c *ui.Context) {
 				})
 
 			default:
-				ui.Box(c).Grow(1).MinHeight(0).Padding(10, 12).Radius(9).Background(pal.BgInset).Border(1, pal.Border).Children(func() {
+				ui.Box(c).Grow(1).MinHeight(0).Padding(10, 12).Radius(9).Background(pal.BgInset).Children(func() {
 					ui.Scroll(c).Fill().Children(func() {
 						ui.Text(c, bodyStr).FontSize(12).LineHeight(1.50).TextColor(pal.Text)
 					})
@@ -1645,7 +1645,7 @@ func (h *historyView) renderPreviewImage(c *ui.Context, rec *Record, pal pureui.
 		return
 	}
 	if h.previewLoading[rec.ID] || h.previewLoadingID == rec.ID {
-		ui.Box(c).Fill().Radius(10).Background(pal.BgInset).Border(1, pal.Border).Center().Children(func() {
+		ui.Box(c).Fill().Radius(10).Background(pal.BgInset).Center().Children(func() {
 			ui.Text(c, "加载图片预览…").FontSize(11).TextColor(pal.TextMuted)
 		})
 		return

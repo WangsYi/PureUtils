@@ -93,7 +93,9 @@ func (v *settingsTabView) ResetDefaults() {
 func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 	pureui.SettingCard(c, "默认操作与文件保存", "配置双击 / Enter 确认截图时的默认动作、默认保存目录与文件名模板", pal, func() {
 		pureui.SettingRow(c, "双击 / Enter 默认操作", "在截图选区内双击、按 Enter 或点击“完成”时执行的默认动作", pal, func() {
-			if ui.Segmented(c, &v.captureActionIdx, "复制到剪贴板", "保存到文件", "复制并保存", "贴到桌面").Label("截图默认完成操作").Changed() {
+			seg := ui.Segmented(c, &v.captureActionIdx, "复制到剪贴板", "保存到文件", "复制并保存", "贴到桌面").Label("截图默认完成操作")
+			seg.Border(0, ui.Transparent)
+			if seg.Changed() {
 				v.draft.Capture.DefaultAction = captureActionFromIndex(v.captureActionIdx)
 			}
 		})
@@ -101,7 +103,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 		ui.Column(c).Gap(6).Children(func() {
 			ui.Text(c, "保存目录").FontSize(13).FontWeight(500).TextColor(pal.Text)
 			ui.Row(c).Gap(8).Children(func() {
-				ui.TextInput(c, &v.draft.Capture.SaveFolder).Grow(1).Label("保存目录")
+				ui.TextInput(c, &v.draft.Capture.SaveFolder).Grow(1).Label("保存目录").Border(0, ui.Transparent).FocusRing(false)
 				ui.Button(c, "浏览…").OnClick(func() {
 					if v.headless() {
 						return
@@ -121,7 +123,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 							}
 						})
 					}()
-				})
+				}).Border(0, ui.Transparent)
 				if !v.headless() {
 					ui.Button(c, "打开目录").OnClick(func() {
 						folder := strings.TrimSpace(v.draft.Capture.SaveFolder)
@@ -129,7 +131,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 							folder = config.DefaultSaveFolder()
 						}
 						_ = mygo.Shell.OpenPath(folder)
-					})
+					}).Border(0, ui.Transparent)
 				}
 			})
 		})
@@ -141,7 +143,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 				ui.Text(c, "文件名模板").FontSize(13).FontWeight(500).TextColor(pal.Text).Grow(1)
 				pureui.PillBadge(c, "预览: "+previewFileName(v.draft.Capture.FileNamePattern), pal.Accent, pal.AccentSoft)
 			})
-			ui.TextInput(c, &v.draft.Capture.FileNamePattern).Label("文件名模板")
+			ui.TextInput(c, &v.draft.Capture.FileNamePattern).Label("文件名模板").Border(0, ui.Transparent).FocusRing(false)
 			ui.Text(c, "支持占位符：%yyyyMMdd、%HHmmss、%yyyy、%MM、%dd、%HH、%mm、%ss、%counter").
 				FontSize(11).TextColor(pal.TextMuted)
 		})
@@ -201,6 +203,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 					v.draft.Pins.BorderColor = uiColorToARGB(v.borderUIColor)
 				}
 				hexIn := ui.TextInput(c, &v.borderColor).Width(104).Placeholder("#3B7BFF").Label("边框颜色十六进制")
+				hexIn.Border(0, ui.Transparent).FocusRing(false)
 				if hexIn.Changed() {
 					if col, err := parseHexColor(v.borderColor); err == nil {
 						v.draft.Pins.BorderColor = col
@@ -212,7 +215,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 	})
 
 	pureui.SettingCard(c, "实时效果预览", "按当前不透明度、边框宽度与颜色实时渲染悬浮贴图外观", pal, func() {
-		ui.Box(c).Height(112).FillWidth().Radius(10).Border(1, pal.Border).Clip().Draw(func(p *ui.Painter, r ui.Rect) {
+		ui.Box(c).Height(112).FillWidth().Radius(10).Clip().Draw(func(p *ui.Painter, r ui.Rect) {
 			tile := float32(14)
 			c1 := ui.RGB(28, 32, 42)
 			c2 := ui.RGB(38, 43, 56)

@@ -1016,7 +1016,8 @@ func (v *zipView) toolbar(c *ui.Context, pal pureui.Palette) {
 		v.toolButton(c, pal, iconInfo, "信息", "压缩文件信息", !hasArc, func() { v.infoOpen = true })
 		ui.Box(c).Grow(1)
 		if v.arc != nil {
-			ui.SearchField(c, &v.query).Bind(&v.searchHandle).Width(220).Placeholder("在压缩包中搜索").Label("搜索压缩包")
+			ui.SearchField(c, &v.query).Bind(&v.searchHandle).Width(220).Placeholder("在压缩包中搜索").Label("搜索压缩包").
+		Background(pal.ControlBg).Border(0, ui.Transparent).FocusRing(false)
 		}
 		if pureui.IconButton(c, pureui.IconSettings, "PureZip 设置", "打开 PureZip 设置", false, false, pal).Clicked() {
 			if v.plugin.host != nil { v.plugin.host.OpenSettings(PluginID) }
@@ -1042,7 +1043,7 @@ func (v *zipView) pathBar(c *ui.Context, pal pureui.Palette) {
 			items = append(items, strings.Split(v.cwd, "/")...)
 		}
 		v.crumb = len(items) - 1
-		ui.Row(c).Grow(1).MinWidth(0).Padding(5, 10).Radius(8).Background(pal.CardBg).Border(1, pal.Border).AlignItems(ui.Center).Gap(6).Children(func() {
+		ui.Row(c).Grow(1).MinWidth(0).Padding(5, 10).Radius(8).Background(pal.ControlBg).AlignItems(ui.Center).Gap(6).Children(func() {
 			ui.Icon(c, iconArchive).Size(14, 14).TextColor(ui.Hex("#F97316"))
 			if ui.Breadcrumbs(c, items, &v.crumb).Label("压缩包路径").Grow(1).Changed() {
 				v.navigate(strings.Join(items[1:v.crumb+1], "/"))
@@ -1058,7 +1059,7 @@ func (v *zipView) pathBar(c *ui.Context, pal pureui.Palette) {
 				encText = v.info.Encoding
 			}
 			eb := ui.ButtonBase(c).Padding(4, 10).Radius(8).Label("文件名编码").Tooltip("切换 ZIP 文件名编码（解决中文/日文乱码）").
-				Background(pal.CardBg).Border(1, pal.Border)
+				Background(pal.ControlBg)
 			if eb.Hovered() {
 				eb.Background(pal.CardHover)
 			}
@@ -1081,7 +1082,7 @@ func (v *zipView) pathBar(c *ui.Context, pal pureui.Palette) {
 		if v.info.Encrypted || v.password != "" {
 			pureui.PillBadge(c, "已加密", pal.Warning, pal.WarningSoft)
 		}
-		pureui.PillBadgeBordered(c, v.info.Format.Label(), pal.Accent, pal.AccentSoft, pal.AccentBorder)
+		pureui.PillBadge(c, v.info.Format.Label(), pal.Accent, pal.AccentSoft)
 	})
 }
 
@@ -1507,7 +1508,7 @@ func (v *zipView) modals(c *ui.Context, pal pureui.Palette) {
 					ui.Text(c, filepath.Dir(v.path)).FontSize(11).SingleLine().TextColor(pal.TextMuted)
 				})
 			})
-			ui.Column(c).Gap(6).Padding(10, 12).Radius(10).Background(pal.CardBg).Border(1, pal.Border).Children(func() {
+			ui.Column(c).Gap(6).Padding(10, 12).Radius(10).Background(pal.CardBg).Children(func() {
 				row := func(k, val string) {
 					ui.Row(c).Gap(12).Children(func() {
 						ui.Text(c, k).FontSize(12).Width(86).TextColor(pal.TextMuted)

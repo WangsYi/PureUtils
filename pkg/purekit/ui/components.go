@@ -30,12 +30,10 @@ func IconButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active, dang
 		b.Tooltip(tooltip)
 	}
 	bg := ui.Transparent
-	border := ui.Transparent
 	fg := pal.TextSecondary
 	switch {
 	case active:
 		bg = pal.AccentSoft
-		border = pal.AccentBorder
 		fg = pal.Accent
 		if b.Pressed() {
 			bg = pal.Accent.Alpha(0.24)
@@ -53,38 +51,31 @@ func IconButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active, dang
 	default:
 		if b.Pressed() {
 			bg = pal.CardActive
-			border = pal.BorderStrong
 			fg = pal.Text
 		} else if b.Hovered() {
 			bg = pal.CardHover
-			border = pal.Border
 			fg = pal.Text
 		}
 	}
 	b.Background(bg)
-	if border.A > 0 {
-		b.Border(1, border)
-	}
 	b.Children(func() {
 		ui.Icon(c, icon).Size(15, 15).TextColor(fg)
 	})
 	return b
 }
 
-// FramedIconButton builds a bordered square action button suited for elevated toolbars.
+// FramedIconButton builds a tonal square action button suited for elevated toolbars.
 func FramedIconButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active, danger bool, size float32, pal Palette) ui.Element {
 	b := ui.ButtonBase(c).Size(size, size).Radius(9).Center().Label(label)
 	if tooltip != "" {
 		b.Tooltip(tooltip)
 	}
-	bg := pal.CardBg
-	border := pal.Border
+	bg := pal.ControlBg
 	fg := pal.TextSecondary
 	pressed := b.Pressed()
 	switch {
 	case active:
 		bg = pal.AccentSoft
-		border = pal.AccentBorder
 		fg = pal.Accent
 		if pressed {
 			bg = pal.Accent.Alpha(0.24)
@@ -94,28 +85,21 @@ func FramedIconButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active
 	case danger:
 		if pressed {
 			bg = pal.Danger.Alpha(0.22)
-			border = pal.Danger.Alpha(0.50)
 			fg = pal.Danger
 		} else if b.Hovered() {
 			bg = pal.DangerSoft
-			border = pal.Danger.Alpha(0.36)
 			fg = pal.Danger
 		}
 	default:
 		if pressed {
 			bg = pal.CardActive
-			border = pal.BorderStrong
 			fg = pal.Text
 		} else if b.Hovered() {
 			bg = pal.CardHover
-			border = pal.BorderStrong
 			fg = pal.Text
 		}
 	}
-	b.Background(bg).Border(1, border)
-	if !pressed {
-		b.InsetShadow(0, 1, 0, 0, pal.Specular)
-	}
+	b.Background(bg)
 	b.Children(func() {
 		ui.Icon(c, icon).Size(15, 15).TextColor(fg)
 	})
@@ -140,19 +124,19 @@ func HudIconButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active, d
 		fg = pal.AccentText
 	case danger:
 		if b.Pressed() {
-			b.Background(pal.Danger.Alpha(0.34)).Border(1, pal.Danger.Alpha(0.45))
+			b.Background(pal.Danger.Alpha(0.34))
 			fg = ui.RGB(254, 180, 180)
 		} else if b.Hovered() {
-			b.Background(pal.Danger.Alpha(0.24)).Border(1, pal.Danger.Alpha(0.35))
+			b.Background(pal.Danger.Alpha(0.24))
 			fg = ui.RGB(254, 165, 165)
 		} else {
 			b.Background(ui.Transparent)
 		}
 	default:
 		if b.Pressed() {
-			b.Background(ui.RGBA(255, 255, 255, 0.18)).Border(1, ui.RGBA(255, 255, 255, 0.14))
+			b.Background(ui.RGBA(255, 255, 255, 0.18))
 		} else if b.Hovered() {
-			b.Background(pal.HudHover).Border(1, ui.RGBA(255, 255, 255, 0.10))
+			b.Background(pal.HudHover)
 		} else {
 			b.Background(ui.Transparent)
 		}
@@ -170,21 +154,16 @@ func PillBadge(c *ui.Context, text string, fg, bg ui.Color) ui.Element {
 	})
 }
 
-// PillBadgeBordered renders a compact rounded pill badge with a subtle 1px border.
+// PillBadgeBordered renders a compact rounded pill badge with a subtle hairline border.
 func PillBadgeBordered(c *ui.Context, text string, fg, bg, border ui.Color) ui.Element {
 	return ui.Row(c).Padding(2, 8).Radius(999).Background(bg).Border(1, border).AlignItems(ui.Center).Shrink(0).Children(func() {
 		ui.Text(c, text).FontSize(10).FontWeight(600).SingleLine().TextColor(fg)
 	})
 }
 
-// Keycap renders a subtle keyboard shortcut badge.
+// Keycap renders a subtle tonal keyboard shortcut badge.
 func Keycap(c *ui.Context, text string, pal Palette) ui.Element {
-	bevel := ui.RGBA(17, 24, 39, 0.08)
-	if pal.Dark {
-		bevel = ui.RGBA(0, 0, 0, 0.24)
-	}
-	return ui.Box(c).Padding(2, 5).Radius(5).Background(pal.CardBg).Border(1, pal.BorderStrong).
-		InsetShadow(0, -1, 0, 0, bevel).Shrink(0).Children(func() {
+	return ui.Box(c).Padding(2, 6).Radius(5).Background(pal.ControlBg).Shrink(0).Children(func() {
 		ui.Text(c, text).FontSize(10).FontWeight(600).SingleLine().TextColor(pal.TextMuted)
 	})
 }
@@ -192,12 +171,12 @@ func Keycap(c *ui.Context, text string, pal Palette) ui.Element {
 // HudKeycap renders a translucent keyboard shortcut badge on dark HUD overlays.
 func HudKeycap(c *ui.Context, text string, pal Palette) ui.Element {
 	return ui.Box(c).Padding(2, 5).Radius(4).Background(ui.RGBA(255, 255, 255, 0.10)).
-		Border(1, ui.RGBA(255, 255, 255, 0.18)).Shrink(0).Children(func() {
+		Border(1, ui.RGBA(255, 255, 255, 0.14)).Shrink(0).Children(func() {
 		ui.Text(c, text).FontSize(10).FontWeight(600).SingleLine().TextColor(pal.HudText)
 	})
 }
 
-// SettingCard renders a titled card section with consistent spacing and borders.
+// SettingCard renders a titled card section with soft tonal elevation.
 func SettingCard(c *ui.Context, title, subtitle string, pal Palette, body func()) {
 	ui.Column(c).Gap(5).Children(func() {
 		ui.Column(c).Gap(2).Padding(0, 2).Children(func() {
@@ -206,7 +185,11 @@ func SettingCard(c *ui.Context, title, subtitle string, pal Palette, body func()
 				ui.Text(c, subtitle).FontSize(11).TextColor(pal.TextMuted)
 			}
 		})
-		ui.Column(c).Padding(11, 14).Gap(7).Radius(12).Background(pal.CardBg).Border(1, pal.Border).Children(body)
+		card := ui.Column(c).Padding(12, 14).Gap(7).Radius(12).Background(pal.CardBg)
+		if !pal.Dark {
+			card.Shadow(0, 1, 4, 0, ui.RGBA(15, 23, 42, 0.045))
+		}
+		card.Children(body)
 	})
 }
 
@@ -226,7 +209,7 @@ func SettingRow(c *ui.Context, title, desc string, pal Palette, control func()) 
 // EmptyState renders a centered empty state with layered ambient badge, copy and optional action.
 func EmptyState(c *ui.Context, icon *ui.SVG, title, subtitle string, pal Palette, action func()) {
 	ui.Column(c).Fill().Center().Padding(24).Gap(12).Children(func() {
-		ui.Box(c).Size(68, 68).Radius(34).Background(pal.AccentSoft).Border(1, pal.Accent.Alpha(0.18)).Center().Children(func() {
+		ui.Box(c).Size(68, 68).Radius(34).Background(pal.AccentSoft).Center().Children(func() {
 			ui.Box(c).Size(48, 48).Radius(24).Gradient(pal.Accent, pal.AccentEnd, 135).
 				Shadow(0, 6, 18, 0, pal.Accent.Alpha(0.30)).
 				InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.28)).

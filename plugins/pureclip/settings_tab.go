@@ -165,7 +165,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 			ui.Text(c, "排除进程").FontSize(13).FontWeight(500).TextColor(pal.Text)
 			tf := ui.TokenField(c, &v.ignoredTokens, []string{
 				"keepass", "1password", "bitwarden", "keepassxc", "enpass", "lastpass",
-			}).Label("排除进程输入框")
+			}).Border(0, ui.Transparent).Label("排除进程输入框")
 			if tf.Changed() {
 				v.ignoredTokens = normalizeTokens(v.ignoredTokens)
 				v.draft.History.IgnoredProcesses = append([]string(nil), v.ignoredTokens...)
@@ -178,12 +178,12 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 	if v.plugin.service != nil {
 		pureui.SettingCard(c, "历史维护", "独立管理 plugins/pureclip 存储（只读兼容旧库不会被修改）", pal, func() {
 			ui.Row(c).Gap(8).Wrap().Children(func() {
-				ui.Button(c, "清理过期历史").OnClick(func() {
+				ui.Button(c, "清理过期历史").Border(0, ui.Transparent).OnClick(func() {
 					v.plugin.service.Prune()
 					v.status = "已按保留策略清理"
 					c.Toast(v.status)
 				})
-				ui.Button(c, "回收孤儿图片").OnClick(func() {
+				ui.Button(c, "回收孤儿图片").Border(0, ui.Transparent).OnClick(func() {
 					n, err := v.plugin.service.CollectOrphans()
 					if err != nil {
 						v.status = "回收失败: " + err.Error()
@@ -203,7 +203,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 				} else if clearBtn.Hovered() {
 					bg = pal.Danger.Alpha(0.22)
 				}
-				clearBtn.Background(bg).Border(1, pal.Danger.Alpha(0.38))
+				clearBtn.Background(bg)
 				clearBtn.Children(func() {
 					ui.Row(c).Gap(5).AlignItems(ui.Center).Children(func() {
 						ui.Icon(c, pureui.IconTrash).Size(13, 13).TextColor(fg)

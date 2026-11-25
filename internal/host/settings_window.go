@@ -287,7 +287,7 @@ func (h *settingsView) sidebar(c *ui.Context, pal pureui.Palette) {
 		}
 
 		ui.Column(c).Margin(8, 12, 12, 12).Padding(10).Gap(4).Radius(10).
-			Background(pal.CardBg).Border(1, pal.Border).Children(func() {
+			Background(pal.CardBg).Children(func() {
 			h.renderSidebarStatus(c, pal)
 			ui.Text(c, h.app.Paths().Home).FontSize(10).SingleLine().TextColor(pal.TextMuted)
 		})
@@ -393,8 +393,8 @@ func (h *settingsView) bottomSaveBar(c *ui.Context, pal pureui.Palette) {
 			}
 			h.status = "已放弃未保存的更改"
 			h.invalidate()
-		})
-		ui.Button(c, "关闭").OnClick(func() { h.close() })
+		}).Border(0, ui.Transparent)
+		ui.Button(c, "关闭").OnClick(func() { h.close() }).Border(0, ui.Transparent)
 		ui.PrimaryButton(c, "保存").OnClick(func() { h.save(c) })
 	})
 }
@@ -403,6 +403,7 @@ func (h *settingsView) general(c *ui.Context, pal pureui.Palette) {
 	pureui.SettingCard(c, "外观与显示", "调整应用全局色彩主题（浅色、深色或跟随 Windows）", pal, func() {
 		pureui.SettingRow(c, "主题模式", "支持跟随 Windows 深浅色或手动指定", pal, func() {
 			seg := ui.Segmented(c, &h.themeIdx, "跟随系统", "浅色", "深色").Label("主题")
+			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
 				h.hostDraft.Appearance.Theme = themeKeyFromIndex(h.themeIdx)
 			}
@@ -453,18 +454,16 @@ func (h *settingsView) hotkeyRow(c *ui.Context, idx int, pal pureui.Palette) {
 					ui.Text(c, "默认 "+spec.DefaultGesture).FontSize(10.5).TextColor(pal.TextMuted)
 				}
 			})
-			ui.TextInput(c, &entry.draft).Width(168).Label("快捷键：" + spec.Label)
+			ui.TextInput(c, &entry.draft).Width(168).Label("快捷键：" + spec.Label).Border(0, ui.Transparent).FocusRing(false)
 
 			recBtn := ui.ButtonBase(c).Padding(5, 11).Radius(7).Gap(5).AlignItems(ui.Center).
 				Label("录制" + spec.Label).Tooltip("按下组合键录制热键")
-			recBg := pal.Bg
+			recBg := pal.ControlBg
 			recFg := pal.TextSecondary
-			recBorder := pal.Border
 			recText := "录制"
 			if recording {
 				recBg = pal.AccentSoft
 				recFg = pal.Accent
-				recBorder = pal.AccentBorder
 				recText = "停止"
 			} else if recBtn.Pressed() {
 				recBg = pal.CardActive
@@ -472,7 +471,7 @@ func (h *settingsView) hotkeyRow(c *ui.Context, idx int, pal pureui.Palette) {
 				recBg = pal.CardHover
 				recFg = pal.Text
 			}
-			recBtn.Background(recBg).Border(1, recBorder)
+			recBtn.Background(recBg)
 			recBtn.Children(func() {
 				ui.Icon(c, pureui.IconRecord).Size(12, 12).TextColor(recFg)
 				ui.Text(c, recText).FontSize(11).FontWeight(500).SingleLine().TextColor(recFg)
@@ -544,7 +543,7 @@ func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 					h.status = "打开目录失败: " + err.Error()
 				}
 				h.invalidate()
-			})
+			}).Border(0, ui.Transparent)
 		})
 	})
 

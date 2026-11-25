@@ -418,7 +418,7 @@ func (j *zipJob) view(c *ui.Context) {
 		switch state {
 		case zipJobFailed:
 			j.resultHeader(c, pal, pureui.IconAlertCircle, pal.Danger, pal.DangerSoft, j.verb+"失败", j.subject)
-			ui.Column(c).Grow(1).Padding(10, 12).Radius(10).Background(pal.DangerSoft).Border(1, pal.Danger.Alpha(0.3)).Children(func() {
+			ui.Column(c).Grow(1).Padding(10, 12).Radius(10).Background(pal.DangerSoft).Children(func() {
 				msg := "未知错误"
 				if err != nil {
 					msg = err.Error()
@@ -577,7 +577,7 @@ func (j *zipJob) promptView(c *ui.Context, pal pureui.Palette, p *zipPrompt) {
 		})
 	case zipPromptConflict:
 		j.resultHeader(c, pal, pureui.IconAlertCircle, pal.Warning, pal.WarningSoft, p.title, p.message)
-		ui.Column(c).Gap(4).Padding(8, 12).Radius(10).Background(pal.CardBg).Border(1, pal.Border).Children(func() {
+		ui.Column(c).Gap(4).Padding(8, 12).Radius(10).Background(pal.CardBg).Children(func() {
 			if p.existing != nil {
 				ui.Text(c, fmt.Sprintf("现有文件：%s · %s", zipSize(p.existing.Size()), zipTime(p.existing.ModTime()))).FontSize(11.5).TextColor(pal.TextSecondary)
 			}

@@ -1393,14 +1393,13 @@ func (v *Viewer) emptyButton(c *ui.Context, key, label string, fn func()) {
 	btn := ui.ButtonBase(c.Key(key)).
 		Padding(7, 14).
 		Radius(8).
-		Border(1, ui.Hex("#2A2E39")).
-		Background(ui.Hex("#1B1E25")).
+		Background(ui.Hex("#1E222B")).
 		Label(label)
 	if v.elemHovered(btn) {
-		btn.Background(ui.Hex("#232732")).Border(1, ui.Hex("#3B4152"))
+		btn.Background(ui.Hex("#282D39"))
 	}
 	if v.elemPressed(btn, v.elemHovered(btn)) {
-		btn.Background(ui.Hex("#2A303E"))
+		btn.Background(ui.Hex("#323846"))
 	}
 	btn.Children(func() {
 		ui.Text(c, label).FontSize(12).FontWeight(500).TextColor(ui.Hex("#F3F4F6"))
