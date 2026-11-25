@@ -424,7 +424,10 @@ txt = re.sub(r"\S*libatomic\.dll\.a", atomic_a, txt)
 txt = re.sub(r"\S*libstdc\+\+\.dll\.a", stdcpp_a, txt)
 txt = re.sub(r"(?<!\S)-latomic(?!\S)", atomic_a, txt)
 txt = re.sub(r"(?<!\S)-lstdc\+\+(?!\S)", stdcpp_a, txt)
+txt, n = re.subn(r"(?<!\S)-Wl,--end-group(?!\S)", f"{stdcpp_a} {atomic_a} -Wl,--end-group", txt)
+assert n >= 1, "Failed to locate -Wl,--end-group in build.ninja"
 p.write_text(txt, encoding="utf-8")
+print(f"Injected static libstdc++.a/libatomic.a in {n} ninja link rule(s)")
 PYEOF
 ninja -C "$BUILD_DIR/mpv" -j"$NPROC"
 ninja -C "$BUILD_DIR/mpv" install
