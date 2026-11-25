@@ -1,0 +1,55 @@
+name: Build Tier 1 libmpv-2.dll (Windows x64)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-libmpv:
+    name: Cross-compile Tier 1 trimmed libmpv-2.dll
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install cross-compile toolchain & build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            mingw-w64 \
+            gcc-mingw-w64-x86-64-win32 \
+            g++-mingw-w64-x86-64-win32 \
+            meson \
+            ninja-build \
+            nasm \
+            yasm \
+            cmake \
+            pkg-config \
+            python3 \
+            python3-jinja2 \
+            python3-markupsafe \
+            autoconf \
+            automake \
+            libtool \
+            p7zip-full \
+            curl \
+            git \
+            ca-certificates
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-win32
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-win32
+          x86_64-w64-mingw32-gcc -v
+
+      - name: Build Tier 1 trimmed libmpv-2.dll
+        run: |
+          chmod +x tools/build-libmpv/build.sh
+          OUT_DIR="$GITHUB_WORKSPACE/dist" ./tools/build-libmpv/build.sh
+
+      - name: Upload libmpv artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libmpv-tier1-win64
+          path: |
+            dist/libmpv-2.dll
+            dist/libmpv-2-tier1-x64.7z
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
