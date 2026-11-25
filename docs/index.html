@@ -4,51 +4,53 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PureUtils — Windows 原生效率工具集</title>
-  <meta name="description" content="PureUtils：单文件、零 WebView 的 Windows 原生工具集，包含 PureShot 截图贴图、PureClip 剪贴板历史、PureImage 看图与空格预览、PureZip 压缩管理及 Alt+Space 启动器（AGPL-3.0）。" />
+  <meta name="description" content="PureUtils：将截图贴图、剪贴板历史、多格式看图与压缩管理收拢在一个轻量原生 Windows 应用里（AGPL-3.0）。" />
   <link rel="icon" type="image/png" href="assets/icon.png" />
   <style>
     :root {
       --bg: #fafaf9;
-      --bg-band: #f3f3f0;
+      --bg-band: #f3f2ee;
+      --mat-bg: #ebe9e2;
+      --dot-color: rgba(20, 20, 19, 0.10);
       --surface: #ffffff;
-      --surface-hover: #f5f5f2;
-      --border: #e5e5e0;
-      --border-strong: #d4d4cd;
+      --surface-hover: #f5f4f0;
+      --border: #e5e4dd;
+      --border-strong: #d3d1c8;
       --ink: #141413;
       --ink-secondary: #57534e;
       --ink-muted: #78716c;
       --accent: #0f62fe;
+      --accent-soft: rgba(15, 98, 254, 0.08);
       --btn-primary-bg: #141413;
       --btn-primary-fg: #fafaf9;
-      --btn-primary-hover: #292927;
-      --stage-bg: #161615;
-      --code-bg: #f3f3f0;
-      --code-ink: #1c1917;
-      --frame-shadow: 0 10px 30px rgba(20, 20, 19, 0.08);
-      --kbd-shadow: 0 1px 0 #d4d4cd;
+      --btn-primary-hover: #2b2b28;
+      --win-shadow: 0 2px 6px rgba(20, 20, 19, 0.08), 0 18px 42px rgba(20, 20, 19, 0.16);
+      --win-shadow-front: 0 6px 14px rgba(20, 20, 19, 0.14), 0 24px 52px rgba(20, 20, 19, 0.28);
+      --kbd-shadow: 0 1px 0 #d3d1c8;
       --sans: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
       --mono: "Cascadia Mono", "JetBrains Mono", Consolas, ui-monospace, SFMono-Regular, monospace;
     }
 
     html[data-theme="dark"] {
       --bg: #111110;
-      --bg-band: #171715;
+      --bg-band: #181816;
+      --mat-bg: #1e1e1b;
+      --dot-color: rgba(255, 255, 255, 0.07);
       --surface: #171715;
-      --surface-hover: #20201d;
-      --border: #262623;
-      --border-strong: #383833;
+      --surface-hover: #21211e;
+      --border: #272723;
+      --border-strong: #393933;
       --ink: #f2f2ef;
-      --ink-secondary: #a1a19a;
-      --ink-muted: #7a7a74;
+      --ink-secondary: #a8a8a0;
+      --ink-muted: #7d7d76;
       --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.12);
       --btn-primary-bg: #f2f2ef;
       --btn-primary-fg: #111110;
       --btn-primary-hover: #ffffff;
-      --stage-bg: #0c0c0b;
-      --code-bg: #171715;
-      --code-ink: #e5e5e0;
-      --frame-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
-      --kbd-shadow: 0 1px 0 #1c1c19;
+      --win-shadow: 0 4px 10px rgba(0, 0, 0, 0.28), 0 20px 46px rgba(0, 0, 0, 0.50);
+      --win-shadow-front: 0 10px 22px rgba(0, 0, 0, 0.42), 0 28px 60px rgba(0, 0, 0, 0.65);
+      --kbd-shadow: 0 1px 0 #1f1f1c;
     }
 
     * { box-sizing: border-box; }
@@ -59,31 +61,25 @@
       color: var(--ink);
       font-family: var(--sans);
       font-size: 15px;
-      line-height: 1.6;
+      line-height: 1.65;
       -webkit-font-smoothing: antialiased;
     }
-
     a { color: inherit; text-decoration: none; }
     img { display: block; max-width: 100%; }
 
     kbd {
       display: inline-flex;
       align-items: center;
-      padding: 1px 6px;
+      padding: 1px 7px;
       font-family: var(--mono);
       font-size: 11.5px;
-      line-height: 1.45;
+      line-height: 1.5;
       color: var(--ink);
       background: var(--surface);
       border: 1px solid var(--border-strong);
       border-radius: 5px;
       box-shadow: var(--kbd-shadow);
       white-space: nowrap;
-    }
-
-    code {
-      font-family: var(--mono);
-      font-size: 0.9em;
     }
 
     .container {
@@ -128,7 +124,6 @@
       color: var(--ink-muted);
       white-space: nowrap;
     }
-
     .nav-right {
       display: flex;
       align-items: center;
@@ -138,13 +133,13 @@
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 18px;
+      gap: 20px;
       color: var(--ink-secondary);
     }
     .nav-links a:hover { color: var(--ink); }
     .nav-sep {
       width: 1px;
-      height: 16px;
+      height: 15px;
       background: var(--border);
     }
     .nav-tools {
@@ -165,34 +160,30 @@
     .gh-link {
       font-size: 13px;
       font-weight: 500;
-      color: var(--ink);
       white-space: nowrap;
     }
     .gh-link:hover { color: var(--accent); }
 
     /* Hero */
     .hero {
-      padding: 56px 0 44px;
+      padding: 58px 0 60px;
       border-bottom: 1px solid var(--border);
     }
     .hero-copy {
-      max-width: 760px;
-      text-align: left;
+      max-width: 720px;
     }
     .hero h1 {
       margin: 0 0 14px;
-      font-size: clamp(28px, 4.1vw, 44px);
+      font-size: clamp(29px, 4.2vw, 44px);
       font-weight: 650;
-      line-height: 1.15;
+      line-height: 1.16;
       letter-spacing: -0.025em;
-      color: var(--ink);
     }
     .hero-desc {
       margin: 0 0 24px;
       font-size: 16px;
-      line-height: 1.65;
       color: var(--ink-secondary);
-      max-width: 680px;
+      max-width: 650px;
     }
     .hero-actions {
       display: flex;
@@ -219,7 +210,6 @@
       height: 40px;
       padding: 0 16px;
       border-radius: 7px;
-      background: transparent;
       border: 1px solid var(--border-strong);
       color: var(--ink);
       font-size: 14px;
@@ -231,283 +221,282 @@
     }
     .btn-secondary:hover { background: var(--surface-hover); }
     .hero-spec {
-      margin: 0 0 36px;
+      margin: 0 0 38px;
       font-family: var(--mono);
-      font-size: 12.5px;
+      font-size: 12px;
       color: var(--ink-muted);
     }
 
-    /* Native Window Showcase Frame */
-    .showcase-frame {
-      background: var(--surface);
-      border: 1px solid var(--border-strong);
-      border-radius: 10px;
-      box-shadow: var(--frame-shadow);
+    /* Studio Stage */
+    .studio-mat {
+      position: relative;
+      background-color: var(--mat-bg);
+      background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
+      background-size: 18px 18px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       overflow: hidden;
     }
-    .stage-tabs {
+    .hero-mat {
+      min-height: 460px;
+      padding: 36px 28px;
+      cursor: zoom-in;
+    }
+    .win-shot {
+      display: block;
+      width: auto;
+      max-width: 100%;
+      max-height: 480px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: var(--win-shadow);
+      cursor: zoom-in;
+      transition: transform 0.18s ease;
+    }
+    .win-shot:hover { transform: translateY(-2px); }
+
+    .hero-controls {
+      margin-top: 16px;
       display: flex;
-      flex-wrap: nowrap;
-      overflow-x: auto;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .stage-tabs {
+      display: inline-flex;
+      flex-wrap: wrap;
       gap: 4px;
-      padding: 0 12px;
+      padding: 4px;
+      border-radius: 8px;
       background: var(--bg-band);
-      border-bottom: 1px solid var(--border);
+      border: 1px solid var(--border);
     }
     .stage-tab {
-      position: relative;
-      padding: 10px 12px;
+      padding: 6px 12px;
       border: none;
-      border-bottom: 2px solid transparent;
+      border-radius: 6px;
       background: transparent;
       color: var(--ink-secondary);
       font-family: inherit;
       font-size: 13px;
       font-weight: 500;
-      white-space: nowrap;
       cursor: pointer;
     }
     .stage-tab:hover { color: var(--ink); }
     .stage-tab.active {
+      background: var(--surface);
       color: var(--ink);
-      border-bottom-color: var(--accent);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     }
-    .stage-canvas {
-      background: var(--stage-bg);
-      padding: 20px;
+    .stage-caption-row {
       display: flex;
       align-items: center;
-      justify-content: center;
-      min-height: 360px;
-      cursor: zoom-in;
-    }
-    .stage-canvas img {
-      max-height: 520px;
-      width: auto;
-      border-radius: 6px;
-    }
-    .stage-foot {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
       gap: 10px;
-      padding: 10px 16px;
-      background: var(--bg-band);
-      border-top: 1px solid var(--border);
       font-size: 13px;
       color: var(--ink-secondary);
     }
-    .stage-keys {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--ink-muted);
-    }
 
-    /* Sections */
+    /* Story Chapters */
     .section {
-      padding: 52px 0;
+      padding: 64px 0;
       border-bottom: 1px solid var(--border);
     }
     .section-head {
-      margin-bottom: 28px;
-      max-width: 680px;
+      max-width: 640px;
+      margin-bottom: 42px;
     }
     .section-head h2 {
-      margin: 0 0 6px;
-      font-size: 24px;
-      font-weight: 600;
+      margin: 0 0 8px;
+      font-size: 26px;
+      font-weight: 620;
       letter-spacing: -0.02em;
     }
     .section-head p {
       margin: 0;
       color: var(--ink-secondary);
-      font-size: 14.5px;
+      font-size: 15px;
     }
 
-    /* Specification Ledger */
-    .spec-table {
+    .chapter {
+      display: grid;
+      grid-template-columns: 0.92fr 1.28fr;
+      gap: 36px;
+      align-items: center;
+      padding: 36px 0;
       border-top: 1px solid var(--border);
     }
-    .spec-row {
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      gap: 24px;
-      padding: 20px 0;
-      border-bottom: 1px solid var(--border);
-      align-items: start;
+    .chapter.rev {
+      grid-template-columns: 1.28fr 0.92fr;
     }
-    .spec-left {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .spec-name {
-      display: flex;
+    .chapter.rev .chapter-copy { order: 2; }
+    .chapter.rev .chapter-media { order: 1; }
+
+    .chapter-kicker {
+      display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-size: 16px;
-      font-weight: 600;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-muted);
+      margin-bottom: 10px;
     }
-    .spec-name img {
+    .chapter-kicker img {
       width: 18px;
       height: 18px;
       border-radius: 4px;
     }
-    .spec-id {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--ink-muted);
+    .chapter-copy h3 {
+      margin: 0 0 10px;
+      font-size: 21px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
     }
-    .spec-keys {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 2px;
-    }
-    .spec-right p {
-      margin: 0 0 6px;
-      color: var(--ink);
+    .chapter-copy p {
+      margin: 0 0 14px;
+      color: var(--ink-secondary);
       font-size: 14.5px;
     }
-    .spec-meta {
-      font-size: 13px;
-      color: var(--ink-secondary);
-    }
-
-    /* Contact Sheet Gallery */
-    .contact-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-    }
-    .contact-item {
-      margin: 0;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--surface);
-      overflow: hidden;
-      cursor: zoom-in;
-      transition: border-color 0.14s;
-    }
-    .contact-item:hover { border-color: var(--border-strong); }
-    .contact-img {
-      background: var(--stage-bg);
-      aspect-ratio: 16 / 10;
-      padding: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .contact-img img {
-      max-height: 100%;
-      width: auto;
-      border-radius: 4px;
-    }
-    .contact-cap {
-      padding: 12px 14px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      gap: 10px;
-      align-items: baseline;
-    }
-    .contact-num {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--ink-muted);
-      flex-shrink: 0;
-    }
-    .contact-cap strong {
-      display: block;
+    .chapter-points {
+      margin: 0 0 16px;
+      padding-left: 18px;
+      color: var(--ink);
       font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 2px;
     }
-    .contact-cap span {
-      display: block;
-      font-size: 13px;
-      color: var(--ink-secondary);
+    .chapter-points li { margin-bottom: 5px; }
+    .chapter-keys {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      color: var(--ink-muted);
     }
 
-    /* Architecture & Build */
-    .arch-split {
+    /* Stacked Dual-Window PureClip Stage */
+    .stacked-stage {
+      padding: 26px 24px 30px;
+      min-height: 410px;
+      display: block;
+    }
+    .stack-wrap {
+      position: relative;
+      width: 100%;
+      padding-bottom: 10%;
+    }
+    .stack-back {
+      width: 82%;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: var(--win-shadow);
+      cursor: zoom-in;
+      transition: transform 0.18s ease;
+    }
+    .stack-front {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 33%;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: var(--win-shadow-front);
+      cursor: zoom-in;
+      transition: transform 0.18s ease;
+    }
+    .stack-back:hover, .stack-front:hover { transform: translateY(-2px); }
+
+    /* Paired Duo Chapter (Launcher + Settings) */
+    .duo-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 24px;
-      align-items: start;
-    }
-    .arch-ledger {
+      padding-top: 36px;
       border-top: 1px solid var(--border);
     }
-    .arch-row {
-      padding: 13px 0;
-      border-bottom: 1px solid var(--border);
+    .duo-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
-    .arch-row strong {
-      font-family: var(--mono);
-      font-size: 13px;
+    .duo-mat {
+      padding: 22px;
+      height: 360px;
+    }
+    .duo-mat .win-shot {
+      max-height: 100%;
+      width: auto;
+    }
+    .duo-copy h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
       font-weight: 600;
-      color: var(--ink);
     }
-    .arch-row p {
-      margin: 4px 0 0;
+    .duo-copy p {
+      margin: 0 0 10px;
+      font-size: 14px;
+      color: var(--ink-secondary);
+    }
+
+    /* Visual Architecture Board */
+    .arch-board {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      overflow-x: auto;
+    }
+    .arch-svg {
+      display: block;
+      width: 100%;
+      min-width: 720px;
+      height: auto;
+    }
+    .arch-pillars {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    .pillar h4 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .pillar p {
+      margin: 0;
       font-size: 13.5px;
       color: var(--ink-secondary);
     }
-    .tier-note {
-      margin-top: 14px;
-      font-size: 13px;
-      color: var(--ink-secondary);
-    }
-    .tier-note a {
-      color: var(--accent);
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
 
-    .code-box {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--code-bg);
-      overflow: hidden;
-    }
-    .code-bar {
+    /* Closing Download Band & Footer */
+    .download-band {
+      padding: 48px 0;
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      padding: 9px 14px;
-      border-bottom: 1px solid var(--border);
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--ink-muted);
+      gap: 20px;
     }
-    .copy-btn {
-      padding: 3px 9px;
-      border-radius: 5px;
-      border: 1px solid var(--border-strong);
-      background: var(--surface);
-      color: var(--ink);
-      font-family: var(--sans);
-      font-size: 12px;
-      cursor: pointer;
+    .download-band h2 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
     }
-    .copy-btn:hover { background: var(--surface-hover); }
-    .code-box pre {
+    .download-band p {
       margin: 0;
-      padding: 16px;
-      overflow-x: auto;
-      font-family: var(--mono);
-      font-size: 12.5px;
-      line-height: 1.65;
-      color: var(--code-ink);
+      font-size: 14.5px;
+      color: var(--ink-secondary);
     }
-
-    /* Footer */
     footer {
-      padding: 28px 0 40px;
+      border-top: 1px solid var(--border);
+      padding: 26px 0 38px;
       font-size: 13px;
       color: var(--ink-muted);
     }
@@ -530,7 +519,7 @@
       position: fixed;
       inset: 0;
       z-index: 60;
-      background: rgba(12, 12, 11, 0.85);
+      background: rgba(14, 14, 13, 0.86);
       display: none;
       align-items: center;
       justify-content: center;
@@ -541,15 +530,26 @@
     .lightbox img {
       max-width: 94%;
       max-height: 90%;
-      border-radius: 6px;
+      border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
     }
 
-    @media (max-width: 820px) {
+    @media (max-width: 860px) {
       .nav-links, .nav-sep { display: none; }
-      .spec-row { grid-template-columns: 1fr; gap: 10px; }
-      .contact-grid, .arch-split { grid-template-columns: 1fr; }
-      .hero { padding-top: 34px; }
+      .hero { padding: 36px 0 42px; }
+      .hero-mat { min-height: 240px; padding: 18px; }
+      .chapter, .chapter.rev {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .chapter.rev .chapter-copy { order: 1; }
+      .chapter.rev .chapter-media { order: 2; }
+      .duo-grid, .arch-pillars { grid-template-columns: 1fr; }
+      .duo-mat { height: auto; }
+      .stack-wrap { padding-bottom: 0; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+      .stack-back { width: 100%; }
+      .stack-front { position: static; width: 62%; }
     }
   </style>
 </head>
@@ -563,10 +563,9 @@
       </a>
       <div class="nav-right">
         <nav class="nav-links">
-          <a href="#modules" data-i18n="nav_modules">模块</a>
-          <a href="#gallery" data-i18n="nav_gallery">界面</a>
+          <a href="#features" data-i18n="nav_features">功能</a>
           <a href="#architecture" data-i18n="nav_arch">架构</a>
-          <a href="#build" data-i18n="nav_build">构建</a>
+          <a href="#download" data-i18n="nav_download">下载</a>
         </nav>
         <span class="nav-sep"></span>
         <div class="nav-tools">
@@ -579,245 +578,314 @@
   </header>
 
   <main class="container">
+    <!-- Hero -->
     <section class="hero">
       <div class="hero-copy">
-        <h1 data-i18n="hero_title">Windows 原生效率工具集，单文件、零 WebView。</h1>
+        <h1 data-i18n="hero_title">轻快、克制的 Windows 原生效率工具集。</h1>
         <p class="hero-desc" data-i18n="hero_desc">
-          将截图贴图（PureShot）、剪贴板历史（PureClip）、多格式看图与空格预览（PureImage）、压缩包管理（PureZip）以及 Alt+Space 上下文启动器整合进同一个 Go + MyGo 原生应用。支持编译期裁剪、安装勾选与设置页实时启停。
+          把日常高频的截图贴图、剪贴板历史、多格式看图与压缩管理收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪与设置页实时开关每个模块。
         </p>
         <div class="hero-actions">
-          <a class="btn-primary" href="https://github.com/WangsYi/PureUtils/releases/latest" target="_blank" rel="noopener" data-i18n="cta_download">下载安装程序 (v1.0.0 · 18.3 MB)</a>
-          <a class="btn-secondary" href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener" data-i18n="cta_repo">GitHub 源码</a>
+          <a class="btn-primary" href="https://github.com/WangsYi/PureUtils/releases/latest" target="_blank" rel="noopener" data-i18n="cta_download">下载安装程序 · v1.0.0</a>
+          <a class="btn-secondary" href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener" data-i18n="cta_repo">GitHub 仓库</a>
         </div>
         <p class="hero-spec" data-i18n="hero_spec">
-          Windows 10/11 x64 · Go 1.27 + MyGo GPU UI · 零 cgo / 零 JS · GNU AGPL-3.0 · 无需管理员权限
+          Windows 10/11 64 位 · 原生 GPU 渲染（零 WebView） · GNU AGPL-3.0 开源 · 单用户安装免管理员权限
         </p>
       </div>
 
-      <div class="showcase-frame">
+      <div class="studio-mat hero-mat" id="heroStageWrap">
+        <img id="heroPreviewImg" class="win-shot" src="screenshots/launcher.png" alt="PureUtils 界面展示" />
+      </div>
+
+      <div class="hero-controls">
         <div class="stage-tabs" role="tablist">
           <button class="stage-tab active" data-shot="screenshots/launcher.png" data-key="launcher" data-i18n="tab_launcher">全局启动器</button>
-          <button class="stage-tab" data-shot="screenshots/history.png" data-key="history" data-i18n="tab_history">PureClip 双栏</button>
-          <button class="stage-tab" data-shot="screenshots/history-compact.png" data-key="compact" data-i18n="tab_compact">PureClip 浮窗</button>
-          <button class="stage-tab" data-shot="screenshots/overlay.png" data-key="overlay" data-i18n="tab_overlay">PureShot 标注</button>
-          <button class="stage-tab" data-shot="screenshots/zip.png" data-key="zip" data-i18n="tab_zip">PureZip 压缩</button>
-          <button class="stage-tab" data-shot="screenshots/settings.png" data-key="settings" data-i18n="tab_settings">设置与热开关</button>
+          <button class="stage-tab" data-shot="screenshots/history.png" data-key="history" data-i18n="tab_history">剪贴板历史</button>
+          <button class="stage-tab" data-shot="screenshots/overlay.png" data-key="overlay" data-i18n="tab_overlay">截图标注</button>
+          <button class="stage-tab" data-shot="screenshots/viewer.png" data-key="viewer" data-i18n="tab_viewer">极速看图</button>
+          <button class="stage-tab" data-shot="screenshots/zip.png" data-key="zip" data-i18n="tab_zip">压缩管理</button>
+          <button class="stage-tab" data-shot="screenshots/settings.png" data-key="settings" data-i18n="tab_settings">系统设置</button>
         </div>
-        <div class="stage-canvas" id="heroStageWrap">
-          <img id="heroPreviewImg" src="screenshots/launcher.png" alt="PureUtils interface" />
-        </div>
-        <div class="stage-foot">
-          <span id="stageCaption">识别前景资源管理器选中项与剪贴板内容，支持多词检索与 Ctrl+1–9 快速执行</span>
-          <span class="stage-keys" id="stageShortcut"><kbd>Alt</kbd>+<kbd>Space</kbd></span>
+        <div class="stage-caption-row">
+          <span id="stageCaption">识别资源管理器选中项与剪贴板内容，一键智能解压、看图或检索历史</span>
+          <span id="stageShortcut"><kbd>Alt</kbd>+<kbd>Space</kbd></span>
         </div>
       </div>
     </section>
 
-    <section id="modules" class="section">
+    <!-- Features Story Chapters -->
+    <section id="features" class="section">
       <div class="section-head">
-        <h2 data-i18n="mod_title">功能模块规格</h2>
-        <p data-i18n="mod_sub">四个内置插件均以独立 purekit.Plugin 实现，跨模块能力通过 Capability Bus 按需联动，禁用任意模块均自动降级。</p>
+        <h2 data-i18n="feat_title">四大独立组件，按需协同</h2>
+        <p data-i18n="feat_sub">每个工具都可独立启用或彻底裁剪；当同时开启时，通过统一能力总线自然衔接操作流。</p>
       </div>
 
-      <div class="spec-table">
-        <div class="spec-row">
-          <div class="spec-left">
-            <div class="spec-name">PureShot <span class="spec-id">capture</span></div>
-            <div class="spec-keys"><kbd>F1</kbd><kbd>Ctrl+F1</kbd><kbd>F3</kbd></div>
+      <!-- 01 PureClip -->
+      <article class="chapter">
+        <div class="chapter-copy">
+          <div class="chapter-kicker">01 · PureClip</div>
+          <h3 data-i18n="pc_title">呼出即搜的剪贴板历史</h3>
+          <p data-i18n="pc_desc">提供精简浮窗与双栏详情两种视图，呼出瞬间自动聚焦搜索框；直接键入关键词即可在本地历史中完成即时多词过滤。</p>
+          <ul class="chapter-points">
+            <li data-i18n="pc_li1">文本、富文本、图片与文件路径分栏筛选与星标收藏</li>
+            <li data-i18n="pc_li2">大图与列表缩略图后台解码缓存，打字翻页不卡顿</li>
+            <li data-i18n="pc_li3">支持忽略密码管理器等隐私进程，支持一键用 PureImage 查看大图或贴到桌面</li>
+          </ul>
+          <div class="chapter-keys">
+            <kbd>Ctrl+Shift+V</kbd>
+            <kbd>Ctrl+1–9</kbd>
+            <kbd>Tab</kbd>
           </div>
-          <div class="spec-right">
-            <p data-i18n="ps_p">屏幕冻结选区、窗口锚点自动吸附、像素放大镜取色（按 C 复制 HEX 色值）以及桌面置顶悬浮贴图。</p>
-            <div class="spec-meta" data-i18n="ps_meta">内置矩形、椭圆、直线、箭头、画笔、高亮、文字、马赛克、序号 9 种矢量标注工具，支持双击快速完成与 F3 历史队列贴图。</div>
+        </div>
+        <div class="chapter-media">
+          <div class="studio-mat stacked-stage">
+            <div class="stack-wrap">
+              <img class="stack-back zoomable" src="screenshots/history.png" alt="PureClip 双栏详情模式" />
+              <img class="stack-front zoomable" src="screenshots/history-compact.png" alt="PureClip 精简浮窗模式" />
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 02 PureShot -->
+      <article class="chapter rev">
+        <div class="chapter-copy">
+          <div class="chapter-kicker">02 · PureShot</div>
+          <h3 data-i18n="ps_title">截图、矢量标注与桌面悬浮贴图</h3>
+          <p data-i18n="ps_desc">按下热键即刻冻结当前屏幕并智能吸附窗口边界，自带实时像素级放大镜辅助对齐与取色。</p>
+          <ul class="chapter-points">
+            <li data-i18n="ps_li1">9 种标注工具（矩形、椭圆、直线、箭头、画笔、高亮、文字、马赛克、序号）</li>
+            <li data-i18n="ps_li2">取色器按 C 静默复制 HEX 色值，不污染剪贴板历史队列</li>
+            <li data-i18n="ps_li3">支持把截图或剪贴板内容贴为置顶悬浮窗，支持滚轮缩放与鼠标穿透</li>
+          </ul>
+          <div class="chapter-keys">
+            <kbd>F1</kbd>
+            <kbd>Ctrl+F1</kbd>
+            <kbd>F3</kbd>
+            <kbd>C</kbd>
+          </div>
+        </div>
+        <div class="chapter-media">
+          <div class="studio-mat">
+            <img class="win-shot zoomable" src="screenshots/overlay.png" alt="PureShot 截图标注与取色器" />
+          </div>
+        </div>
+      </article>
+
+      <!-- 03 PureImage -->
+      <article class="chapter">
+        <div class="chapter-copy">
+          <div class="chapter-kicker">
+            <img src="assets/image.png" alt="PureImage" />
+            <span>03 · PureImage</span>
+          </div>
+          <h3 data-i18n="pi_title">多格式极速看图与空格预览</h3>
+          <p data-i18n="pi_desc">无边框沉浸画布与透明网格底衬，开箱支持 40 余种图片与相机原始格式，并可在 Windows 资源管理器按空格秒开预览。</p>
+          <ul class="chapter-points">
+            <li data-i18n="pi_li1">支持常见大图、动图、HEIC/AVIF/WebP/JXL 及 24 种相机 RAW</li>
+            <li data-i18n="pi_li2">自动解析拍摄参数与 EXIF 信息，支持高清缩略采样加速</li>
+            <li data-i18n="pi_li3">看图窗口内按 P 可将当前画面直接转为 PureShot 桌面贴图</li>
+          </ul>
+          <div class="chapter-keys">
+            <kbd>Space</kbd>
+            <kbd>P</kbd>
+          </div>
+        </div>
+        <div class="chapter-media">
+          <div class="studio-mat">
+            <img class="win-shot zoomable" src="screenshots/viewer.png" alt="PureImage 看图与 EXIF 详情" />
+          </div>
+        </div>
+      </article>
+
+      <!-- 04 PureZip -->
+      <article class="chapter rev">
+        <div class="chapter-copy">
+          <div class="chapter-kicker">
+            <img src="assets/zip.png" alt="PureZip" />
+            <span>04 · PureZip</span>
+          </div>
+          <h3 data-i18n="pz_title">轻量压缩与智能解压管理器</h3>
+          <p data-i18n="pz_desc">目录树、面包屑与包内即时搜索三位一体；面对单一顶层文件夹智能直出，散落多文件自动新建同名目录归拢。</p>
+          <ul class="chapter-points">
+            <li data-i18n="pz_li1">覆盖 ZIP、7Z、RAR（只读）与 TAR 家族压缩格式，支持 AES-256 加密与文件名编码切换</li>
+            <li data-i18n="pz_li2">双击压缩包内图片直接调用 PureImage 浏览，免去手动先解压</li>
+            <li data-i18n="pz_li3">内置清晰的资源管理器右键级联菜单，安装时可按需开启</li>
+          </ul>
+          <div class="chapter-keys">
+            <kbd>Ctrl+F</kbd>
+            <kbd>Enter</kbd>
+          </div>
+        </div>
+        <div class="chapter-media">
+          <div class="studio-mat">
+            <img class="win-shot zoomable" src="screenshots/zip.png" alt="PureZip 压缩文件管理器" />
+          </div>
+        </div>
+      </article>
+
+      <!-- 05 Launcher + Settings -->
+      <div class="duo-grid">
+        <div class="duo-card">
+          <div class="studio-mat duo-mat">
+            <img class="win-shot zoomable" src="screenshots/launcher.png" alt="Alt+Space 全局上下文启动器" />
+          </div>
+          <div class="duo-copy">
+            <h3 data-i18n="l_title">全局上下文启动器</h3>
+            <p data-i18n-html="l_desc_html">按下 <kbd>Alt+Space</kbd> 实时感知当前资源管理器选中文件与剪贴板内容，给出智能解压、看图或贴图建议，并支持统一检索插件功能与剪贴板历史。</p>
           </div>
         </div>
 
-        <div class="spec-row">
-          <div class="spec-left">
-            <div class="spec-name">PureClip <span class="spec-id">history</span></div>
-            <div class="spec-keys"><kbd>Ctrl+Shift+V</kbd><kbd>Tab</kbd></div>
+        <div class="duo-card">
+          <div class="studio-mat duo-mat">
+            <img class="win-shot zoomable" src="screenshots/settings.png" alt="PureUtils 系统设置与热开关" />
           </div>
-          <div class="spec-right">
-            <p data-i18n="pc_p">隔离 SQLite WAL 存储与 SHA-1 内容寻址图片库，呼出后直接键入即可在内存索引中完成毫秒级多词过滤。</p>
-            <div class="spec-meta" data-i18n="pc_meta">缩略图与预览图异步后台解码缓存；支持双栏详情与精简浮窗切换、敏感进程排除以及旧版 DB 严格只读兼容。</div>
-          </div>
-        </div>
-
-        <div class="spec-row">
-          <div class="spec-left">
-            <div class="spec-name"><img src="assets/image.png" alt="PureImage" />PureImage <span class="spec-id">viewer</span></div>
-            <div class="spec-keys"><kbd>Space</kbd><kbd>P</kbd></div>
-          </div>
-          <div class="spec-right">
-            <p data-i18n="pi_p">支持 40+ 图片格式与资源管理器空格快速预览，自带 EXIF 信息读取及一键贴图联动。</p>
-            <div class="spec-meta" data-i18n="pi_meta">覆盖 JPG / PNG / GIF / WebP / HEIC / AVIF / JPEG XL 及 24 种相机 RAW；可选 libjpeg-turbo 1/2·1/4·1/8 缩放加速，可用 -CoreOnly 彻底裁剪。</div>
+          <div class="duo-copy">
+            <h3 data-i18n="s_title">模块自由开关与热键接管</h3>
+            <p data-i18n-html="s_desc_html">在设置中心可随时启用或停用任意功能组件、录制自定义热键与检测冲突；支持接管系统 <kbd>Win+</kbd> 快捷键并抑制开始菜单弹出。</p>
           </div>
         </div>
-
-        <div class="spec-row">
-          <div class="spec-left">
-            <div class="spec-name"><img src="assets/zip.png" alt="PureZip" />PureZip <span class="spec-id">zip</span></div>
-            <div class="spec-keys"><kbd>Explorer 右键</kbd></div>
-          </div>
-          <div class="spec-right">
-            <p data-i18n="pz_p">纯 Go 实现的多格式压缩与解压管理器，支持树形目录浏览、智能解压与包内图片直接调用 PureImage 查看。</p>
-            <div class="spec-meta" data-i18n="pz_meta">读写 ZIP / 7Z / TAR / TGZ / TBZ2 / TXZ / TZST，只读 RAR v4/v5 及单文件压缩；支持 AES-256、-mhe、文件名编码切换与 HKCU 右键关联。</div>
-          </div>
-        </div>
-
-        <div class="spec-row">
-          <div class="spec-left">
-            <div class="spec-name">Launcher &amp; Host <span class="spec-id">host</span></div>
-            <div class="spec-keys"><kbd>Alt+Space</kbd><kbd>Win+…</kbd></div>
-          </div>
-          <div class="spec-right">
-            <p data-i18n="host_p">Alt+Space 全局上下文启动器自动识别资源管理器选中文件与剪贴板内容，统一托盘、热键调度与模块热开关。</p>
-            <div class="spec-meta" data-i18n="host_meta">支持在设置页实时启用/停用任意模块而不重启进程，并可选 WH_KEYBOARD_LL 底层钩子接管 Win+ 快捷键且抑制开始菜单。</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="gallery" class="section">
-      <div class="section-head">
-        <h2 data-i18n="gal_title">界面实拍</h2>
-        <p data-i18n="gal_sub">以下截图均由代码仓库内的无头 UI 渲染测试实时生成；点击图片可查看原尺寸。</p>
-      </div>
-
-      <div class="contact-grid">
-        <figure class="contact-item" data-full="screenshots/launcher.png">
-          <div class="contact-img"><img src="screenshots/launcher.png" alt="Launcher" /></div>
-          <figcaption class="contact-cap">
-            <span class="contact-num">01</span>
-            <div>
-              <strong data-i18n="g1_t">全局上下文启动器 (Alt+Space)</strong>
-              <span data-i18n="g1_d">自动识别选中压缩包与剪贴板图片，Ctrl+1–9 快捷执行</span>
-            </div>
-          </figcaption>
-        </figure>
-
-        <figure class="contact-item" data-full="screenshots/history.png">
-          <div class="contact-img"><img src="screenshots/history.png" alt="PureClip Split" /></div>
-          <figcaption class="contact-cap">
-            <span class="contact-num">02</span>
-            <div>
-              <strong data-i18n="g2_t">PureClip 双栏详情模式</strong>
-              <span data-i18n="g2_d">分类筛选标签、来源进程展示与右侧详情/图片预览区</span>
-            </div>
-          </figcaption>
-        </figure>
-
-        <figure class="contact-item" data-full="screenshots/history-compact.png">
-          <div class="contact-img"><img src="screenshots/history-compact.png" alt="PureClip Compact" /></div>
-          <figcaption class="contact-cap">
-            <span class="contact-num">03</span>
-            <div>
-              <strong data-i18n="g3_t">PureClip 精简浮窗模式</strong>
-              <span data-i18n="g3_d">呼出即聚焦搜索框，输入即筛，Tab 切换双栏视图</span>
-            </div>
-          </figcaption>
-        </figure>
-
-        <figure class="contact-item" data-full="screenshots/overlay.png">
-          <div class="contact-img"><img src="screenshots/overlay.png" alt="PureShot Overlay" /></div>
-          <figcaption class="contact-cap">
-            <span class="contact-num">04</span>
-            <div>
-              <strong data-i18n="g4_t">PureShot 选区标注与取色器</strong>
-              <span data-i18n="g4_d">矢量标注工具条配合实时 RGB/HEX 像素放大镜</span>
-            </div>
-          </figcaption>
-        </figure>
-
-        <figure class="contact-item" data-full="screenshots/zip.png">
-          <div class="contact-img"><img src="screenshots/zip.png" alt="PureZip" /></div>
-          <figcaption class="contact-cap">
-            <span class="contact-num">05</span>
-            <div>
-              <strong data-i18n="g5_t">PureZip 压缩包管理器</strong>
-              <span data-i18n="g5_d">左侧目录树、面包屑导航、编码切换与包内即时搜索</span>
-            </div>
-          </figcaption>
-        </figure>
-
-        <figure class="contact-item" data-full="screenshots/settings.png">
-          <div class="contact-img"><img src="screenshots/settings.png" alt="Settings" /></div>
-          <figcaption class="contact-cap">
-            <span class="contact-num">06</span>
-            <div>
-              <strong data-i18n="g6_t">统一设置与热键录制</strong>
-              <span data-i18n="g6_d">各插件独立配置分区，支持热键冲突检测与运行时模块开关</span>
-            </div>
-          </figcaption>
-        </figure>
       </div>
     </section>
 
+    <!-- Visual Architecture Diagram -->
     <section id="architecture" class="section">
       <div class="section-head">
-        <h2 data-i18n="arch_title">分层架构与构建方式</h2>
-        <p data-i18n="arch_sub">通过 Go AST 测试自动约束依赖方向，确保宿主、核心库与各插件可自由组合、独立演进。</p>
+        <h2 data-i18n="arch_title">模块化架构设计</h2>
+        <p data-i18n="arch_sub">宿主调度、功能模块与原生系统底座严格分层。模块之间通过统一能力总线解耦协作，停用任意模块都不会破坏整体运行。</p>
       </div>
 
-      <div class="arch-split">
-        <div>
-          <div class="arch-ledger">
-            <div class="arch-row">
-              <strong>main.go</strong>
-              <p data-i18n="l1_d">读取同目录 modules.json、单实例锁消息转发与 CLI 参数路由。</p>
-            </div>
-            <div class="arch-row">
-              <strong>internal/host · builtin_*.go</strong>
-              <p data-i18n="l2_d">条件编译注册桥装配活跃插件，管理动态托盘、热键、启动器与统一设置。</p>
-            </div>
-            <div class="arch-row">
-              <strong>plugins/{pureshot,pureclip,pureimage,purezip}</strong>
-              <p data-i18n="l3_d">彼此零直接 Go import，跨插件动作完全通过 Capability Bus 契约调用。</p>
-            </div>
-            <div class="arch-row">
-              <strong>pkg/purekit</strong>
-              <p data-i18n="l4_d">可复用插件 SDK（Bus/Contracts、WAL 存储、配置 v2、剪贴板总线、Win32 与 UI 组件）。</p>
-            </div>
-          </div>
-          <p class="tier-note" data-i18n-html="arch_doc_link">
-            支持三层裁剪：编译期（<code>-tags</code>）、安装期（<code>modules.json</code>）与运行时设置热开关。完整说明见 <a href="https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">docs/ARCHITECTURE.md</a>。
-          </p>
+      <div class="arch-board">
+        <svg class="arch-svg" viewBox="0 0 960 510" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PureUtils Architecture Diagram">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 1 2 L 8 5 L 1 8 z" fill="var(--ink-muted)" />
+            </marker>
+            <marker id="arrowAccent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 1 2 L 8 5 L 1 8 z" fill="var(--accent)" />
+            </marker>
+          </defs>
+
+          <!-- Layer 1: Entry Points -->
+          <text id="svgL1" x="24" y="24" fill="var(--ink-muted)" font-size="11.5" font-weight="600" letter-spacing="0.04em" font-family="var(--mono)">01 · 系统交互入口 / ENTRY TRIGGERS</text>
+
+          <rect x="24" y="36" width="218" height="58" rx="8" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text id="svgE1T" x="133" y="61" text-anchor="middle" fill="var(--ink)" font-size="13.5" font-weight="600" font-family="var(--sans)">全局快捷键</text>
+          <text id="svgE1S" x="133" y="80" text-anchor="middle" fill="var(--ink-secondary)" font-size="11.5" font-family="var(--mono)">Alt+Space / F1 / Win+…</text>
+
+          <rect x="255" y="36" width="218" height="58" rx="8" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text id="svgE2T" x="364" y="61" text-anchor="middle" fill="var(--ink)" font-size="13.5" font-weight="600" font-family="var(--sans)">系统托盘常驻</text>
+          <text id="svgE2S" x="364" y="80" text-anchor="middle" fill="var(--ink-secondary)" font-size="11.5" font-family="var(--sans)">动态菜单 · 监听状态控制</text>
+
+          <rect x="486" y="36" width="218" height="58" rx="8" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text id="svgE3T" x="595" y="61" text-anchor="middle" fill="var(--ink)" font-size="13.5" font-weight="600" font-family="var(--sans)">资源管理器集成</text>
+          <text id="svgE3S" x="595" y="80" text-anchor="middle" fill="var(--ink-secondary)" font-size="11.5" font-family="var(--sans)">空格快速预览 · 右键压缩解压</text>
+
+          <rect x="717" y="36" width="219" height="58" rx="8" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text id="svgE4T" x="826" y="61" text-anchor="middle" fill="var(--ink)" font-size="13.5" font-weight="600" font-family="var(--sans)">命令行与文件关联</text>
+          <text id="svgE4S" x="826" y="80" text-anchor="middle" fill="var(--ink-secondary)" font-size="11.5" font-family="var(--sans)">单实例接管 · 双击图片或压缩包</text>
+
+          <!-- Connectors Layer 1 -> Layer 2 -->
+          <line x1="133" y1="94" x2="133" y2="128" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="364" y1="94" x2="364" y2="128" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="595" y1="94" x2="595" y2="128" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="826" y1="94" x2="826" y2="128" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+
+          <!-- Layer 2: Unified Host -->
+          <rect x="24" y="132" width="912" height="74" rx="10" fill="var(--surface)" stroke="var(--border-strong)" stroke-width="1.5" />
+          <text id="svgHTitle" x="480" y="159" text-anchor="middle" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">统一原生桌面宿主（Unified Desktop Host）</text>
+          <text id="svgHSub" x="480" y="185" text-anchor="middle" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">单实例调度   ·   上下文快捷启动器   ·   热键调度与 Win 键接管   ·   统一设置与模块实时热开关</text>
+
+          <!-- Connectors Layer 2 -> Layer 3 -->
+          <line x1="133" y1="206" x2="133" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="364" y1="206" x2="364" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="595" y1="206" x2="595" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="826" y1="206" x2="826" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+
+          <!-- Layer 3: Four Independent Modules -->
+          <text id="svgL3" x="24" y="236" fill="var(--ink-muted)" font-size="11.5" font-weight="600" letter-spacing="0.04em" font-family="var(--mono)">02 · 可插拔功能模块（零互相依赖，支持独立裁剪与热开关）</text>
+
+          <rect x="24" y="250" width="218" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="42" y="278" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">PureShot</text>
+          <text x="224" y="278" text-anchor="end" fill="var(--accent)" font-size="11" font-family="var(--mono)">capture</text>
+          <text id="svgM1" x="42" y="302" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">区域冻结 · 9 种矢量标注</text>
+          <text id="svgM1b" x="42" y="321" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">取色放大镜 · 桌面悬浮贴图</text>
+
+          <rect x="255" y="250" width="218" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="273" y="278" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">PureClip</text>
+          <text x="455" y="278" text-anchor="end" fill="var(--accent)" font-size="11" font-family="var(--mono)">history</text>
+          <text id="svgM2" x="273" y="302" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">历史记录 · 内存即时检索</text>
+          <text id="svgM2b" x="273" y="321" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">分类收藏 · 敏感进程忽略</text>
+
+          <rect x="486" y="250" width="218" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="504" y="278" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">PureImage</text>
+          <text x="686" y="278" text-anchor="end" fill="var(--accent)" font-size="11" font-family="var(--mono)">viewer</text>
+          <text id="svgM3" x="504" y="302" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">40+ 图片与相机 RAW 解码</text>
+          <text id="svgM3b" x="504" y="321" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">EXIF 详情 · 资源管理器空格预览</text>
+
+          <rect x="717" y="250" width="219" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="735" y="278" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">PureZip</text>
+          <text x="918" y="278" text-anchor="end" fill="var(--accent)" font-size="11" font-family="var(--mono)">zip</text>
+          <text id="svgM4" x="735" y="302" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">ZIP / 7Z / TAR / RAR 支持</text>
+          <text id="svgM4b" x="735" y="321" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">智能解压 · 加密与编码切换</text>
+
+          <!-- Bus Links Modules <-> Bus Rail -->
+          <line x1="133" y1="336" x2="133" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="364" y1="336" x2="364" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="595" y1="336" x2="595" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="826" y1="336" x2="826" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+
+          <!-- Capability Collaboration Bus -->
+          <rect x="24" y="366" width="912" height="52" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.2" />
+          <text id="svgBusTitle" x="480" y="388" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="650" font-family="var(--sans)">跨模块能力协作总线（Capability Bus · 按需联动，禁用自动降级）</text>
+          <text id="svgBusSub" x="480" y="407" text-anchor="middle" fill="var(--ink-secondary)" font-size="12" font-family="var(--sans)">剪贴板 / 压缩包内直连 PureImage 看图   ·   看图 / 剪贴板一键转为 PureShot 贴图   ·   F3 顺延读取剪贴板历史队列</text>
+
+          <!-- Layer 4: Native Foundation -->
+          <rect x="24" y="432" width="912" height="62" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text id="svgBaseTitle" x="480" y="457" text-anchor="middle" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">原生运行时底座（Native Desktop Foundation）</text>
+          <text id="svgBaseSub" x="480" y="479" text-anchor="middle" fill="var(--ink-secondary)" font-size="12" font-family="var(--sans)">原生 GPU 图形渲染（无 WebView 开销）   ·   模块隔离存储与只读兼容   ·   共享剪贴板事件流   ·   Windows 窗口与外壳服务</text>
+        </svg>
+      </div>
+
+      <div class="arch-pillars">
+        <div class="pillar">
+          <h4 data-i18n="pil_1_t">三层自由组合</h4>
+          <p data-i18n="pil_1_d">安装时可只选需要的工具，运行时可在设置里直接开关任意组件；未启用的模块不注册托盘、不占热键与内存。</p>
         </div>
-
-        <div id="build" class="code-box">
-          <div class="code-bar">
-            <span>PowerShell · Windows 10/11 · Go 1.27.3+</span>
-            <button id="copyBuildBtn" class="copy-btn" type="button" data-i18n="copy_btn">复制</button>
-          </div>
-          <pre id="buildSnippet"># 构建完整版 PureUtils.exe（零 cgo / 零 WebView）
-.\build.ps1 build
-
-# 裁剪 PureImage 解码器与 turbojpeg.dll
-.\build.ps1 build -CoreOnly
-
-# 按插件精确裁剪
-.\build.ps1 build -Exclude purezip,pureimage
-
-# 全量单元测试 + Go AST 架构边界检查
-.\build.ps1 test
-.\build.ps1 test -CoreOnly
-
-# 编译双版本并用 Inno Setup 打包安装程序
-.\build.ps1 pack</pre>
+        <div class="pillar">
+          <h4 data-i18n="pil_2_t">解耦协作与优雅降级</h4>
+          <p data-i18n="pil_2_d">例如在剪贴板或压缩包中一键呼出看图、在看图窗中一键桌面贴图；若目标组件未安装，入口会自动隐藏。</p>
         </div>
+        <div class="pillar">
+          <h4 data-i18n="pil_3_t">纯原生轻量体验</h4>
+          <p data-i18n="pil_3_d">全套界面直接依托原生 GPU 管线绘制，不嵌入 Web 浏览器内核，安装目录干净独立且兼容已有历史记录。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download -->
+    <section id="download" class="download-band">
+      <div>
+        <h2 data-i18n="dl_title">下载与开源许可</h2>
+        <p data-i18n="dl_desc">PureUtils 以 GNU AGPL-3.0 协议开源，提供单用户安装程序，可自由选择完整套件或单独安装任意组件。</p>
+      </div>
+      <div class="hero-actions" style="margin-bottom:0">
+        <a class="btn-primary" href="https://github.com/WangsYi/PureUtils/releases/latest" target="_blank" rel="noopener" data-i18n="dl_btn">下载 PureUtils-1.0.0-setup.exe (18.3 MB)</a>
+        <a class="btn-secondary" href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener" data-i18n="dl_gh">访问 GitHub</a>
       </div>
     </section>
   </main>
 
   <footer>
     <div class="container footer-inner">
-      <div>PureUtils · Go 1.27 + MyGo · GNU AGPL-3.0</div>
+      <div>PureUtils · Windows Desktop Suite · GNU AGPL-3.0</div>
       <div class="footer-links">
         <a href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener">GitHub</a>
         <a href="https://github.com/WangsYi/PureUtils/releases" target="_blank" rel="noopener">Releases</a>
         <a href="https://github.com/WangsYi/PureUtils/issues" target="_blank" rel="noopener">Issues</a>
-        <a id="footerArchLink" href="https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener" data-i18n="f_arch">架构文档</a>
-        <a href="https://github.com/WangsYi/PureUtils/blob/main/LICENSE" target="_blank" rel="noopener">LICENSE</a>
-        <a href="https://github.com/WangsYi/PureUtils/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener" data-i18n="f_contrib">贡献指南</a>
+        <a id="footerArchLink" href="https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener" data-i18n="f_arch">详细架构</a>
+        <a href="https://github.com/WangsYi/PureUtils/blob/main/LICENSE" target="_blank" rel="noopener">AGPL-3.0 LICENSE</a>
       </div>
     </div>
   </footer>
@@ -830,179 +898,233 @@
     const STAGE_META = {
       zh: {
         launcher: {
-          caption: "自动采集前景资源管理器选中项与剪贴板内容，支持跨插件与历史即时检索",
+          caption: "识别资源管理器选中项与剪贴板内容，一键智能解压、看图或检索历史",
           keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> · <kbd>Ctrl+1–9</kbd>"
         },
         history: {
-          caption: "双栏视图提供格式筛选、毫秒级内存多词过滤与高清预览面板",
+          caption: "呼出后直接输入过滤文本，支持双栏预览、分类标签与一键粘贴",
           keys: "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> · <kbd>Tab</kbd>"
         },
-        compact: {
-          caption: "精简浮窗呼出即聚焦输入框，直接敲字搜索历史记录",
-          keys: "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> · <kbd>Esc</kbd>"
-        },
         overlay: {
-          caption: "冻结选区配合 9 种矢量标注与实时像素级取色放大镜",
+          caption: "冻结屏幕选区并智能吸附窗口，支持 9 种标注工具与取色放大镜",
           keys: "<kbd>F1</kbd> · <kbd>C</kbd> 复制色值"
         },
+        viewer: {
+          caption: "开箱支持 40+ 图片及相机 RAW 格式，支持 EXIF 查看与空格秒开预览",
+          keys: "<kbd>Space</kbd> · <kbd>P</kbd> 贴到桌面"
+        },
         zip: {
-          caption: "纯 Go 多格式读写加密、文件名编码切换与包内即时查找",
+          caption: "多格式压缩包目录浏览、包内直接预览图片与智能解压归档",
           keys: "<kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>Enter</kbd>"
         },
         settings: {
-          caption: "按模块隔离配置分区，支持快捷键录制与组件实时热启停",
+          caption: "按组件独立划分设置分区，支持自定义热键与运行时实时启停模块",
           keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> → 设置"
         }
       },
       en: {
         launcher: {
-          caption: "Detects Explorer selection and clipboard content, searching plugin actions and history",
+          caption: "Detects Explorer selection and clipboard content for instant actions and history search",
           keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> · <kbd>Ctrl+1–9</kbd>"
         },
         history: {
-          caption: "Split view with category filters, sub-ms multi-token search and live preview pane",
+          caption: "Type immediately on open with split preview, category filters, and quick paste",
           keys: "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> · <kbd>Tab</kbd>"
         },
-        compact: {
-          caption: "Compact popup auto-focuses search on open for instant keyboard filtering",
-          keys: "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> · <kbd>Esc</kbd>"
-        },
         overlay: {
-          caption: "Frozen screen region capture with 9 vector tools and pixel RGB/HEX magnifier",
+          caption: "Frozen capture with window snapping, 9 vector tools, and pixel magnifier",
           keys: "<kbd>F1</kbd> · <kbd>C</kbd> Copy HEX"
         },
+        viewer: {
+          caption: "40+ image & camera RAW formats with EXIF overlay and Explorer Spacebar preview",
+          keys: "<kbd>Space</kbd> · <kbd>P</kbd> Pin to Desktop"
+        },
         zip: {
-          caption: "Pure-Go archive engine with AES-256 encryption, encoding switch and in-archive search",
+          caption: "Multi-format archive tree navigation, in-archive image preview, and smart extract",
           keys: "<kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>Enter</kbd>"
         },
         settings: {
-          caption: "Isolated plugin namespaces, global shortcut recorder and live module hot-toggles",
+          caption: "Clean per-module tabs with hotkey conflict detection and live component toggles",
           keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> → Settings"
         }
+      }
+    };
+
+    const SVG_I18N = {
+      zh: {
+        svgL1: "01 · 系统交互入口 / ENTRY TRIGGERS",
+        svgE1T: "全局快捷键",
+        svgE1S: "Alt+Space / F1 / Win+…",
+        svgE2T: "系统托盘常驻",
+        svgE2S: "动态菜单 · 监听状态控制",
+        svgE3T: "资源管理器集成",
+        svgE3S: "空格快速预览 · 右键压缩解压",
+        svgE4T: "命令行与文件关联",
+        svgE4S: "单实例接管 · 双击图片或压缩包",
+        svgHTitle: "统一原生桌面宿主（Unified Desktop Host）",
+        svgHSub: "单实例调度   ·   上下文快捷启动器   ·   热键调度与 Win 键接管   ·   统一设置与模块实时热开关",
+        svgL3: "02 · 可插拔功能模块（零互相依赖，支持独立裁剪与热开关）",
+        svgM1: "区域冻结 · 9 种矢量标注",
+        svgM1b: "取色放大镜 · 桌面悬浮贴图",
+        svgM2: "历史记录 · 内存即时检索",
+        svgM2b: "分类收藏 · 敏感进程忽略",
+        svgM3: "40+ 图片与相机 RAW 解码",
+        svgM3b: "EXIF 详情 · 资源管理器空格预览",
+        svgM4: "ZIP / 7Z / TAR / RAR 支持",
+        svgM4b: "智能解压 · 加密与编码切换",
+        svgBusTitle: "跨模块能力协作总线（Capability Bus · 按需联动，禁用自动降级）",
+        svgBusSub: "剪贴板 / 压缩包内直连 PureImage 看图   ·   看图 / 剪贴板一键转为 PureShot 贴图   ·   F3 顺延读取剪贴板历史队列",
+        svgBaseTitle: "原生运行时底座（Native Desktop Foundation）",
+        svgBaseSub: "原生 GPU 图形渲染（无 WebView 开销）   ·   模块隔离存储与只读兼容   ·   共享剪贴板事件流   ·   Windows 窗口与外壳服务"
+      },
+      en: {
+        svgL1: "01 · SYSTEM ENTRY TRIGGERS",
+        svgE1T: "Global Hotkeys",
+        svgE1S: "Alt+Space / F1 / Win+…",
+        svgE2T: "System Tray",
+        svgE2S: "Dynamic Menu & Monitor Switch",
+        svgE3T: "Explorer Integration",
+        svgE3S: "Spacebar Preview & Right-Click Menu",
+        svgE4T: "CLI & File Associations",
+        svgE4S: "Single Instance & Open With",
+        svgHTitle: "Unified Native Desktop Host",
+        svgHSub: "Single-Instance Dispatch   ·   Contextual Launcher   ·   Hotkey & Win-Key Arbiter   ·   Live Module Settings",
+        svgL3: "02 · DECOUPLED FUNCTIONAL MODULES (INDEPENDENT & HOT-TOGGLEABLE)",
+        svgM1: "Region Snap · 9 Vector Tools",
+        svgM1b: "Color Magnifier · Desktop Pins",
+        svgM2: "History Store · Instant Search",
+        svgM2b: "Filters, Stars & Privacy Rules",
+        svgM3: "40+ Image & Camera RAW Codecs",
+        svgM3b: "EXIF HUD · Explorer Space Preview",
+        svgM4: "ZIP / 7Z / TAR / RAR Support",
+        svgM4b: "Smart Extract · AES & Encoding",
+        svgBusTitle: "Cross-Module Capability Bus (Optional Collaboration with Graceful Fallback)",
+        svgBusSub: "Clip / Zip → PureImage Instant View   ·   Image / Clip → PureShot Desktop Pin   ·   Sequential History Queue on F3",
+        svgBaseTitle: "Native Desktop Runtime Foundation",
+        svgBaseSub: "Native GPU UI Rendering (Zero WebView)   ·   Isolated Data & Legacy Compatibility   ·   Clipboard Stream   ·   Windows Shell Services"
       }
     };
 
     const I18N = {
       zh: {
         _title: "PureUtils — Windows 原生效率工具集",
-        nav_modules: "模块",
-        nav_gallery: "界面",
+        nav_features: "功能",
         nav_arch: "架构",
-        nav_build: "构建",
-        hero_title: "Windows 原生效率工具集，单文件、零 WebView。",
-        hero_desc: "将截图贴图（PureShot）、剪贴板历史（PureClip）、多格式看图与空格预览（PureImage）、压缩包管理（PureZip）以及 Alt+Space 上下文启动器整合进同一个 Go + MyGo 原生应用。支持编译期裁剪、安装勾选与设置页实时启停。",
-        cta_download: "下载安装程序 (v1.0.0 · 18.3 MB)",
-        cta_repo: "GitHub 源码",
-        hero_spec: "Windows 10/11 x64 · Go 1.27 + MyGo GPU UI · 零 cgo / 零 JS · GNU AGPL-3.0 · 无需管理员权限",
+        nav_download: "下载",
+        hero_title: "轻快、克制的 Windows 原生效率工具集。",
+        hero_desc: "把日常高频的截图贴图、剪贴板历史、多格式看图与压缩管理收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪与设置页实时开关每个模块。",
+        cta_download: "下载安装程序 · v1.0.0",
+        cta_repo: "GitHub 仓库",
+        hero_spec: "Windows 10/11 64 位 · 原生 GPU 渲染（零 WebView） · GNU AGPL-3.0 开源 · 单用户安装免管理员权限",
         tab_launcher: "全局启动器",
-        tab_history: "PureClip 双栏",
-        tab_compact: "PureClip 浮窗",
-        tab_overlay: "PureShot 标注",
-        tab_zip: "PureZip 压缩",
-        tab_settings: "设置与热开关",
-        mod_title: "功能模块规格",
-        mod_sub: "四个内置插件均以独立 purekit.Plugin 实现，跨模块能力通过 Capability Bus 按需联动，禁用任意模块均自动降级。",
-        ps_p: "屏幕冻结选区、窗口锚点自动吸附、像素放大镜取色（按 C 复制 HEX 色值）以及桌面置顶悬浮贴图。",
-        ps_meta: "内置矩形、椭圆、直线、箭头、画笔、高亮、文字、马赛克、序号 9 种矢量标注工具，支持双击快速完成与 F3 历史队列贴图。",
-        pc_p: "隔离 SQLite WAL 存储与 SHA-1 内容寻址图片库，呼出后直接键入即可在内存索引中完成毫秒级多词过滤。",
-        pc_meta: "缩略图与预览图异步后台解码缓存；支持双栏详情与精简浮窗切换、敏感进程排除以及旧版 DB 严格只读兼容。",
-        pi_p: "支持 40+ 图片格式与资源管理器空格快速预览，自带 EXIF 信息读取及一键贴图联动。",
-        pi_meta: "覆盖 JPG / PNG / GIF / WebP / HEIC / AVIF / JPEG XL 及 24 种相机 RAW；可选 libjpeg-turbo 1/2·1/4·1/8 缩放加速，可用 -CoreOnly 彻底裁剪。",
-        pz_p: "纯 Go 实现的多格式压缩与解压管理器，支持树形目录浏览、智能解压与包内图片直接调用 PureImage 查看。",
-        pz_meta: "读写 ZIP / 7Z / TAR / TGZ / TBZ2 / TXZ / TZST，只读 RAR v4/v5 及单文件压缩；支持 AES-256、-mhe、文件名编码切换与 HKCU 右键关联。",
-        host_p: "Alt+Space 全局上下文启动器自动识别资源管理器选中文件与剪贴板内容，统一托盘、热键调度与模块热开关。",
-        host_meta: "支持在设置页实时启用/停用任意模块而不重启进程，并可选 WH_KEYBOARD_LL 底层钩子接管 Win+ 快捷键且抑制开始菜单。",
-        gal_title: "界面实拍",
-        gal_sub: "以下截图均由代码仓库内的无头 UI 渲染测试实时生成；点击图片可查看原尺寸。",
-        g1_t: "全局上下文启动器 (Alt+Space)",
-        g1_d: "自动识别选中压缩包与剪贴板图片，Ctrl+1–9 快捷执行",
-        g2_t: "PureClip 双栏详情模式",
-        g2_d: "分类筛选标签、来源进程展示与右侧详情/图片预览区",
-        g3_t: "PureClip 精简浮窗模式",
-        g3_d: "呼出即聚焦搜索框，输入即筛，Tab 切换双栏视图",
-        g4_t: "PureShot 选区标注与取色器",
-        g4_d: "矢量标注工具条配合实时 RGB/HEX 像素放大镜",
-        g5_t: "PureZip 压缩包管理器",
-        g5_d: "左侧目录树、面包屑导航、编码切换与包内即时搜索",
-        g6_t: "统一设置与热键录制",
-        g6_d: "各插件独立配置分区，支持热键冲突检测与运行时模块开关",
-        arch_title: "分层架构与构建方式",
-        arch_sub: "通过 Go AST 测试自动约束依赖方向，确保宿主、核心库与各插件可自由组合、独立演进。",
-        l1_d: "读取同目录 modules.json、单实例锁消息转发与 CLI 参数路由。",
-        l2_d: "条件编译注册桥装配活跃插件，管理动态托盘、热键、启动器与统一设置。",
-        l3_d: "彼此零直接 Go import，跨插件动作完全通过 Capability Bus 契约调用。",
-        l4_d: "可复用插件 SDK（Bus/Contracts、WAL 存储、配置 v2、剪贴板总线、Win32 与 UI 组件）。",
-        copy_btn: "复制",
-        copied_btn: "已复制",
-        f_arch: "架构文档",
-        f_contrib: "贡献指南"
+        tab_history: "剪贴板历史",
+        tab_overlay: "截图标注",
+        tab_viewer: "极速看图",
+        tab_zip: "压缩管理",
+        tab_settings: "系统设置",
+        feat_title: "四大独立组件，按需协同",
+        feat_sub: "每个工具都可独立启用或彻底裁剪；当同时开启时，通过统一能力总线自然衔接操作流。",
+        pc_title: "呼出即搜的剪贴板历史",
+        pc_desc: "提供精简浮窗与双栏详情两种视图，呼出瞬间自动聚焦搜索框；直接键入关键词即可在本地历史中完成即时多词过滤。",
+        pc_li1: "文本、富文本、图片与文件路径分栏筛选与星标收藏",
+        pc_li2: "大图与列表缩略图后台解码缓存，打字翻页不卡顿",
+        pc_li3: "支持忽略密码管理器等隐私进程，支持一键用 PureImage 查看大图或贴到桌面",
+        ps_title: "截图、矢量标注与桌面悬浮贴图",
+        ps_desc: "按下热键即刻冻结当前屏幕并智能吸附窗口边界，自带实时像素级放大镜辅助对齐与取色。",
+        ps_li1: "9 种标注工具（矩形、椭圆、直线、箭头、画笔、高亮、文字、马赛克、序号）",
+        ps_li2: "取色器按 C 静默复制 HEX 色值，不污染剪贴板历史队列",
+        ps_li3: "支持把截图或剪贴板内容贴为置顶悬浮窗，支持滚轮缩放与鼠标穿透",
+        pi_title: "多格式极速看图与空格预览",
+        pi_desc: "无边框沉浸画布与透明网格底衬，开箱支持 40 余种图片与相机原始格式，并可在 Windows 资源管理器按空格秒开预览。",
+        pi_li1: "支持常见大图、动图、HEIC/AVIF/WebP/JXL 及 24 种相机 RAW",
+        pi_li2: "自动解析拍摄参数与 EXIF 信息，支持高清缩略采样加速",
+        pi_li3: "看图窗口内按 P 可将当前画面直接转为 PureShot 桌面贴图",
+        pz_title: "轻量压缩与智能解压管理器",
+        pz_desc: "目录树、面包屑与包内即时搜索三位一体；面对单一顶层文件夹智能直出，散落多文件自动新建同名目录归拢。",
+        pz_li1: "覆盖 ZIP、7Z、RAR（只读）与 TAR 家族压缩格式，支持 AES-256 加密与文件名编码切换",
+        pz_li2: "双击压缩包内图片直接调用 PureImage 浏览，免去手动先解压",
+        pz_li3: "内置清晰的资源管理器右键级联菜单，安装时可按需开启",
+        l_title: "全局上下文启动器",
+        l_desc_html: '按下 <kbd>Alt+Space</kbd> 实时感知当前资源管理器选中文件与剪贴板内容，给出智能解压、看图或贴图建议，并支持统一检索插件功能与剪贴板历史。',
+        s_title: "模块自由开关与热键接管",
+        s_desc_html: '在设置中心可随时启用或停用任意功能组件、录制自定义热键与检测冲突；支持接管系统 <kbd>Win+</kbd> 快捷键并抑制开始菜单弹出。',
+        arch_title: "模块化架构设计",
+        arch_sub: "宿主调度、功能模块与原生系统底座严格分层。模块之间通过统一能力总线解耦协作，停用任意模块都不会破坏整体运行。",
+        pil_1_t: "三层自由组合",
+        pil_1_d: "安装时可只选需要的工具，运行时可在设置里直接开关任意组件；未启用的模块不注册托盘、不占热键与内存。",
+        pil_2_t: "解耦协作与优雅降级",
+        pil_2_d: "例如在剪贴板或压缩包中一键呼出看图、在看图窗中一键桌面贴图；若目标组件未安装，入口会自动隐藏。",
+        pil_3_t: "纯原生轻量体验",
+        pil_3_d: "全套界面直接依托原生 GPU 管线绘制，不嵌入 Web 浏览器内核，安装目录干净独立且兼容已有历史记录。",
+        dl_title: "下载与开源许可",
+        dl_desc: "PureUtils 以 GNU AGPL-3.0 协议开源，提供单用户安装程序，可自由选择完整套件或单独安装任意组件。",
+        dl_btn: "下载 PureUtils-1.0.0-setup.exe (18.3 MB)",
+        dl_gh: "访问 GitHub",
+        f_arch: "详细架构"
       },
       en: {
-        _title: "PureUtils — Native Windows Utility Suite",
-        nav_modules: "Modules",
-        nav_gallery: "Screenshots",
+        _title: "PureUtils — Native Desktop Utilities for Windows",
+        nav_features: "Features",
         nav_arch: "Architecture",
-        nav_build: "Build",
-        hero_title: "Native Windows utilities in one lightweight binary.",
-        hero_desc: "Screenshot & desktop pins (PureShot), clipboard history (PureClip), fast 40+ format viewer & Spacebar preview (PureImage), pure-Go archive manager (PureZip), and an Alt+Space contextual launcher built on Go + MyGo GPU UI without WebView2 or cgo.",
-        cta_download: "Download Installer (v1.0.0 · 18.3 MB)",
+        nav_download: "Download",
+        hero_title: "Fast, focused native utilities for Windows.",
+        hero_desc: "Screenshot & desktop pins, clipboard history, fast multi-format image viewing, and archive management unified in a single native desktop app. Zero embedded browser engine, instant launch, and live toggles for every module.",
+        cta_download: "Download Installer · v1.0.0",
         cta_repo: "GitHub Repository",
-        hero_spec: "Windows 10/11 x64 · Go 1.27 + MyGo GPU UI · Zero cgo / Zero JS · GNU AGPL-3.0 · Per-user setup",
+        hero_spec: "Windows 10/11 x64 · Native GPU UI (Zero WebView) · GNU AGPL-3.0 · Per-user installer",
         tab_launcher: "Launcher",
-        tab_history: "PureClip Split",
-        tab_compact: "PureClip Compact",
-        tab_overlay: "PureShot Capture",
-        tab_zip: "PureZip Archive",
+        tab_history: "Clipboard",
+        tab_overlay: "Capture",
+        tab_viewer: "Viewer",
+        tab_zip: "Archive",
         tab_settings: "Settings",
-        mod_title: "Module Specifications",
-        mod_sub: "Each built-in tool is an isolated purekit.Plugin communicating strictly over Capability Bus contracts with graceful fallback.",
-        ps_p: "Frozen region capture, automatic window snapping, pixel magnifier (press C to copy HEX), and always-on-top pins.",
-        ps_meta: "Includes 9 vector annotation tools (rect, ellipse, line, arrow, pen, highlight, text, mosaic, badge), double-click finish, and F3 sequential clipboard pinning.",
-        pc_p: "Isolated SQLite WAL database & SHA-1 blob storage with pre-indexed in-memory multi-token filtering on every keystroke.",
-        pc_meta: "Async thumbnail/preview decoding cache, Split / Compact switcher, sensitive process exclusions, and strict read-only legacy DB compatibility.",
-        pi_p: "Opens 40+ image and RAW formats quickly, adds Explorer Spacebar quick preview, reads EXIF metadata, and pins images to desktop.",
-        pi_meta: "Supports JPG, PNG, GIF, WebP, HEIC, AVIF, JPEG XL, and 24 camera RAW formats; optional libjpeg-turbo scaling can be omitted via -CoreOnly.",
-        pz_p: "Pure-Go archive manager featuring folder tree navigation, smart extraction, and direct PureImage previews for archived images.",
-        pz_meta: "Reads/writes ZIP, 7Z, TAR, TGZ, TBZ2, TXZ, TZST and reads RAR v4/v5; supports AES-256, -mhe headers, encoding switch, and HKCU context menus.",
-        host_p: "Alt+Space contextual launcher detects Explorer selection & clipboard items, paired with unified tray, hotkeys, and live toggles.",
-        host_meta: "Enable/disable modules live in Settings without restart, and optionally hook WH_KEYBOARD_LL to rebind Win+ combos cleanly.",
-        gal_title: "Interface Screenshots",
-        gal_sub: "All screenshots below are rendered directly from the headless UI test suite in this repository; click to inspect full size.",
-        g1_t: "Contextual Launcher (Alt+Space)",
-        g1_d: "Surfaces Explorer archive & clipboard image actions with Ctrl+1–9 execution",
-        g2_t: "PureClip Split Inspector",
-        g2_d: "Category filter tabs, source process metadata, and live right-hand preview",
-        g3_t: "PureClip Compact Popup",
-        g3_d: "Search bar auto-focuses on open; press Tab to expand to split view",
-        g4_t: "PureShot Overlay & Magnifier",
-        g4_d: "Vector annotation dock paired with live RGB/HEX pixel magnifier",
-        g5_t: "PureZip Archive Manager",
-        g5_d: "Folder tree, breadcrumb path, encoding selector, and live search",
-        g6_t: "Unified Settings & Hotkey Recorder",
-        g6_d: "Per-plugin isolated tabs, conflict detection, and live module switches",
-        arch_title: "Architecture & Building",
-        arch_sub: "Enforced by Go AST dependency tests on every test run so the host, SDK, and plugins stay clean and composable.",
-        l1_d: "Reads modules.json next to executable, handles single-instance forwarding and CLI routing.",
-        l2_d: "Conditional builtin_*.go bridges assemble active plugins into tray, hotkeys, launcher, and Settings.",
-        l3_d: "Zero direct Go imports between plugins; cross-module actions go strictly via Capability Bus.",
-        l4_d: "Reusable plugin SDK (Bus/Contracts, WAL storage, v2 config, clipboard bus, Win32 & UI kit).",
-        copy_btn: "Copy",
-        copied_btn: "Copied",
-        f_arch: "Architecture",
-        f_contrib: "Contributing"
+        feat_title: "Four Independent Modules, Connected When Needed",
+        feat_sub: "Install only what you need or switch tools live inside Settings. Enabled modules cooperate smoothly across a shared capability bus.",
+        pc_title: "Instant Keyboard-First Clipboard History",
+        pc_desc: "Switch cleanly between a compact quick popup and a dual-column inspector. Search focuses immediately on open and filters multi-word queries across local history in real time.",
+        pc_li1: "Filter by text, rich text, images, files, or starred favorites",
+        pc_li2: "Background thumbnail and image decoding prevents typing stutter",
+        pc_li3: "Ignores password managers automatically and hands images off to PureImage or PureShot pins",
+        ps_title: "Region Capture, Vector Annotations & Pins",
+        ps_desc: "Freezes your display on hotkey with automatic window-edge snapping and a pixel-accurate color magnifier.",
+        ps_li1: "9 annotation tools: rectangle, ellipse, line, arrow, freehand, highlight, text, mosaic, and step badges",
+        ps_li2: "Press C on the magnifier to copy HEX color quietly without cluttering clipboard history",
+        ps_li3: "Pin captures or clipboard items as always-on-top floating windows with zoom and click-through",
+        pi_title: "40+ Format Image Viewer & Spacebar Preview",
+        pi_desc: "Borderless canvas with transparency grid supporting 40+ image & camera RAW formats plus instant Windows Explorer Spacebar preview.",
+        pi_li1: "Opens common photos, animated GIF/WebP/APNG, HEIC, AVIF, JXL, and 24 camera RAW formats",
+        pi_li2: "Displays camera EXIF exposure details and speeds up large JPEGs cleanly",
+        pi_li3: "Press P inside the viewer to pin the active image directly onto your desktop",
+        pz_title: "Lightweight Archive Manager & Smart Extract",
+        pz_desc: "Folder tree, breadcrumbs, and instant search inside archives. Smart Extract unwraps single root folders directly or groups loose files cleanly.",
+        pz_li1: "Handles ZIP, 7Z, TAR families, and RAR (read), with AES-256 encryption and filename encoding switching",
+        pz_li2: "Double-click archived images to preview directly in PureImage without extracting first",
+        pz_li3: "Ships a clean cascading Windows Explorer right-click menu configurable during setup",
+        l_title: "Global Contextual Launcher",
+        l_desc_html: 'Press <kbd>Alt+Space</kbd> to detect selected Explorer files and clipboard items, surfacing Smart Extract, View, Pin, and live history matches in one panel.',
+        s_title: "Live Component Switches & Win-Key Takeover",
+        s_desc_html: 'Enable or disable individual tools anytime inside Settings, record custom hotkeys with conflict checks, and optionally intercept <kbd>Win+</kbd> shortcuts without triggering the Start Menu.',
+        arch_title: "Modular Layered Architecture",
+        arch_sub: "The desktop host, independent feature modules, and native platform foundation sit in clean layers. Sibling modules stay strictly decoupled and degrade gracefully when turned off.",
+        pil_1_t: "Flexible Composition",
+        pil_1_d: "Select components at install time or toggle them live in Settings. Disabled tools release their tray entries, hotkeys, and background footprint.",
+        pil_2_t: "Decoupled Collaboration",
+        pil_2_d: "Jump from Clipboard or Archive to PureImage, or pin images to desktop via PureShot—all mediated cleanly over the Capability Bus.",
+        pil_3_t: "True Native Footprint",
+        pil_3_d: "Every window renders directly via native GPU graphics with zero embedded browser runtime, keeping startup instant and data isolated.",
+        dl_title: "Download & Open Source License",
+        dl_desc: "PureUtils is open source under GNU AGPL-3.0. Download the per-user installer and customize your active toolset freely.",
+        dl_btn: "Download PureUtils-1.0.0-setup.exe (18.3 MB)",
+        dl_gh: "View on GitHub",
+        f_arch: "Architecture Docs"
       }
-    };
-
-    const ARCH_HTML = {
-      zh: '支持三层裁剪：编译期（<code>-tags</code>）、安装期（<code>modules.json</code>）与运行时设置热开关。完整说明见 <a href="https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">docs/ARCHITECTURE.md</a>。',
-      en: 'Trim at compile time (<code>-tags</code>), install time (<code>modules.json</code>), or runtime in Settings. See <a href="https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.en.md" target="_blank" rel="noopener">docs/ARCHITECTURE.en.md</a>.'
     };
 
     let currentLang = "zh";
     let currentTheme = "light";
     let activeShotKey = "launcher";
 
-    function updateStageFooter() {
+    function updateHeroMeta() {
       const m = STAGE_META[currentLang][activeShotKey];
       if (!m) return;
       document.getElementById("stageCaption").textContent = m.caption;
@@ -1014,23 +1136,34 @@
       document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
       const dict = I18N[currentLang];
       document.title = dict._title;
+
       document.querySelectorAll("[data-i18n]").forEach((el) => {
         const key = el.getAttribute("data-i18n");
         if (dict[key]) el.textContent = dict[key];
       });
-      const archNote = document.querySelector("[data-i18n-html='arch_doc_link']");
-      if (archNote) archNote.innerHTML = ARCH_HTML[currentLang];
+      document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+        const key = el.getAttribute("data-i18n-html");
+        if (dict[key]) el.innerHTML = dict[key];
+      });
+
+      const svgDict = SVG_I18N[currentLang];
+      Object.keys(svgDict).forEach((id) => {
+        const node = document.getElementById(id);
+        if (node) node.textContent = svgDict[id];
+      });
+
       document.getElementById("langToggle").textContent = currentLang === "zh" ? "EN" : "中文";
       document.getElementById("themeToggle").textContent = currentTheme === "dark"
         ? (currentLang === "zh" ? "浅色" : "Light")
         : (currentLang === "zh" ? "深色" : "Dark");
+
       const footerArch = document.getElementById("footerArchLink");
       if (footerArch) {
         footerArch.href = currentLang === "zh"
           ? "https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md"
           : "https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.en.md";
       }
-      updateStageFooter();
+      updateHeroMeta();
       try { localStorage.setItem("pureutils_lang", currentLang); } catch {}
     }
 
@@ -1069,7 +1202,7 @@
         btn.classList.add("active");
         heroImg.src = btn.getAttribute("data-shot");
         activeShotKey = btn.getAttribute("data-key");
-        updateStageFooter();
+        updateHeroMeta();
       });
     });
 
@@ -1080,22 +1213,12 @@
       lb.classList.add("open");
     }
     document.getElementById("heroStageWrap").addEventListener("click", () => openLightbox(heroImg.src));
-    document.querySelectorAll(".contact-item").forEach((card) => {
-      card.addEventListener("click", () => openLightbox(card.getAttribute("data-full")));
+    document.querySelectorAll(".zoomable").forEach((img) => {
+      img.addEventListener("click", () => openLightbox(img.src));
     });
     lb.addEventListener("click", () => lb.classList.remove("open"));
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") lb.classList.remove("open");
-    });
-
-    document.getElementById("copyBuildBtn").addEventListener("click", async () => {
-      const txt = document.getElementById("buildSnippet").textContent;
-      const btn = document.getElementById("copyBuildBtn");
-      try {
-        await navigator.clipboard.writeText(txt);
-        btn.textContent = I18N[currentLang].copied_btn;
-        setTimeout(() => { btn.textContent = I18N[currentLang].copy_btn; }, 1400);
-      } catch {}
     });
   </script>
 </body>
