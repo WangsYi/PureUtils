@@ -313,12 +313,20 @@ fi
 cp -f "$STDCPP_A" "$PREFIX/lib/libstdc++.a"
 cp -f "$ATOMIC_A" "$PREFIX/lib/libatomic.a"
 
-for pc in "$PREFIX"/lib/pkgconfig/*.pc; do
-  sed -i -E "s|[^[:space:]]*libatomic\.dll\.a|${PREFIX}/lib/libatomic.a|g" "$pc"
-  sed -i -E "s|[^[:space:]]*libstdc\+\+\.dll\.a|${PREFIX}/lib/libstdc++.a|g" "$pc"
-  sed -i -E "s|(^|[[:space:]])-latomic([[:space:]]|$)|\\1${PREFIX}/lib/libatomic.a\\2|g" "$pc"
-  sed -i -E "s|(^|[[:space:]])-lstdc\+\+([[:space:]]|$)|\\1${PREFIX}/lib/libstdc++.a\\2|g" "$pc"
-done
+python3 - "$PREFIX" <<'PYEOF'
+import glob, pathlib, re, sys
+prefix = sys.argv[1]
+atomic_a = f"{prefix}/lib/libatomic.a"
+stdcpp_a = f"{prefix}/lib/libstdc++.a"
+for path in glob.glob(f"{prefix}/lib/pkgconfig/*.pc"):
+    p = pathlib.Path(path)
+    txt = p.read_text(encoding="utf-8")
+    txt = re.sub(r"\S*libatomic\.dll\.a", atomic_a, txt)
+    txt = re.sub(r"\S*libstdc\+\+\.dll\.a", stdcpp_a, txt)
+    txt = re.sub(r"(?<!\S)-latomic(?!\S)", atomic_a, txt)
+    txt = re.sub(r"(?<!\S)-lstdc\+\+(?!\S)", stdcpp_a, txt)
+    p.write_text(txt, encoding="utf-8")
+PYEOF
 
 if grep -q '^Libs\.private:' "$PREFIX/lib/pkgconfig/libplacebo.pc"; then
   if ! grep -q 'libstdc++\.a' "$PREFIX/lib/pkgconfig/libplacebo.pc"; then
@@ -405,9 +413,19 @@ meson setup "$BUILD_DIR/mpv" "$SRC_DIR/mpv" \
   -Dmanpage-build=disabled \
   -Dhtml-build=disabled \
   -Dpdf-build=disabled
-sed -i -E "s|[^[:space:]]*libatomic\.dll\.a|${PREFIX}/lib/libatomic.a|g" "$BUILD_DIR/mpv/build.ninja"
-sed -i -E "s|[^[:space:]]*libstdc\+\+\.dll\.a|${PREFIX}/lib/libstdc++.a|g" "$BUILD_DIR/mpv/build.ninja"
-sed -i -E "s|(^|[[:space:]])-latomic([[:space:]]|$)|\\1${PREFIX}/lib/libatomic.a\\2|g" "$BUILD_DIR/mpv/build.ninja"
+python3 - "$PREFIX" "$BUILD_DIR/mpv/build.ninja" <<'PYEOF'
+import pathlib, re, sys
+prefix, ninja_path = sys.argv[1], sys.argv[2]
+atomic_a = f"{prefix}/lib/libatomic.a"
+stdcpp_a = f"{prefix}/lib/libstdc++.a"
+p = pathlib.Path(ninja_path)
+txt = p.read_text(encoding="utf-8")
+txt = re.sub(r"\S*libatomic\.dll\.a", atomic_a, txt)
+txt = re.sub(r"\S*libstdc\+\+\.dll\.a", stdcpp_a, txt)
+txt = re.sub(r"(?<!\S)-latomic(?!\S)", atomic_a, txt)
+txt = re.sub(r"(?<!\S)-lstdc\+\+(?!\S)", stdcpp_a, txt)
+p.write_text(txt, encoding="utf-8")
+PYEOF
 ninja -C "$BUILD_DIR/mpv" -j"$NPROC"
 ninja -C "$BUILD_DIR/mpv" install
 
