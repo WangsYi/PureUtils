@@ -583,7 +583,7 @@
       <div class="hero-copy">
         <h1 data-i18n="hero_title">轻快、克制的 Windows 原生效率工具集。</h1>
         <p class="hero-desc" data-i18n="hero_desc">
-          把日常高频的截图贴图、剪贴板历史、多格式看图与压缩管理收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪与设置页实时开关每个模块。
+          把日常高频的截图贴图、剪贴板历史、多格式看图、极速视频浏览与压缩管理收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪、设置页实时开关与自动更新。
         </p>
         <div class="hero-actions">
           <a class="btn-primary" href="https://github.com/WangsYi/PureUtils/releases/latest" target="_blank" rel="noopener" data-i18n="cta_download">下载安装程序 · v1.1.0</a>
@@ -604,6 +604,7 @@
           <button class="stage-tab" data-shot="screenshots/history.png" data-key="history" data-i18n="tab_history">剪贴板历史</button>
           <button class="stage-tab" data-shot="screenshots/overlay.png" data-key="overlay" data-i18n="tab_overlay">截图标注</button>
           <button class="stage-tab" data-shot="screenshots/viewer.png" data-key="viewer" data-i18n="tab_viewer">极速看图</button>
+          <button class="stage-tab" data-shot="screenshots/video.png" data-key="video" data-i18n="tab_video">极速视频</button>
           <button class="stage-tab" data-shot="screenshots/zip.png" data-key="zip" data-i18n="tab_zip">压缩管理</button>
           <button class="stage-tab" data-shot="screenshots/settings.png" data-key="settings" data-i18n="tab_settings">系统设置</button>
         </div>
@@ -617,7 +618,7 @@
     <!-- Features Story Chapters -->
     <section id="features" class="section">
       <div class="section-head">
-        <h2 data-i18n="feat_title">四大独立组件，按需协同</h2>
+        <h2 data-i18n="feat_title">五大独立组件，按需协同</h2>
         <p data-i18n="feat_sub">每个工具都可独立启用或彻底裁剪；当同时开启时，通过统一能力总线自然衔接操作流。</p>
       </div>
 
@@ -699,12 +700,41 @@
         </div>
       </article>
 
-      <!-- 04 PureZip -->
+      <!-- 04 PureVideo -->
       <article class="chapter rev">
         <div class="chapter-copy">
           <div class="chapter-kicker">
+            <img src="assets/video.png" alt="PureVideo" />
+            <span>04 · PureVideo</span>
+          </div>
+          <h3 data-i18n="pv_title">内置 libmpv 的极速视频浏览</h3>
+          <p data-i18n="pv_desc">安装包直接内置精简裁剪版 libmpv-2.dll 硬件解码内核，双击秒开主流及冷门封装格式，无需额外配置外部解码器包。</p>
+          <ul class="chapter-points">
+            <li data-i18n="pv_li1">开箱支持 21 种视频格式（MP4 / MKV / MOV / HEVC / FLV / WebM 等）与外挂字幕自动加载</li>
+            <li data-i18n="pv_li2">支持逐帧步进、0.5×–2× 倍速切换、单曲循环、进度/音量平滑拖拽与同目录上下切换</li>
+            <li data-i18n="pv_li3">支持将 21 种格式写入系统“打开方式”与快捷设为默认视频播放器</li>
+          </ul>
+          <div class="chapter-keys">
+            <kbd>Space</kbd>
+            <kbd>←/→</kbd>
+            <kbd>.</kbd>
+            <kbd>PgUp/PgDn</kbd>
+            <kbd>F</kbd>
+          </div>
+        </div>
+        <div class="chapter-media">
+          <div class="studio-mat">
+            <img class="win-shot zoomable" src="screenshots/video.png" alt="PureVideo 内置 libmpv 极速视频浏览" />
+          </div>
+        </div>
+      </article>
+
+      <!-- 05 PureZip -->
+      <article class="chapter">
+        <div class="chapter-copy">
+          <div class="chapter-kicker">
             <img src="assets/zip.png" alt="PureZip" />
-            <span>04 · PureZip</span>
+            <span>05 · PureZip</span>
           </div>
           <h3 data-i18n="pz_title">轻量压缩与智能解压管理器</h3>
           <p data-i18n="pz_desc">目录树、面包屑与包内即时搜索三位一体；面对单一顶层文件夹智能直出，散落多文件自动新建同名目录归拢。</p>
@@ -725,7 +755,7 @@
         </div>
       </article>
 
-      <!-- 05 Launcher + Settings -->
+      <!-- 06 Launcher + Settings & Auto-Update -->
       <div class="duo-grid">
         <div class="duo-card">
           <div class="studio-mat duo-mat">
@@ -733,17 +763,17 @@
           </div>
           <div class="duo-copy">
             <h3 data-i18n="l_title">全局上下文启动器</h3>
-            <p data-i18n-html="l_desc_html">按下 <kbd>Alt+Space</kbd> 实时感知当前资源管理器选中文件与剪贴板内容，给出智能解压、看图或贴图建议，并支持统一检索插件功能与剪贴板历史。</p>
+            <p data-i18n-html="l_desc_html">按下 <kbd>Alt+Space</kbd> 实时感知当前资源管理器选中文件与剪贴板内容，给出智能解压、看图、看视频或贴图建议，并支持统一检索插件功能与剪贴板历史。</p>
           </div>
         </div>
 
         <div class="duo-card">
           <div class="studio-mat duo-mat">
-            <img class="win-shot zoomable" src="screenshots/settings.png" alt="PureUtils 系统设置与热开关" />
+            <img class="win-shot zoomable" src="screenshots/settings.png" alt="PureUtils 系统设置与自动更新" />
           </div>
           <div class="duo-copy">
-            <h3 data-i18n="s_title">模块自由开关与热键接管</h3>
-            <p data-i18n-html="s_desc_html">在设置中心可随时启用或停用任意功能组件、录制自定义热键与检测冲突；支持接管系统 <kbd>Win+</kbd> 快捷键并抑制开始菜单弹出。</p>
+            <h3 data-i18n="s_title">模块热开关、热键接管与自动更新</h3>
+            <p data-i18n-html="s_desc_html">设置中心支持实时启停五大组件、录制并接管 <kbd>Win+</kbd> 热键，并内置应用内自动更新（GitHub Releases 检测、国内镜像加速回退与 SHA-256 校验一键升级）。</p>
           </div>
         </div>
       </div>
@@ -784,7 +814,7 @@
 
           <rect x="717" y="36" width="219" height="58" rx="8" fill="var(--bg-band)" stroke="var(--border-strong)" />
           <text id="svgE4T" x="826" y="61" text-anchor="middle" fill="var(--ink)" font-size="13.5" font-weight="600" font-family="var(--sans)">命令行与文件关联</text>
-          <text id="svgE4S" x="826" y="80" text-anchor="middle" fill="var(--ink-secondary)" font-size="11.5" font-family="var(--sans)">单实例接管 · 双击图片或压缩包</text>
+          <text id="svgE4S" x="826" y="80" text-anchor="middle" fill="var(--ink-secondary)" font-size="11.5" font-family="var(--sans)">单实例接管 · 双击图片/视频/压缩包</text>
 
           <!-- Connectors Layer 1 -> Layer 2 -->
           <line x1="133" y1="94" x2="133" y2="128" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
@@ -795,51 +825,59 @@
           <!-- Layer 2: Unified Host -->
           <rect x="24" y="132" width="912" height="74" rx="10" fill="var(--surface)" stroke="var(--border-strong)" stroke-width="1.5" />
           <text id="svgHTitle" x="480" y="159" text-anchor="middle" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">统一原生桌面宿主（Unified Desktop Host）</text>
-          <text id="svgHSub" x="480" y="185" text-anchor="middle" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">单实例调度   ·   上下文快捷启动器   ·   热键调度与 Win 键接管   ·   统一设置与模块实时热开关</text>
+          <text id="svgHSub" x="480" y="185" text-anchor="middle" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">单实例调度   ·   上下文快捷启动器   ·   热键与 Win 键接管   ·   模块热开关   ·   应用内自动更新</text>
 
           <!-- Connectors Layer 2 -> Layer 3 -->
-          <line x1="133" y1="206" x2="133" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="364" y1="206" x2="364" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="595" y1="206" x2="595" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="826" y1="206" x2="826" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="110" y1="206" x2="110" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="295" y1="206" x2="295" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="480" y1="206" x2="480" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="665" y1="206" x2="665" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="850" y1="206" x2="850" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
 
-          <!-- Layer 3: Four Independent Modules -->
+          <!-- Layer 3: Five Independent Modules -->
           <text id="svgL3" x="24" y="236" fill="var(--ink-muted)" font-size="11.5" font-weight="600" letter-spacing="0.04em" font-family="var(--mono)">02 · 可插拔功能模块（零互相依赖，支持独立裁剪与热开关）</text>
 
-          <rect x="24" y="250" width="218" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="42" y="278" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">PureShot</text>
-          <text x="224" y="278" text-anchor="end" fill="var(--accent)" font-size="11" font-family="var(--mono)">capture</text>
-          <text id="svgM1" x="42" y="302" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">区域冻结 · 9 种矢量标注</text>
-          <text id="svgM1b" x="42" y="321" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">取色放大镜 · 桌面悬浮贴图</text>
+          <rect x="24" y="250" width="172" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="38" y="278" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">PureShot</text>
+          <text x="182" y="278" text-anchor="end" fill="var(--accent)" font-size="10.5" font-family="var(--mono)">capture</text>
+          <text id="svgM1" x="38" y="302" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">区域冻结 · 9种矢量标注</text>
+          <text id="svgM1b" x="38" y="321" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">取色放大镜 · 悬浮贴图</text>
 
-          <rect x="255" y="250" width="218" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="273" y="278" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">PureClip</text>
-          <text x="455" y="278" text-anchor="end" fill="var(--accent)" font-size="11" font-family="var(--mono)">history</text>
-          <text id="svgM2" x="273" y="302" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">历史记录 · 内存即时检索</text>
-          <text id="svgM2b" x="273" y="321" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">分类收藏 · 敏感进程忽略</text>
+          <rect x="209" y="250" width="172" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="223" y="278" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">PureClip</text>
+          <text x="367" y="278" text-anchor="end" fill="var(--accent)" font-size="10.5" font-family="var(--mono)">history</text>
+          <text id="svgM2" x="223" y="302" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">历史记录 · 即时检索</text>
+          <text id="svgM2b" x="223" y="321" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">分类收藏 · 隐私忽略</text>
 
-          <rect x="486" y="250" width="218" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="504" y="278" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">PureImage</text>
-          <text x="686" y="278" text-anchor="end" fill="var(--accent)" font-size="11" font-family="var(--mono)">viewer</text>
-          <text id="svgM3" x="504" y="302" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">40+ 图片与相机 RAW 解码</text>
-          <text id="svgM3b" x="504" y="321" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">EXIF 详情 · 资源管理器空格预览</text>
+          <rect x="394" y="250" width="172" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="408" y="278" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">PureImage</text>
+          <text x="552" y="278" text-anchor="end" fill="var(--accent)" font-size="10.5" font-family="var(--mono)">viewer</text>
+          <text id="svgM3" x="408" y="302" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">40+ 图片与相机 RAW</text>
+          <text id="svgM3b" x="408" y="321" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">EXIF · 空格秒开预览</text>
 
-          <rect x="717" y="250" width="219" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="735" y="278" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">PureZip</text>
-          <text x="918" y="278" text-anchor="end" fill="var(--accent)" font-size="11" font-family="var(--mono)">zip</text>
-          <text id="svgM4" x="735" y="302" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">ZIP / 7Z / TAR / RAR 支持</text>
-          <text id="svgM4b" x="735" y="321" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">智能解压 · 加密与编码切换</text>
+          <rect x="579" y="250" width="172" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="593" y="278" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">PureVideo</text>
+          <text x="737" y="278" text-anchor="end" fill="var(--accent)" font-size="10.5" font-family="var(--mono)">video</text>
+          <text id="svgM4" x="593" y="302" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">内置裁剪 libmpv 硬解</text>
+          <text id="svgM4b" x="593" y="321" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">21种格式 · 外挂字幕</text>
+
+          <rect x="764" y="250" width="172" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="778" y="278" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">PureZip</text>
+          <text x="922" y="278" text-anchor="end" fill="var(--accent)" font-size="10.5" font-family="var(--mono)">zip</text>
+          <text id="svgM5" x="778" y="302" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">ZIP / 7Z / TAR / RAR</text>
+          <text id="svgM5b" x="778" y="321" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">智能解压 · AES 加密</text>
 
           <!-- Bus Links Modules <-> Bus Rail -->
-          <line x1="133" y1="336" x2="133" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="364" y1="336" x2="364" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="595" y1="336" x2="595" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="826" y1="336" x2="826" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="110" y1="336" x2="110" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="295" y1="336" x2="295" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="480" y1="336" x2="480" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="665" y1="336" x2="665" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="850" y1="336" x2="850" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
 
           <!-- Capability Collaboration Bus -->
           <rect x="24" y="366" width="912" height="52" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.2" />
           <text id="svgBusTitle" x="480" y="388" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="650" font-family="var(--sans)">跨模块能力协作总线（Capability Bus · 按需联动，禁用自动降级）</text>
-          <text id="svgBusSub" x="480" y="407" text-anchor="middle" fill="var(--ink-secondary)" font-size="12" font-family="var(--sans)">剪贴板 / 压缩包内直连 PureImage 看图   ·   看图 / 剪贴板一键转为 PureShot 贴图   ·   F3 顺延读取剪贴板历史队列</text>
+          <text id="svgBusSub" x="480" y="407" text-anchor="middle" fill="var(--ink-secondary)" font-size="12" font-family="var(--sans)">剪贴板 / 压缩包直连 PureImage 看图   ·   看图 / 剪贴板转为 PureShot 贴图   ·   启动器上下文路由 PureVideo 播放</text>
 
           <!-- Layer 4: Native Foundation -->
           <rect x="24" y="432" width="912" height="62" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
@@ -913,12 +951,16 @@
           caption: "开箱支持 40+ 图片及相机 RAW 格式，支持 EXIF 查看与空格秒开预览",
           keys: "<kbd>Space</kbd> · <kbd>P</kbd> 贴到桌面"
         },
+        video: {
+          caption: "内置裁剪版 libmpv 硬件解码，开箱支持 21 种视频格式、外挂字幕与逐帧步进",
+          keys: "<kbd>Space</kbd> · <kbd>←/→</kbd> · <kbd>F</kbd>"
+        },
         zip: {
           caption: "多格式压缩包目录浏览、包内直接预览图片与智能解压归档",
           keys: "<kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>Enter</kbd>"
         },
         settings: {
-          caption: "按组件独立划分设置分区，支持自定义热键与运行时实时启停模块",
+          caption: "按组件独立划分设置分区，支持自定义热键、实时启停模块与自动更新",
           keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> → 设置"
         }
       },
@@ -939,12 +981,16 @@
           caption: "40+ image & camera RAW formats with EXIF overlay and Explorer Spacebar preview",
           keys: "<kbd>Space</kbd> · <kbd>P</kbd> Pin to Desktop"
         },
+        video: {
+          caption: "Bundled trimmed libmpv hardware decoding for 21 video formats, subtitles, and frame stepping",
+          keys: "<kbd>Space</kbd> · <kbd>←/→</kbd> · <kbd>F</kbd>"
+        },
         zip: {
           caption: "Multi-format archive tree navigation, in-archive image preview, and smart extract",
           keys: "<kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>Enter</kbd>"
         },
         settings: {
-          caption: "Clean per-module tabs with hotkey conflict detection and live component toggles",
+          caption: "Clean per-module tabs with hotkey conflict detection, live toggles, and auto-updater",
           keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> → Settings"
         }
       }
@@ -960,20 +1006,22 @@
         svgE3T: "资源管理器集成",
         svgE3S: "空格快速预览 · 右键压缩解压",
         svgE4T: "命令行与文件关联",
-        svgE4S: "单实例接管 · 双击图片或压缩包",
+        svgE4S: "单实例接管 · 双击图片/视频/压缩包",
         svgHTitle: "统一原生桌面宿主（Unified Desktop Host）",
-        svgHSub: "单实例调度   ·   上下文快捷启动器   ·   热键调度与 Win 键接管   ·   统一设置与模块实时热开关",
+        svgHSub: "单实例调度   ·   上下文快捷启动器   ·   热键与 Win 键接管   ·   模块热开关   ·   应用内自动更新",
         svgL3: "02 · 可插拔功能模块（零互相依赖，支持独立裁剪与热开关）",
-        svgM1: "区域冻结 · 9 种矢量标注",
-        svgM1b: "取色放大镜 · 桌面悬浮贴图",
-        svgM2: "历史记录 · 内存即时检索",
-        svgM2b: "分类收藏 · 敏感进程忽略",
-        svgM3: "40+ 图片与相机 RAW 解码",
-        svgM3b: "EXIF 详情 · 资源管理器空格预览",
-        svgM4: "ZIP / 7Z / TAR / RAR 支持",
-        svgM4b: "智能解压 · 加密与编码切换",
+        svgM1: "区域冻结 · 9种矢量标注",
+        svgM1b: "取色放大镜 · 悬浮贴图",
+        svgM2: "历史记录 · 即时检索",
+        svgM2b: "分类收藏 · 隐私忽略",
+        svgM3: "40+ 图片与相机 RAW",
+        svgM3b: "EXIF · 空格秒开预览",
+        svgM4: "内置裁剪 libmpv 硬解",
+        svgM4b: "21种格式 · 外挂字幕",
+        svgM5: "ZIP / 7Z / TAR / RAR",
+        svgM5b: "智能解压 · AES 加密",
         svgBusTitle: "跨模块能力协作总线（Capability Bus · 按需联动，禁用自动降级）",
-        svgBusSub: "剪贴板 / 压缩包内直连 PureImage 看图   ·   看图 / 剪贴板一键转为 PureShot 贴图   ·   F3 顺延读取剪贴板历史队列",
+        svgBusSub: "剪贴板 / 压缩包直连 PureImage 看图   ·   看图 / 剪贴板转为 PureShot 贴图   ·   启动器上下文路由 PureVideo 播放",
         svgBaseTitle: "原生运行时底座（Native Desktop Foundation）",
         svgBaseSub: "原生 GPU 图形渲染（无 WebView 开销）   ·   模块隔离存储与只读兼容   ·   共享剪贴板事件流   ·   Windows 窗口与外壳服务"
       },
@@ -986,20 +1034,22 @@
         svgE3T: "Explorer Integration",
         svgE3S: "Spacebar Preview & Right-Click Menu",
         svgE4T: "CLI & File Associations",
-        svgE4S: "Single Instance & Open With",
+        svgE4S: "Single Instance · Images/Video/Zips",
         svgHTitle: "Unified Native Desktop Host",
-        svgHSub: "Single-Instance Dispatch   ·   Contextual Launcher   ·   Hotkey & Win-Key Arbiter   ·   Live Module Settings",
+        svgHSub: "Single-Instance   ·   Context Launcher   ·   Hotkey & Win-Key Arbiter   ·   Live Toggles   ·   Auto-Updater",
         svgL3: "02 · DECOUPLED FUNCTIONAL MODULES (INDEPENDENT & HOT-TOGGLEABLE)",
-        svgM1: "Region Snap · 9 Vector Tools",
-        svgM1b: "Color Magnifier · Desktop Pins",
-        svgM2: "History Store · Instant Search",
-        svgM2b: "Filters, Stars & Privacy Rules",
-        svgM3: "40+ Image & Camera RAW Codecs",
-        svgM3b: "EXIF HUD · Explorer Space Preview",
-        svgM4: "ZIP / 7Z / TAR / RAR Support",
-        svgM4b: "Smart Extract · AES & Encoding",
+        svgM1: "Snap · 9 Vector Tools",
+        svgM1b: "Magnifier · Floating Pins",
+        svgM2: "History · Instant Search",
+        svgM2b: "Filters · Privacy Rules",
+        svgM3: "40+ Image & RAW Codecs",
+        svgM3b: "EXIF · Spacebar Preview",
+        svgM4: "Built-in libmpv Decode",
+        svgM4b: "21 Formats · Subtitles",
+        svgM5: "ZIP / 7Z / TAR / RAR",
+        svgM5b: "Smart Extract · AES-256",
         svgBusTitle: "Cross-Module Capability Bus (Optional Collaboration with Graceful Fallback)",
-        svgBusSub: "Clip / Zip → PureImage Instant View   ·   Image / Clip → PureShot Desktop Pin   ·   Sequential History Queue on F3",
+        svgBusSub: "Clip / Zip → PureImage View   ·   Image / Clip → PureShot Pin   ·   Launcher Routes Context → PureVideo",
         svgBaseTitle: "Native Desktop Runtime Foundation",
         svgBaseSub: "Native GPU UI Rendering (Zero WebView)   ·   Isolated Data & Legacy Compatibility   ·   Clipboard Stream   ·   Windows Shell Services"
       }
@@ -1012,7 +1062,7 @@
         nav_arch: "架构",
         nav_download: "下载",
         hero_title: "轻快、克制的 Windows 原生效率工具集。",
-        hero_desc: "把日常高频的截图贴图、剪贴板历史、多格式看图与压缩管理收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪与设置页实时开关每个模块。",
+        hero_desc: "把日常高频的截图贴图、剪贴板历史、多格式看图、极速视频浏览与压缩管理收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪、设置页实时开关与自动更新。",
         cta_download: "下载安装程序 · v1.1.0",
         cta_repo: "GitHub 仓库",
         hero_spec: "Windows 10/11 64 位 · 原生 GPU 渲染（零 WebView） · GNU AGPL-3.0 开源 · 单用户安装免管理员权限",
@@ -1020,9 +1070,10 @@
         tab_history: "剪贴板历史",
         tab_overlay: "截图标注",
         tab_viewer: "极速看图",
+        tab_video: "极速视频",
         tab_zip: "压缩管理",
         tab_settings: "系统设置",
-        feat_title: "四大独立组件，按需协同",
+        feat_title: "五大独立组件，按需协同",
         feat_sub: "每个工具都可独立启用或彻底裁剪；当同时开启时，通过统一能力总线自然衔接操作流。",
         pc_title: "呼出即搜的剪贴板历史",
         pc_desc: "提供精简浮窗与双栏详情两种视图，呼出瞬间自动聚焦搜索框；直接键入关键词即可在本地历史中完成即时多词过滤。",
@@ -1039,15 +1090,20 @@
         pi_li1: "支持常见大图、动图、HEIC/AVIF/WebP/JXL 及 24 种相机 RAW",
         pi_li2: "自动解析拍摄参数与 EXIF 信息，支持高清缩略采样加速",
         pi_li3: "看图窗口内按 P 可将当前画面直接转为 PureShot 桌面贴图",
+        pv_title: "内置 libmpv 的极速视频浏览",
+        pv_desc: "安装包直接内置精简裁剪版 libmpv-2.dll 硬件解码内核，双击秒开主流及冷门封装格式，无需额外配置外部解码器包。",
+        pv_li1: "开箱支持 21 种视频格式（MP4 / MKV / MOV / HEVC / FLV / WebM 等）与外挂字幕自动加载",
+        pv_li2: "支持逐帧步进、0.5×–2× 倍速切换、单曲循环、进度/音量平滑拖拽与同目录上下切换",
+        pv_li3: "支持将 21 种格式写入系统“打开方式”与快捷设为默认视频播放器",
         pz_title: "轻量压缩与智能解压管理器",
         pz_desc: "目录树、面包屑与包内即时搜索三位一体；面对单一顶层文件夹智能直出，散落多文件自动新建同名目录归拢。",
         pz_li1: "覆盖 ZIP、7Z、RAR（只读）与 TAR 家族压缩格式，支持 AES-256 加密与文件名编码切换",
         pz_li2: "双击压缩包内图片直接调用 PureImage 浏览，免去手动先解压",
         pz_li3: "内置清晰的资源管理器右键级联菜单，安装时可按需开启",
         l_title: "全局上下文启动器",
-        l_desc_html: '按下 <kbd>Alt+Space</kbd> 实时感知当前资源管理器选中文件与剪贴板内容，给出智能解压、看图或贴图建议，并支持统一检索插件功能与剪贴板历史。',
-        s_title: "模块自由开关与热键接管",
-        s_desc_html: '在设置中心可随时启用或停用任意功能组件、录制自定义热键与检测冲突；支持接管系统 <kbd>Win+</kbd> 快捷键并抑制开始菜单弹出。',
+        l_desc_html: '按下 <kbd>Alt+Space</kbd> 实时感知当前资源管理器选中文件与剪贴板内容，给出智能解压、看图、看视频或贴图建议，并支持统一检索插件功能与剪贴板历史。',
+        s_title: "模块热开关、热键接管与自动更新",
+        s_desc_html: '设置中心支持实时启停五大组件、录制并接管 <kbd>Win+</kbd> 热键，并内置应用内自动更新（GitHub Releases 检测、国内镜像加速回退与 SHA-256 校验一键升级）。',
         arch_title: "模块化架构设计",
         arch_sub: "宿主调度、功能模块与原生系统底座严格分层。模块之间通过统一能力总线解耦协作，停用任意模块都不会破坏整体运行。",
         pil_1_t: "三层自由组合",
@@ -1068,7 +1124,7 @@
         nav_arch: "Architecture",
         nav_download: "Download",
         hero_title: "Fast, focused native utilities for Windows.",
-        hero_desc: "Screenshot & desktop pins, clipboard history, fast multi-format image viewing, and archive management unified in a single native desktop app. Zero embedded browser engine, instant launch, and live toggles for every module.",
+        hero_desc: "Screenshot & desktop pins, clipboard history, fast image & video browsing, and archive management unified in one native desktop app. Zero embedded browser engine, instant launch, live module toggles, and built-in auto-updates.",
         cta_download: "Download Installer · v1.1.0",
         cta_repo: "GitHub Repository",
         hero_spec: "Windows 10/11 x64 · Native GPU UI (Zero WebView) · GNU AGPL-3.0 · Per-user installer",
@@ -1076,9 +1132,10 @@
         tab_history: "Clipboard",
         tab_overlay: "Capture",
         tab_viewer: "Viewer",
+        tab_video: "Video",
         tab_zip: "Archive",
         tab_settings: "Settings",
-        feat_title: "Four Independent Modules, Connected When Needed",
+        feat_title: "Five Independent Modules, Connected When Needed",
         feat_sub: "Install only what you need or switch tools live inside Settings. Enabled modules cooperate smoothly across a shared capability bus.",
         pc_title: "Instant Keyboard-First Clipboard History",
         pc_desc: "Switch cleanly between a compact quick popup and a dual-column inspector. Search focuses immediately on open and filters multi-word queries across local history in real time.",
@@ -1095,15 +1152,20 @@
         pi_li1: "Opens common photos, animated GIF/WebP/APNG, HEIC, AVIF, JXL, and 24 camera RAW formats",
         pi_li2: "Displays camera EXIF exposure details and speeds up large JPEGs cleanly",
         pi_li3: "Press P inside the viewer to pin the active image directly onto your desktop",
+        pv_title: "Fast Video Browser Powered by Built-in libmpv",
+        pv_desc: "Ships a Tier 1 trimmed libmpv-2.dll hardware decoding engine right inside the installer so videos play instantly with zero external codec packs.",
+        pv_li1: "Supports 21 video formats out of the box (MP4, MKV, MOV, HEVC, FLV, WebM, etc.) with external subtitle autoloading",
+        pv_li2: "Frame stepping, 0.5×–2× speed presets, single-file loop, smooth timeline/volume scrubbing, and folder next/prev navigation",
+        pv_li3: "Registers per-user HKCU Open With associations across all 21 video formats for quick Windows Default Apps setup",
         pz_title: "Lightweight Archive Manager & Smart Extract",
         pz_desc: "Folder tree, breadcrumbs, and instant search inside archives. Smart Extract unwraps single root folders directly or groups loose files cleanly.",
         pz_li1: "Handles ZIP, 7Z, TAR families, and RAR (read), with AES-256 encryption and filename encoding switching",
         pz_li2: "Double-click archived images to preview directly in PureImage without extracting first",
         pz_li3: "Ships a clean cascading Windows Explorer right-click menu configurable during setup",
         l_title: "Global Contextual Launcher",
-        l_desc_html: 'Press <kbd>Alt+Space</kbd> to detect selected Explorer files and clipboard items, surfacing Smart Extract, View, Pin, and live history matches in one panel.',
-        s_title: "Live Component Switches & Win-Key Takeover",
-        s_desc_html: 'Enable or disable individual tools anytime inside Settings, record custom hotkeys with conflict checks, and optionally intercept <kbd>Win+</kbd> shortcuts without triggering the Start Menu.',
+        l_desc_html: 'Press <kbd>Alt+Space</kbd> to detect selected Explorer files and clipboard items, surfacing Smart Extract, Image View, Video Playback, Pin, and live history matches in one panel.',
+        s_title: "Live Module Toggles, Hotkeys & Auto-Updater",
+        s_desc_html: 'Enable or disable all five modules live inside Settings, intercept <kbd>Win+</kbd> hotkeys without triggering the Start Menu, and update cleanly in-app via GitHub Releases with mirror fallback and SHA-256 verification.',
         arch_title: "Modular Layered Architecture",
         arch_sub: "The desktop host, independent feature modules, and native platform foundation sit in clean layers. Sibling modules stay strictly decoupled and degrade gracefully when turned off.",
         pil_1_t: "Flexible Composition",

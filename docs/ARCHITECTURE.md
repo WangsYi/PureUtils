@@ -2,24 +2,25 @@
 
 > **简体中文** | [English](ARCHITECTURE.en.md) | [返回 README](../README.md)
 
-PureUtils 已从单体桌面工具演进为以 **`pkg/purekit` 可复用核心库**为底座、以 **`plugins/*` 完全解耦内建插件**为能力单元、以 **`internal/host` 薄宿主外壳**装配托盘/全局热键/设置中心与 **全局启动器（`Alt+Space`）**的模块化平台。全栈保持 **100% 纯 Go (`CGO_ENABLED=0`) + MyGo 原生 GPU UI**，无 WebView、无 JavaScript、无 cgo。
+PureUtils 已从单体桌面工具演进为以 **`pkg/purekit` 可复用核心库**为底座、以 **`plugins/*` 完全解耦内建插件**为能力单元、以 **`internal/host` 薄宿主外壳**装配托盘/全局热键/设置中心、应用内自动更新（[`updater.go`](../internal/host/updater.go)）与 **全局启动器（`Alt+Space`）**的模块化平台。全栈保持 **100% 纯 Go (`CGO_ENABLED=0`) + MyGo 原生 GPU UI**，无 WebView、无 JavaScript、无 cgo。
 
 ---
 
 ## 1. 四层架构与严格依赖边界
 
 ```text
-main.go                       MyGo 单实例生命周期、读只读 config/modules、CLI 启动路由
-  └─ internal/host            薄宿主外壳（Host 实现、动态托盘、热键调度、统一设置、Alt+Space 启动器）
-       ├─ builtin_*.go        条件编译注册桥（!nopureshot / !nopureclip / !nopureimage&&!nofreeimage / !nopurezip）
+main.go                       MyGo 单实例生命周期、crash.log 崩溃日志挂载、config/modules 读取、CLI 路由
+  └─ internal/host            薄宿主外壳（Host 实现、动态托盘、热键调度、统一设置、自动更新、Alt+Space 启动器）
+       ├─ builtin_*.go        条件编译注册桥（!nopureshot / !nopureclip / !nopureimage&&!nofreeimage / !nopurevideo / !nopurezip）
        └─ plugins/<id>        完全独立的功能插件（零跨插件 import、零 internal/* import）
             ├─ pureshot       PureShot：区域/整屏截图、9 种矢量标注（pureshot/annotate）、悬浮贴图
             ├─ pureclip       PureClip：剪贴板历史监控、SQLite/Blob 仓储、Ditto 风格浮窗、只读 legacy fallback
             ├─ pureimage      PureImage：40+ 格式与 RAW/动图解码、TurboJPEG、空格预览、系统打开方式关联
+            ├─ purevideo      PureVideo：内置裁剪版 libmpv 硬件解码、21 种视频格式、字幕与系统打开方式关联
             └─ purezip        PureZip：archive/ 纯 Go 压缩引擎、zipshell/ 右键与关联、管理器与进度窗口
   └─ pkg/purekit              可抽离复用的插件平台核心 SDK（不依赖 internal/* 或 plugins/*）
        ├─ purekit             Plugin / Host / Feature / Matcher / SettingsTab / Bus / Typed Contracts
-       ├─ purekit/core        Paths / Logger / Command / Hotkey / ModuleConfig / ClipboardContent / Geometry / Color
+       ├─ purekit/core        Paths / Logger / SetupCrashOutput / Version / Command / Hotkey / ModuleConfig / Color
        ├─ purekit/config      settings.json v2 Manager（plugins.<id> 分区）+ v1 顶层键只读回退
        ├─ purekit/storage     隔离插件存储（plugins/<id>/*.db / blobs）+ legacy DB/images 严格只读探测
        ├─ purekit/clipboard   多消费者带来源标签剪贴板总线（WriteImage / Subscribe / 自写抑制）
@@ -43,13 +44,14 @@ PureUtils 支持三层自由组合与裁剪：
    - `nofreeimage`（等价于 `nopureimage`）：完全排除 PureImage 及 AVIF/HEIC/JXL/WebP 解码与 `wazero` 依赖（体积缩减约 10 MB）；
    - `nopureshot`：排除 PureShot 截图、标注与贴图；
    - `nopureclip`：排除 PureClip 剪贴板历史；
+   - `nopurevideo`：排除 PureVideo 视频浏览器及 `libmpv` 调用；
    - `nopurezip`：排除 PureZip 压缩包引擎与管理器；
-   - 四个全部排除（`-tags "nopureshot nopureclip nopureimage nopurezip"`）仍可编出约 21 MB 的纯宿主外壳。
-   - 也可通过 `.\build.ps1 build -CoreOnly` 或 `.\build.ps1 build -Exclude purezip,pureimage` 一键构建。
+   - 五个全部排除（`-tags "nopureshot nopureclip nopureimage nopurevideo nopurezip"`）仍可编出纯宿主外壳。
+   - 也可通过 `.\build.ps1 build -CoreOnly` 或 `.\build.ps1 build -Exclude purezip,pureimage,purevideo` 一键构建。
 2. **安装期（`modules.json`）**：
-   - 安装包或绿色版目录的 `modules.json` 控制 `{capture, history, viewer, zip}` 开关，宿主按 `CompiledModules() ∩ modules.json` 决定启动装配集合。
+   - 安装包或绿色版目录的 `modules.json` 控制 `{capture, history, viewer, video, zip}` 开关，宿主按 `CompiledModules() ∩ modules.json` 决定启动装配集合。
 3. **运行时（设置页实时热开关 / `DisabledModules`）**：
-   - 用户可在「设置 → 常规」随时开启或关闭已编译模块；宿主通过 `applyPluginModules(hc)` 实时启停对应插件并重建托盘、热键与启动器条目，配合 `Bus.Version()` 能力代次递增，使其他插件（如 PureShot / PureClip / PureZip）在提供方恢复后自动重新绑定能力。
+   - 用户可在「设置 → 常规」随时开启或关闭已编译模块；宿主通过 `applyPluginModules(hc)` 实时启停对应插件并重建托盘、热键与启动器条目，配合 `Bus.Version()` 能力代次递增，使其他插件（如 PureShot / PureClip / PureZip）在提供方恢复后自动重新绑定能力；「设置 → 高级」同时集成自动更新状态检查、镜像切换与日志诊断（含 `debug.SetCrashOutput` 写入的 `logs/crash.log`）。
 
 ---
 
@@ -62,6 +64,7 @@ PureUtils 支持三层自由组合与裁剪：
 | `CapClipboardHistory` | `clipboard.history` | PureClip | PureShot（选区前后历史贴图队列 `PinClipboard`） | 回退为直接读取当前系统剪贴板文本/图片 |
 | `CapImagePreview` | `image.preview` | PureImage | PureClip / PureShot（右键查看图片）、PureZip（双击包内图片预览） | 右键/按钮隐藏，PureZip 回退系统默认程序打开 |
 | `CapImagePin` | `image.pin` | PureShot | PureImage（一键贴图）、PureClip（条目「贴成图片」） | 右键/快捷按钮自动隐藏 |
+| `CapVideoPreview` | `video.preview` | PureVideo | Host 启动器 / 裸路径调度 | 自动回退由系统默认播放器打开 |
 | `host.Clipboard()` | `clipboard.Service` | Host | PureShot / PureImage / PureZip 写入并标明来源；PureClip 订阅事件 | 插件可正常写系统剪贴板，`Source=="pureshot"` 自动映射为来源 `PureShot` |
 
 此外，在打开命令行裸路径（如 `PureUtils.exe foo.zip`）时，宿主通过 `Plugin.Matchers()` 识别 `purezip.open` 匹配结果路由至 `CmdOpenZip`，完全无需硬编码引入 `purezip/archive`。

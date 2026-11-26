@@ -2,24 +2,25 @@
 
 > [简体中文](ARCHITECTURE.md) | **English** | [Back to README](../README.en.md)
 
-PureUtils is structured around a reusable core SDK (**`pkg/purekit`**), four completely decoupled built-in plugins (**`plugins/*`**), and a thin host shell (**`internal/host`**) coordinating the system tray, global hotkeys, unified Settings window, and the **`Alt+Space` Global Plugin Launcher**. The entire stack is **100% Pure Go (`CGO_ENABLED=0`) + MyGo native GPU UI** — no WebView, no JavaScript, no cgo.
+PureUtils is structured around a reusable core SDK (**`pkg/purekit`**), five completely decoupled built-in plugins (**`plugins/*`**), and a thin host shell (**`internal/host`**) coordinating the system tray, global hotkeys, unified Settings window, in-app GitHub Releases auto-updater ([`updater.go`](../internal/host/updater.go)), and the **`Alt+Space` Global Plugin Launcher**. The entire stack is **100% Pure Go (`CGO_ENABLED=0`) + MyGo native GPU UI** — no WebView, no JavaScript, no cgo.
 
 ---
 
 ## 1. Four-Layer Architecture & Strict Dependency Boundaries
 
 ```text
-main.go                       MyGo single-instance entry, read-only config/modules load, CLI routing
-  └─ internal/host            Thin host shell (Host impl, dynamic tray, hotkeys, unified Settings, Alt+Space Launcher)
-       ├─ builtin_*.go        Conditional build bridges (!nopureshot / !nopureclip / !nopureimage&&!nofreeimage / !nopurezip)
+main.go                       MyGo single-instance entry, crash.log wiring, config/modules load, CLI routing
+  └─ internal/host            Thin host shell (Host impl, tray, hotkeys, unified Settings, Auto-Updater, Launcher)
+       ├─ builtin_*.go        Conditional build bridges (!nopureshot / !nopureclip / !nopureimage&&!nofreeimage / !nopurevideo / !nopurezip)
        └─ plugins/<id>        Self-contained feature plugins (zero cross-plugin imports, zero internal/* imports)
             ├─ pureshot       PureShot: region/screen capture, 9 vector annotation tools (pureshot/annotate), floating pins
             ├─ pureclip       PureClip: clipboard watcher, SQLite/Blob store, Ditto-style popup, read-only legacy fallback
             ├─ pureimage      PureImage: 40+ image/RAW/animated codecs, TurboJPEG scaling, Spacebar preview, HKCU associations
+            ├─ purevideo      PureVideo: bundled trimmed libmpv hardware playback, 21 video formats, subtitles & HKCU associations
             └─ purezip        PureZip: archive/ pure-Go engine, zipshell/ Explorer context menu & associations, UI manager
   └─ pkg/purekit              Reusable plugin platform SDK (never imports internal/* or plugins/*)
        ├─ purekit             Plugin / Host / Feature / Matcher / SettingsTab / Bus / Typed Contracts
-       ├─ purekit/core        Paths / Logger / Command / Hotkey / ModuleConfig / ClipboardContent / Geometry / Color
+       ├─ purekit/core        Paths / Logger / SetupCrashOutput / Version / Command / Hotkey / ModuleConfig / Color
        ├─ purekit/config      settings.json v2 Manager (plugins.<id> sections) + read-only v1 fallback
        ├─ purekit/storage     Isolated plugin storage (plugins/<id>/*.db & blobs/) + strict read-only legacy probe
        ├─ purekit/clipboard   Source-tagged multi-consumer clipboard bus (WriteImage / Subscribe / self-write suppression)
@@ -38,12 +39,13 @@ Dependency boundaries are automatically enforced on every test run by [`internal
 
 1. **Compile Time (Go Build Tags)**:
    - `nofreeimage` / `nopureimage`: strips PureImage codecs (`avif`, `heic`, `jxl`, `webp`, `wazero`) and optional `turbojpeg.dll` usage (~10 MB binary reduction);
-   - `nopureshot`, `nopureclip`, `nopurezip`: individually omit capture, clipboard history, or archive functionality;
-   - Controlled conveniently via `.\build.ps1 build -CoreOnly` or `.\build.ps1 build -Exclude purezip,pureimage`.
+   - `nopureshot`, `nopureclip`, `nopurevideo`, `nopurezip`: individually omit capture, clipboard history, video player, or archive functionality;
+   - Controlled conveniently via `.\build.ps1 build -CoreOnly` or `.\build.ps1 build -Exclude purezip,pureimage,purevideo`.
 2. **Install Time (`modules.json`)**:
-   - The Inno Setup installer and portable builds write `{capture, history, viewer, zip}` into `modules.json`; the host starts `CompiledModules() ∩ modules.json`.
-3. **Runtime Hot-Toggle (`HostConfig.DisabledModules`)**:
+   - The Inno Setup installer and portable builds write `{capture, history, viewer, video, zip}` into `modules.json`; the host starts `CompiledModules() ∩ modules.json`.
+3. **Runtime Hot-Toggle (`HostConfig.DisabledModules`) & Auto-Updater**:
    - Users can toggle individual plugins live inside **Settings → General**. The host calls `applyPluginModules(hc)` to start/stop affected plugins cleanly, refreshes tray menus, global hotkeys, and launcher providers, and relies on `Bus.Version()` capability generation counters so plugins automatically re-subscribe when a sibling provider comes back online.
+   - **Settings → Advanced** hosts the GitHub Releases auto-updater (`updater.go` with mirror fallback and SHA-256 verification) alongside persistent panic/crash output in `logs/crash.log` via `core.SetupCrashOutput`.
 
 ---
 
@@ -56,6 +58,7 @@ Plugins have **zero knowledge of sibling Go types**. All cross-plugin workflows 
 | `CapClipboardHistory` | `clipboard.history` | PureClip | PureShot (`PinClipboard` sequential queue) | Falls back to pinning current OS clipboard text/image directly |
 | `CapImagePreview` | `image.preview` | PureImage | PureClip / PureShot (open in PureImage), PureZip (double-click preview) | Action button/menu item hides; PureZip falls back to OS default viewer |
 | `CapImagePin` | `image.pin` | PureShot | PureImage (pin image `P`), PureClip (pin entry) | Action button/menu item hides cleanly |
+| `CapVideoPreview` | `video.preview` | PureVideo | Host Launcher / CLI routing | Falls back to opening videos in the OS default player |
 | `host.Clipboard()` | `clipboard.Service` | Host | PureShot / PureImage / PureZip writers; PureClip subscriber | Writers continue working independently; `Source` tags map display origins automatically |
 
 ---
