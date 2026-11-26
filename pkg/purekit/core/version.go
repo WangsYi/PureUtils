@@ -6,7 +6,7 @@ import (
 )
 
 // AppVersion is the semantic version of PureUtils (overridable via -ldflags).
-var AppVersion = "1.2.0"
+var AppVersion = "1.2.1"
 
 const (
 	// DefaultRepoOwner and DefaultRepoName identify the upstream GitHub releases repository.

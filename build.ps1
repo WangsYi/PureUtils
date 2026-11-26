@@ -1,10 +1,10 @@
-﻿# PureUtils（PureShot + PureClip + PureImage + PureVideo + PureZip）Go/MyGo 开发与打包脚本：build / test / run / publish / pack / clean
+# PureUtils（PureShot + PureClip + PureImage + PureVideo + PureZip）Go/MyGo 开发与打包脚本：build / test / run / publish / pack / clean
 param(
     [ValidateSet('build', 'test', 'ui', 'e2e', 'coverage', 'ci', 'run', 'publish', 'pack', 'clean', 'help')]
     [string]$Command = 'build',
     [ValidateSet('Release', 'Debug')]
     [string]$Configuration = 'Release',
-    [string]$Version = '1.2.0',
+    [string]$Version = '1.2.1',
     [switch]$CoreOnly,
     [ValidateSet('pureshot', 'pureclip', 'pureimage', 'purevideo', 'purezip')]
     [string[]]$Exclude = @(),
@@ -438,7 +438,7 @@ try {
             Write-Host '已清理构建产物' -ForegroundColor Green
         }
         'help' {
-            Write-Host '用法: .\build.ps1 [-Command build|test|ui|e2e|coverage|ci|run|publish|pack|clean] [-Version 1.2.0] [-CoreOnly] [-Exclude pureshot,pureclip,pureimage,purevideo,purezip] [-ShotDir ...] [-CovDir ...] [-MinCoverage 50] [-AppArgs ...]'
+            Write-Host '用法: .\build.ps1 [-Command build|test|ui|e2e|coverage|ci|run|publish|pack|clean] [-Version 1.2.1] [-CoreOnly] [-Exclude pureshot,pureclip,pureimage,purevideo,purezip] [-ShotDir ...] [-CovDir ...] [-MinCoverage 50] [-AppArgs ...]'
             Write-Host '  build     编译 PureUtils.exe（加 -CoreOnly 不含 PureImage 看图，或用 -Exclude 裁剪指定插件）'
             Write-Host '  test      运行 go test -count=1 ./...（支持 -CoreOnly 与 -Exclude）'
             Write-Host '  ui        运行中英文/深浅色 UI 布局、交互与 i18n 审计测试并导出截图'

@@ -85,11 +85,11 @@ jobs:
       - name: Build full, core-only, and per-plugin excluded binaries
         shell: pwsh
         run: |
-          .\build.ps1 build -Version "1.2.0-ci"
-          .\build.ps1 build -CoreOnly -Version "1.2.0-ci"
+          .\build.ps1 build -Version "1.2.1-ci"
+          .\build.ps1 build -CoreOnly -Version "1.2.1-ci"
           foreach ($plugin in @('pureshot', 'pureclip', 'pureimage', 'purevideo', 'purezip')) {
             Write-Host "Building without $plugin..."
-            .\build.ps1 build -Exclude $plugin -Version "1.2.0-ci"
+            .\build.ps1 build -Exclude $plugin -Version "1.2.1-ci"
           }
 
   ui-tests:
@@ -159,7 +159,7 @@ jobs:
         shell: pwsh
         run: |
           $env:PUREUTILS_E2E_LOG_DIR = Join-Path $PWD 'artifacts\e2e-logs'
-          .\build.ps1 e2e -Version "1.2.0-ci"
+          .\build.ps1 e2e -Version "1.2.1-ci"
 
       - name: Upload E2E diagnostic logs on failure
         uses: actions/upload-artifact@v4
@@ -185,7 +185,7 @@ jobs:
 
       - name: Collect merged unit, UI, and E2E coverage
         shell: pwsh
-        run: .\build.ps1 coverage -CovDir artifacts\coverage -MinCoverage 50 -Version "1.2.0-ci"
+        run: .\build.ps1 coverage -CovDir artifacts\coverage -MinCoverage 50 -Version "1.2.1-ci"
 
       - name: Upload coverage report artifacts
         uses: actions/upload-artifact@v4
