@@ -10,8 +10,13 @@ on:
         description: "Release version (X.Y.Z, without leading v)"
         required: true
         type: string
-      notes:
-        description: "Optional extra release highlights (Markdown)"
+      notes_zh:
+        description: "Optional Chinese release highlights (Markdown)"
+        required: false
+        default: ""
+        type: string
+      notes_en:
+        description: "Optional English release highlights (Markdown)"
         required: false
         default: ""
         type: string
@@ -169,48 +174,25 @@ jobs:
       - name: Generate Release Notes and publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          CUSTOM_NOTES: ${{ github.event.inputs.notes }}
+          CUSTOM_NOTES_ZH: ${{ github.event.inputs.notes_zh }}
+          CUSTOM_NOTES_EN: ${{ github.event.inputs.notes_en }}
         shell: pwsh
         run: |
           $ver = '${{ steps.meta.outputs.version }}'
           $tag = '${{ steps.meta.outputs.tag }}'
           $mb = '${{ steps.pack.outputs.mb }}'
-          $bytesFmt = '${{ steps.pack.outputs.bytes_fmt }}'
           $sha = '${{ steps.pack.outputs.sha256 }}'
 
-          $prevTag = (& git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | Where-Object { $_ -ne $tag } | Select-Object -First 1)
-          $commits = if ($prevTag) {
-            @(git log "$prevTag..HEAD" --pretty=format:'- %s (`%h`)' --no-merges | Where-Object { $_ -and $_ -notmatch '\[skip ci\]' })
-          } else {
-            @(git log -n 15 --pretty=format:'- %s (`%h`)' --no-merges)
-          }
-
-          $lines = New-Object System.Collections.Generic.List[string]
-          $lines.Add("## PureUtils $tag")
-          $lines.Add("")
-          if (-not [string]::IsNullOrWhiteSpace($env:CUSTOM_NOTES)) {
-            $lines.Add($env:CUSTOM_NOTES.Trim())
-            $lines.Add("")
-          }
-          if ($commits.Count -gt 0) {
-            $lines.Add("### 更新日志 / Changelog")
-            $lines.Add("")
-            foreach ($c in $commits) { $lines.Add($c) }
-            $lines.Add("")
-          }
-          $lines.Add("### 安装包信息 / Installer")
-          $lines.Add("")
-          $lines.Add("| 文件 / File | 大小 / Size | SHA-256 |")
-          $lines.Add("|---|---|---|")
-          $lines.Add("| ``PureUtils-$ver-setup.exe`` | $mb MB ($bytesFmt bytes) | ``$sha`` |")
-          $lines.Add("| ``SHA256SUMS.txt`` | — | Checksum manifest |")
-          $lines.Add("")
-          $lines.Add("---")
-          $lines.Add("")
-          $lines.Add("> Built, tested, packaged, and verified automatically via GitHub Actions Release workflow.")
-
           $notesPath = Join-Path $env:RUNNER_TEMP "release-notes-$tag.md"
-          [System.IO.File]::WriteAllText($notesPath, ($lines -join "`n"), [System.Text.UTF8Encoding]::new($false))
+          .\scripts\build-release-notes.ps1 `
+            -Version $ver `
+            -InstallerSizeMB $mb `
+            -InstallerBytes ([long]'${{ steps.pack.outputs.bytes }}') `
+            -Sha256 $sha `
+            -NotesZh $env:CUSTOM_NOTES_ZH `
+            -NotesEn $env:CUSTOM_NOTES_EN `
+            -OutputPath $notesPath
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           $installer = "artifacts\installer\PureUtils-$ver-setup.exe"
           $sums = "artifacts\installer\SHA256SUMS.txt"
