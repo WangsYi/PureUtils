@@ -32,18 +32,11 @@ UninstallDisplayIcon={app}\resources\icon.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern dynamic windows11 hidebevels
-WizardSizePercent=115,115
-WizardBackColor=#ffffff
-WizardBackColorDynamicDark=#1c1c1e
-WizardImageFile={#StageDir}\resources\wizard-side.png
-WizardImageFileDynamicDark={#StageDir}\resources\wizard-side-dark.png
-WizardImageBackColor=#3730a3
-WizardImageBackColorDynamicDark=#13112e
-WizardImageStretch=yes
-WizardSmallImageFile={#StageDir}\resources\wizard-small.png
-WizardSmallImageFileDynamicDark={#StageDir}\resources\wizard-small.png
-WizardSmallImageBackColor=#ffffff
-WizardSmallImageBackColorDynamicDark=#1c1c1e
+WizardSizePercent=100,100
+WizardBackColor=#f8fafc
+WizardBackColorDynamicDark=#18181b
+WizardImageFile=
+WizardSmallImageFile=
 DisableReadyPage=yes
 ShowLanguageDialog=auto
 MinVersion=10.0
@@ -61,73 +54,68 @@ Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Messages]
-chinesesimplified.SetupWindowTitle=PureUtils {#AppVersion}
+chinesesimplified.SetupWindowTitle=PureUtils
 chinesesimplified.BeveledLabel=
 chinesesimplified.ClickNext=
 chinesesimplified.ClickFinish=
-chinesesimplified.ButtonBack=上一步(&B)
+chinesesimplified.ButtonBack=← 返回
 chinesesimplified.ButtonNext=下一步(&N)
 chinesesimplified.ButtonInstall=安装(&I)
 chinesesimplified.ButtonFinish=完成(&F)
 chinesesimplified.ButtonCancel=取消
-chinesesimplified.ButtonWizardBrowse=浏览(&R)…
-chinesesimplified.WelcomeLabel1=PureUtils {#AppVersion}
-chinesesimplified.WelcomeLabel2=轻量、原生的 Windows 效率工具集。%n%n截图贴图 · 剪贴板 · 看图 · 视频 · 压缩，按需安装。
-chinesesimplified.WizardSelectDir=安装位置
-chinesesimplified.SelectDirDesc=选择 PureUtils 的安装目录
-chinesesimplified.SelectDirLabel3=目标文件夹
-chinesesimplified.SelectDirBrowseLabel=
-chinesesimplified.DiskSpaceMBLabel=所需空间：[mb] MB
-chinesesimplified.DiskSpaceGBLabel=所需空间：[gb] GB
-chinesesimplified.WizardSelectComponents=选择组件
-chinesesimplified.SelectComponentsDesc=按需勾选要安装的功能模块
-chinesesimplified.SelectComponentsLabel2=
+chinesesimplified.ButtonWizardBrowse=浏览…
+chinesesimplified.StatusClosingApplications=正在准备程序文件…
+chinesesimplified.StatusCreateDirs=正在创建安装目录…
+chinesesimplified.StatusExtractFiles=正在释放程序文件…
+chinesesimplified.StatusCreateIcons=正在创建快捷方式…
+chinesesimplified.StatusCreateRegistryEntries=正在配置系统集成…
+chinesesimplified.StatusSavingUninstall=正在写入卸载信息…
+chinesesimplified.StatusRunProgram=正在完成安装…
 chinesesimplified.ComponentsDiskSpaceMBLabel=所需空间：[mb] MB
 chinesesimplified.ComponentsDiskSpaceGBLabel=所需空间：[gb] GB
-chinesesimplified.WizardSelectTasks=快捷方式与启动
-chinesesimplified.SelectTasksDesc=可选的系统集成设置
-chinesesimplified.SelectTasksLabel2=
-chinesesimplified.WizardInstalling=正在安装
-chinesesimplified.InstallingLabel=正在安装 PureUtils，请稍候…
-chinesesimplified.FinishedHeadingLabel=安装完成
-chinesesimplified.FinishedLabel=PureUtils {#AppVersion} 已准备就绪。
-chinesesimplified.FinishedLabelNoIcons=PureUtils {#AppVersion} 已准备就绪。
 
-english.SetupWindowTitle=PureUtils {#AppVersion}
+english.SetupWindowTitle=PureUtils
 english.BeveledLabel=
 english.ClickNext=
 english.ClickFinish=
-english.ButtonBack=&Back
+english.ButtonBack=← Back
 english.ButtonNext=&Next
 english.ButtonInstall=&Install
 english.ButtonFinish=&Finish
 english.ButtonCancel=Cancel
-english.ButtonWizardBrowse=B&rowse…
-english.WelcomeLabel1=PureUtils {#AppVersion}
-english.WelcomeLabel2=A lightweight, native Windows utility suite.%n%nScreenshot · Clipboard · Image · Video · Archive — install only what you need.
-english.WizardSelectDir=Install Location
-english.SelectDirDesc=Choose where to install PureUtils
-english.SelectDirLabel3=Destination folder
-english.SelectDirBrowseLabel=
-english.DiskSpaceMBLabel=Required space: [mb] MB
-english.DiskSpaceGBLabel=Required space: [gb] GB
-english.WizardSelectComponents=Select Components
-english.SelectComponentsDesc=Choose the modules you want to install
-english.SelectComponentsLabel2=
+english.ButtonWizardBrowse=Browse…
+english.StatusClosingApplications=Preparing files…
+english.StatusCreateDirs=Creating folders…
+english.StatusExtractFiles=Extracting files…
+english.StatusCreateIcons=Creating shortcuts…
+english.StatusCreateRegistryEntries=Configuring integration…
+english.StatusSavingUninstall=Saving uninstall info…
+english.StatusRunProgram=Finishing installation…
 english.ComponentsDiskSpaceMBLabel=Required space: [mb] MB
 english.ComponentsDiskSpaceGBLabel=Required space: [gb] GB
-english.WizardSelectTasks=Shortcuts & Startup
-english.SelectTasksDesc=Optional system integration
-english.SelectTasksLabel2=
-english.WizardInstalling=Installing
-english.InstallingLabel=Installing PureUtils, please wait…
-english.FinishedHeadingLabel=Installation Complete
-english.FinishedLabel=PureUtils {#AppVersion} is ready to use.
-english.FinishedLabelNoIcons=PureUtils {#AppVersion} is ready to use.
 
 [CustomMessages]
-chinesesimplified.WelcomeBody=轻量、原生的 Windows 效率工具集。%n%n截图贴图 · 剪贴板 · 看图 · 视频 · 压缩，按需安装。
-chinesesimplified.FinishedBody=PureUtils {#AppVersion} 已准备就绪。
+chinesesimplified.HeroTagline=轻量、原生的 Windows 五合一效率工具集
+chinesesimplified.HeroStatusNew=版本 {#AppVersion} · 截图 · 剪贴板 · 看图 · 视频 · 压缩
+chinesesimplified.HeroStatusUpgrade=将从版本 %1 升级到 {#AppVersion}
+chinesesimplified.HeroStatusSame=已安装版本 %1，重新安装可修复或修改组件
+chinesesimplified.BtnInstallNow=立即安装
+chinesesimplified.BtnUpgradeNow=立即升级
+chinesesimplified.BtnReinstall=重新安装
+chinesesimplified.BtnStartInstall=开始安装
+chinesesimplified.BtnStartUpgrade=开始升级
+chinesesimplified.BtnClose=关闭
+chinesesimplified.BtnBrowse=浏览…
+chinesesimplified.LinkCustomize=自定义选项 ▸
+chinesesimplified.LinkBack=← 返回
+chinesesimplified.LabelLocation=安装位置：%1
+chinesesimplified.LabelCustomTitle=自定义安装
+chinesesimplified.LabelInstallDir=安装目录
+chinesesimplified.ChooseDirPrompt=选择 PureUtils 的安装文件夹
+chinesesimplified.ProgressInstalling=正在安装 PureUtils…
+chinesesimplified.ProgressUpdating=正在升级 PureUtils…
+chinesesimplified.FinishHeading=安装完成
+chinesesimplified.FinishBody=PureUtils {#AppVersion} 已准备就绪。
 chinesesimplified.TypeFull=完整安装（全部组件）
 chinesesimplified.TypeShotClip=截图与剪贴板（PureShot + PureClip）
 chinesesimplified.TypeViewer=仅 PureImage 看图
@@ -153,8 +141,27 @@ chinesesimplified.LaunchVideo=启动 PureVideo
 chinesesimplified.LaunchZip=启动 PureZip
 chinesesimplified.NeedModule=请至少选择一个功能组件。
 
-english.WelcomeBody=A lightweight, native Windows utility suite.%n%nScreenshot · Clipboard · Image · Video · Archive — install only what you need.
-english.FinishedBody=PureUtils {#AppVersion} is ready to use.
+english.HeroTagline=A lightweight, native 5-in-1 Windows utility suite
+english.HeroStatusNew=Version {#AppVersion} · Shot · Clip · Image · Video · Zip
+english.HeroStatusUpgrade=Upgrading from %1 to {#AppVersion}
+english.HeroStatusSame=Version %1 installed · Reinstall or modify components
+english.BtnInstallNow=Install Now
+english.BtnUpgradeNow=Upgrade Now
+english.BtnReinstall=Reinstall
+english.BtnStartInstall=Install
+english.BtnStartUpgrade=Upgrade
+english.BtnClose=Close
+english.BtnBrowse=Browse…
+english.LinkCustomize=Customize ▸
+english.LinkBack=← Back
+english.LabelLocation=Location: %1
+english.LabelCustomTitle=Custom Installation
+english.LabelInstallDir=Install folder
+english.ChooseDirPrompt=Choose a folder to install PureUtils
+english.ProgressInstalling=Installing PureUtils…
+english.ProgressUpdating=Updating PureUtils…
+english.FinishHeading=Installation Complete
+english.FinishBody=PureUtils {#AppVersion} is ready to use.
 english.TypeFull=Full (All Components)
 english.TypeShotClip=Screenshot & Clipboard (PureShot + PureClip)
 english.TypeViewer=PureImage Only
@@ -219,6 +226,7 @@ Type: files; Name: "{app}\ShotClip.exe"
 Type: files; Name: "{app}\ynm3000.exe"
 
 [Files]
+Source: "{#StageDir}\resources\icon.png"; Flags: dontcopy
 Source: "{#StageDir}\PureUtils-full.exe"; DestDir: "{app}"; DestName: "PureUtils.exe"; Components: viewer; Flags: ignoreversion
 Source: "{#StageDir}\PureUtils-core.exe"; DestDir: "{app}"; DestName: "PureUtils.exe"; Components: not viewer; Flags: ignoreversion
 Source: "{#StageDir}\turbojpeg.dll"; DestDir: "{app}"; Components: viewer\turbo; Flags: ignoreversion skipifsourcedoesntexist
@@ -544,9 +552,13 @@ Type: filesandordirs; Name: "{app}"
 #if VER >= 0x07000000
 procedure SHChangeNotify(wEventId: LongInt; uFlags: Cardinal; dwItem1: NativeInt; dwItem2: NativeInt);
   external 'SHChangeNotify@shell32.dll stdcall';
+function DwmSetWindowAttribute(hWnd: HWND; dwAttribute: DWORD; var pvAttribute: DWORD; cbAttribute: DWORD): LongInt;
+  external 'DwmSetWindowAttribute@dwmapi.dll stdcall delayload';
 #else
 procedure SHChangeNotify(wEventId: LongInt; uFlags: Cardinal; dwItem1: LongInt; dwItem2: LongInt);
   external 'SHChangeNotify@shell32.dll stdcall';
+function DwmSetWindowAttribute(hWnd: LongInt; dwAttribute: Cardinal; var pvAttribute: Cardinal; cbAttribute: Cardinal): LongInt;
+  external 'DwmSetWindowAttribute@dwmapi.dll stdcall delayload';
 #endif
 
 function BoolToJson(B: Boolean): String;
@@ -806,62 +818,534 @@ begin
   end;
 end;
 
+var
+  CustomMode: Boolean;
+  InstalledOldVersion: String;
+  InstallKind: Integer;
+  HeroPathLabel, FinishSubLabel, ProgTitleLabel: TNewStaticText;
+  HeroCustomizeLink, CustomBackLink, FinishCloseLink: TNewLinkLabel;
+  CustomDirEdit: TNewEdit;
+  CustomBrowseBtn: TNewButton;
+  CustomDesktopCheck, CustomAutostartCheck: TNewCheckBox;
+
+function InkPrimary: TColor;
+begin
+  if IsDarkInstallMode then
+    Result := StrToColor('#F4F4F5')
+  else
+    Result := StrToColor('#141413');
+end;
+
+function InkSecondary: TColor;
+begin
+  if IsDarkInstallMode then
+    Result := StrToColor('#A1A1AA')
+  else
+    Result := StrToColor('#57534E');
+end;
+
+function InkMuted: TColor;
+begin
+  if IsDarkInstallMode then
+    Result := StrToColor('#71717A')
+  else
+    Result := StrToColor('#78716C');
+end;
+
+procedure ApplySeamlessTitleBar(
+#if VER >= 0x07000000
+  Wnd: HWND
+#else
+  Wnd: LongInt
+#endif
+);
+var
+#if VER >= 0x07000000
+  DarkVal, CaptionColor: DWORD;
+#else
+  DarkVal, CaptionColor: Cardinal;
+#endif
+begin
+  if Wnd = 0 then Exit;
+  try
+    if IsDarkInstallMode then
+    begin
+      DarkVal := 1;
+      CaptionColor := $001B1818;
+    end else begin
+      DarkVal := 0;
+      CaptionColor := $00FCFAF8;
+    end;
+    DwmSetWindowAttribute(Wnd, 20, DarkVal, SizeOf(DarkVal));
+    DwmSetWindowAttribute(Wnd, 35, CaptionColor, SizeOf(CaptionColor));
+  except
+  end;
+end;
+
+procedure DetectInstalledVersion;
+var
+  UninstKey: String;
+begin
+  InstalledOldVersion := '';
+  InstallKind := 0;
+  UninstKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{6D9E4A1B-3C82-4F55-9A14-2B7E8C3D5F10}_is1';
+  if RegQueryStringValue(HKCU, UninstKey, 'DisplayVersion', InstalledOldVersion) and (Trim(InstalledOldVersion) <> '') then
+  begin
+    InstalledOldVersion := Trim(InstalledOldVersion);
+    if CompareText(InstalledOldVersion, '{#AppVersion}') = 0 then
+      InstallKind := 2
+    else
+      InstallKind := 1;
+  end;
+end;
+
+function ShortenDisplayPath(P: String; MaxLen: Integer): String;
+begin
+  if Length(P) <= MaxLen then
+    Result := P
+  else
+    Result := Copy(P, 1, 14) + '…' + Copy(P, Length(P) - (MaxLen - 16), MaxLen - 15);
+end;
+
+procedure RefreshHeroPath;
+var
+  DirPath: String;
+begin
+  if HeroPathLabel = nil then Exit;
+  DirPath := RemoveBackslashUnlessRoot(Trim(WizardForm.DirEdit.Text));
+  HeroPathLabel.Caption := FmtMessage(CustomMessage('LabelLocation'), [ShortenDisplayPath(DirPath, 38)]);
+  HeroPathLabel.Hint := DirPath;
+end;
+
+procedure SyncTasksToUI;
+begin
+  if (CustomDesktopCheck <> nil) and (WizardForm.TasksList.Items.Count >= 1) then
+    CustomDesktopCheck.Checked := WizardForm.TasksList.Checked[0];
+  if (CustomAutostartCheck <> nil) and (WizardForm.TasksList.Items.Count >= 2) then
+    CustomAutostartCheck.Checked := WizardForm.TasksList.Checked[1];
+end;
+
+procedure SyncTasksFromUI;
+begin
+  if (CustomDesktopCheck <> nil) and (WizardForm.TasksList.Items.Count >= 1) then
+    WizardForm.TasksList.Checked[0] := CustomDesktopCheck.Checked;
+  if (CustomAutostartCheck <> nil) and (WizardForm.TasksList.Items.Count >= 2) then
+    WizardForm.TasksList.Checked[1] := CustomAutostartCheck.Checked;
+end;
+
+procedure ResizeAndCenterWindow(LogicalW, LogicalH: Integer);
+var
+  NewClientW, NewClientH, FrameW, FrameH, NewLeft, NewTop: Integer;
+begin
+  NewClientW := ScaleX(LogicalW);
+  NewClientH := ScaleY(LogicalH);
+  if (WizardForm.ClientWidth <> NewClientW) or (WizardForm.ClientHeight <> NewClientH) then
+  begin
+    FrameW := WizardForm.Width - WizardForm.ClientWidth;
+    FrameH := WizardForm.Height - WizardForm.ClientHeight;
+    NewLeft := WizardForm.Left + (WizardForm.Width - (NewClientW + FrameW)) div 2;
+    NewTop := WizardForm.Top + (WizardForm.Height - (NewClientH + FrameH)) div 2;
+    if NewLeft < 0 then NewLeft := 0;
+    if NewTop < 0 then NewTop := 0;
+    WizardForm.SetBounds(NewLeft, NewTop, NewClientW + FrameW, NewClientH + FrameH);
+  end;
+  WizardForm.OuterNotebook.SetBounds(0, 0, WizardForm.ClientWidth, WizardForm.ClientHeight);
+  WizardForm.InnerNotebook.SetBounds(0, 0, WizardForm.ClientWidth, WizardForm.ClientHeight);
+end;
+
+procedure ParkOffscreen(Ctrl: TWinControl);
+begin
+  Ctrl.TabStop := False;
+  Ctrl.Visible := True;
+  Ctrl.SetBounds(0, WizardForm.ClientHeight + ScaleY(200), ScaleX(80), ScaleY(24));
+end;
+
+procedure InitLogoImage(ParentCtrl: TWinControl; WinW, TopDp: Integer; IconFile: String);
+var
+  Img: TBitmapImage;
+  Sz: Integer;
+begin
+  Sz := ScaleX(64);
+  Img := TBitmapImage.Create(WizardForm);
+  Img.Parent := ParentCtrl;
+  Img.SetBounds((ScaleX(WinW) - Sz) div 2, ScaleY(TopDp), Sz, Sz);
+  Img.BackColor := clNone;
+  Img.Stretch := True;
+  Img.Center := True;
+  Img.PngImage.LoadFromFile(IconFile);
+end;
+
+procedure BrowseInstallDirOnClick(Sender: TObject);
+var
+  Dir: String;
+begin
+  Dir := Trim(WizardForm.DirEdit.Text);
+  if (CustomMode) and (CustomDirEdit <> nil) and (Trim(CustomDirEdit.Text) <> '') then
+    Dir := Trim(CustomDirEdit.Text);
+  if BrowseForFolder(CustomMessage('ChooseDirPrompt'), Dir, True) then
+  begin
+    Dir := RemoveBackslashUnlessRoot(Dir);
+    if CompareText(ExtractFileName(Dir), 'PureUtils') <> 0 then
+      Dir := AddBackslash(Dir) + 'PureUtils';
+    WizardForm.DirEdit.Text := Dir;
+    if CustomDirEdit <> nil then
+      CustomDirEdit.Text := Dir;
+    RefreshHeroPath;
+  end;
+end;
+
+procedure CustomTaskCheckOnClick(Sender: TObject);
+begin
+  SyncTasksFromUI;
+end;
+
+procedure HeroCustomizeLinkOnClick(Sender: TObject; const Link: String; LinkType: TSysLinkType);
+begin
+  CustomMode := True;
+  SendMessage(WizardForm.NextButton.Handle, $00F5, 0, 0);
+end;
+
+procedure CustomBackLinkOnClick(Sender: TObject; const Link: String; LinkType: TSysLinkType);
+begin
+  CustomMode := False;
+  if CustomDirEdit <> nil then
+    WizardForm.DirEdit.Text := RemoveBackslashUnlessRoot(Trim(CustomDirEdit.Text));
+  SyncTasksFromUI;
+  RefreshHeroPath;
+  SendMessage(WizardForm.BackButton.Handle, $00F5, 0, 0);
+end;
+
+procedure FinishCloseLinkOnClick(Sender: TObject; const Link: String; LinkType: TSysLinkType);
+var
+  I: Integer;
+begin
+  for I := 0 to WizardForm.RunList.Items.Count - 1 do
+    WizardForm.RunList.Checked[I] := False;
+  SendMessage(WizardForm.NextButton.Handle, $00F5, 0, 0);
+end;
+
 procedure InitializeWizard;
 var
-  SavedWidth, Delta, TargetTop: Integer;
+  IconPath, StatusText: String;
+  Lbl, DirLbl: TNewStaticText;
+  SpaceW, BrowseW: Integer;
 begin
+  CustomMode := False;
+  DetectInstalledVersion;
+  ApplySeamlessTitleBar(WizardForm.Handle);
+
+  ExtractTemporaryFile('icon.png');
+  IconPath := ExpandConstant('{tmp}\icon.png');
+
+  WizardForm.BorderIcons := [biSystemMenu, biMinimize];
+  WizardForm.OuterNotebook.Anchors := [akLeft, akTop];
+  WizardForm.InnerNotebook.Anchors := [akLeft, akTop];
+  WizardForm.NextButton.Anchors := [akLeft, akTop];
+  WizardForm.BackButton.Anchors := [akLeft, akTop];
+  WizardForm.CancelButton.Anchors := [akLeft, akTop];
+  WizardForm.MainPanel.Visible := False;
+  WizardForm.Bevel1.Visible := False;
+  WizardForm.Bevel.Visible := False;
   WizardForm.BeveledLabel.Visible := False;
 
-  SavedWidth := WizardForm.WelcomeLabel1.Width;
-  WizardForm.WelcomeLabel1.Font.Size := 16;
-  WizardForm.WelcomeLabel1.AutoSize := False;
-  WizardForm.WelcomeLabel1.Width := SavedWidth;
-  WizardForm.WelcomeLabel1.AutoSize := True;
+  ResizeAndCenterWindow(500, 370);
+  WizardForm.OuterNotebook.SendToBack;
 
-  SavedWidth := WizardForm.WelcomeLabel2.Width;
-  WizardForm.WelcomeLabel2.Caption := CustomMessage('WelcomeBody');
-  WizardForm.WelcomeLabel2.AutoSize := False;
-  WizardForm.WelcomeLabel2.Width := SavedWidth;
-  WizardForm.WelcomeLabel2.AutoSize := True;
-  WizardForm.WelcomeLabel2.Top := WizardForm.WelcomeLabel1.Top + WizardForm.WelcomeLabel1.Height + ScaleY(14);
+  // --- Page 1: Compact Hero Page (500 x 370) ---
+  WizardForm.WizardBitmapImage.Visible := False;
+  WizardForm.WelcomeLabel1.Visible := False;
+  WizardForm.WelcomeLabel2.Visible := False;
 
-  WizardForm.SelectDirBrowseLabel.Visible := False;
-  TargetTop := WizardForm.SelectDirBitmapImage.Top + WizardForm.SelectDirBitmapImage.Height + ScaleY(18);
-  Delta := TargetTop - WizardForm.DirEdit.Top;
-  WizardForm.DirEdit.Top := WizardForm.DirEdit.Top + Delta;
-  WizardForm.DirBrowseButton.Top := WizardForm.DirBrowseButton.Top + Delta;
+  InitLogoImage(WizardForm.WelcomePage, 500, 36, IconPath);
 
+  Lbl := TNewStaticText.Create(WizardForm);
+  Lbl.Parent := WizardForm.WelcomePage;
+  Lbl.AutoSize := False;
+  Lbl.SetBounds(ScaleX(24), ScaleY(112), ScaleX(452), ScaleY(38));
+  Lbl.Alignment := taCenter;
+  Lbl.StyleElements := Lbl.StyleElements - [seFont];
+  Lbl.Font.Name := WizardForm.Font.Name;
+  Lbl.Font.Size := 20;
+  Lbl.Font.Style := [fsBold];
+  Lbl.Font.Color := InkPrimary;
+  Lbl.Caption := 'PureUtils';
+
+  Lbl := TNewStaticText.Create(WizardForm);
+  Lbl.Parent := WizardForm.WelcomePage;
+  Lbl.AutoSize := False;
+  Lbl.SetBounds(ScaleX(24), ScaleY(156), ScaleX(452), ScaleY(24));
+  Lbl.Alignment := taCenter;
+  Lbl.StyleElements := Lbl.StyleElements - [seFont];
+  Lbl.Font.Name := WizardForm.Font.Name;
+  Lbl.Font.Size := 10;
+  Lbl.Font.Color := InkSecondary;
+  Lbl.Caption := CustomMessage('HeroTagline');
+
+  if InstallKind = 1 then
+    StatusText := FmtMessage(CustomMessage('HeroStatusUpgrade'), [InstalledOldVersion])
+  else if InstallKind = 2 then
+    StatusText := FmtMessage(CustomMessage('HeroStatusSame'), [InstalledOldVersion])
+  else
+    StatusText := CustomMessage('HeroStatusNew');
+
+  Lbl := TNewStaticText.Create(WizardForm);
+  Lbl.Parent := WizardForm.WelcomePage;
+  Lbl.AutoSize := False;
+  Lbl.SetBounds(ScaleX(24), ScaleY(188), ScaleX(452), ScaleY(20));
+  Lbl.Alignment := taCenter;
+  Lbl.StyleElements := Lbl.StyleElements - [seFont];
+  Lbl.Font.Name := WizardForm.Font.Name;
+  Lbl.Font.Size := 9;
+  Lbl.Font.Color := InkMuted;
+  Lbl.Caption := StatusText;
+
+  HeroPathLabel := TNewStaticText.Create(WizardForm);
+  HeroPathLabel.Parent := WizardForm.WelcomePage;
+  HeroPathLabel.AutoSize := False;
+  HeroPathLabel.WordWrap := False;
+  HeroPathLabel.SetBounds(ScaleX(24), ScaleY(330), ScaleX(330), ScaleY(20));
+  HeroPathLabel.StyleElements := HeroPathLabel.StyleElements - [seFont];
+  HeroPathLabel.Font.Name := WizardForm.Font.Name;
+  HeroPathLabel.Font.Size := 9;
+  HeroPathLabel.Font.Color := InkMuted;
+  HeroPathLabel.Cursor := crHand;
+  HeroPathLabel.ShowHint := True;
+  HeroPathLabel.OnClick := @BrowseInstallDirOnClick;
+  RefreshHeroPath;
+
+  HeroCustomizeLink := TNewLinkLabel.Create(WizardForm);
+  HeroCustomizeLink.Parent := WizardForm.WelcomePage;
+  HeroCustomizeLink.AutoSize := False;
+  HeroCustomizeLink.Caption := '<a id="customize">' + CustomMessage('LinkCustomize') + '</a>';
+  HeroCustomizeLink.UseVisualStyle := HighContrastActive;
+  HeroCustomizeLink.OnLinkClick := @HeroCustomizeLinkOnClick;
+  HeroCustomizeLink.SetBounds(ScaleX(362), ScaleY(330), ScaleX(114), ScaleY(20));
+  HeroCustomizeLink.AdjustHeight;
+
+  // --- Page 2: Unified Custom Options Page (520 x 460) ---
   WizardForm.SelectComponentsLabel.Visible := False;
-  WizardForm.TypesCombo.Top := WizardForm.SelectComponentsLabel.Top;
-  WizardForm.ComponentsList.Top := WizardForm.TypesCombo.Top + WizardForm.TypesCombo.Height + ScaleY(10);
-  if WizardForm.ComponentsDiskSpaceLabel.Top - WizardForm.ComponentsList.Top - ScaleY(10) > ScaleY(80) then
-    WizardForm.ComponentsList.Height := WizardForm.ComponentsDiskSpaceLabel.Top - WizardForm.ComponentsList.Top - ScaleY(10);
 
-  WizardForm.SelectTasksLabel.Visible := False;
-  Delta := WizardForm.TasksList.Top - WizardForm.SelectTasksLabel.Top;
-  WizardForm.TasksList.Top := WizardForm.SelectTasksLabel.Top;
-  WizardForm.TasksList.Height := WizardForm.TasksList.Height + Delta;
+  CustomBackLink := TNewLinkLabel.Create(WizardForm);
+  CustomBackLink.Parent := WizardForm.SelectComponentsPage;
+  CustomBackLink.AutoSize := False;
+  CustomBackLink.Caption := '<a id="back">' + CustomMessage('LinkBack') + '</a>';
+  CustomBackLink.UseVisualStyle := HighContrastActive;
+  CustomBackLink.OnLinkClick := @CustomBackLinkOnClick;
+  CustomBackLink.SetBounds(ScaleX(24), ScaleY(16), ScaleX(120), ScaleY(20));
+  CustomBackLink.AdjustHeight;
 
-  SavedWidth := WizardForm.FinishedHeadingLabel.Width;
-  WizardForm.FinishedHeadingLabel.Font.Size := 16;
-  WizardForm.FinishedHeadingLabel.AutoSize := False;
-  WizardForm.FinishedHeadingLabel.Width := SavedWidth;
-  WizardForm.FinishedHeadingLabel.AutoSize := True;
+  Lbl := TNewStaticText.Create(WizardForm);
+  Lbl.Parent := WizardForm.SelectComponentsPage;
+  Lbl.AutoSize := False;
+  Lbl.SetBounds(ScaleX(24), ScaleY(40), ScaleX(472), ScaleY(28));
+  Lbl.StyleElements := Lbl.StyleElements - [seFont];
+  Lbl.Font.Name := WizardForm.Font.Name;
+  Lbl.Font.Size := 14;
+  Lbl.Font.Style := [fsBold];
+  Lbl.Font.Color := InkPrimary;
+  Lbl.Caption := CustomMessage('LabelCustomTitle');
+
+  DirLbl := TNewStaticText.Create(WizardForm);
+  DirLbl.Parent := WizardForm.SelectComponentsPage;
+  DirLbl.AutoSize := False;
+  DirLbl.SetBounds(ScaleX(24), ScaleY(75), ScaleX(74), ScaleY(22));
+  DirLbl.StyleElements := DirLbl.StyleElements - [seFont];
+  DirLbl.Font.Name := WizardForm.Font.Name;
+  DirLbl.Font.Size := 9;
+  DirLbl.Font.Color := InkSecondary;
+  DirLbl.Caption := CustomMessage('LabelInstallDir');
+
+  BrowseW := WizardForm.CalculateButtonWidth([CustomMessage('BtnBrowse')]);
+  if BrowseW < ScaleX(76) then
+    BrowseW := ScaleX(76);
+
+  CustomDirEdit := TNewEdit.Create(WizardForm);
+  CustomDirEdit.Parent := WizardForm.SelectComponentsPage;
+  CustomDirEdit.SetBounds(ScaleX(100), ScaleY(72), ScaleX(496) - ScaleX(100) - BrowseW - ScaleX(8), ScaleY(24));
+  CustomDirEdit.Text := WizardForm.DirEdit.Text;
+
+  CustomBrowseBtn := TNewButton.Create(WizardForm);
+  CustomBrowseBtn.Parent := WizardForm.SelectComponentsPage;
+  CustomBrowseBtn.Caption := CustomMessage('BtnBrowse');
+  CustomBrowseBtn.SetBounds(ScaleX(496) - BrowseW, ScaleY(71), BrowseW, ScaleY(26));
+  CustomBrowseBtn.OnClick := @BrowseInstallDirOnClick;
+
+  WizardForm.TypesCombo.SetBounds(ScaleX(24), ScaleY(108), ScaleX(472), WizardForm.TypesCombo.Height);
+  WizardForm.ComponentsList.SetBounds(ScaleX(24), ScaleY(142), ScaleX(472), ScaleY(188));
+
+  CustomDesktopCheck := TNewCheckBox.Create(WizardForm);
+  CustomDesktopCheck.Parent := WizardForm.SelectComponentsPage;
+  CustomDesktopCheck.SetBounds(ScaleX(24), ScaleY(342), ScaleX(155), ScaleY(22));
+  CustomDesktopCheck.Caption := CustomMessage('TaskDesktopIcon');
+  CustomDesktopCheck.OnClick := @CustomTaskCheckOnClick;
+
+  CustomAutostartCheck := TNewCheckBox.Create(WizardForm);
+  CustomAutostartCheck.Parent := WizardForm.SelectComponentsPage;
+  CustomAutostartCheck.SetBounds(ScaleX(182), ScaleY(342), ScaleX(175), ScaleY(22));
+  CustomAutostartCheck.Caption := CustomMessage('TaskAutostart');
+  CustomAutostartCheck.OnClick := @CustomTaskCheckOnClick;
+
+  SpaceW := ScaleX(142);
+  WizardForm.ComponentsDiskSpaceLabel.AutoSize := False;
+  WizardForm.ComponentsDiskSpaceLabel.Alignment := taRightJustify;
+  WizardForm.ComponentsDiskSpaceLabel.StyleElements := WizardForm.ComponentsDiskSpaceLabel.StyleElements - [seFont];
+  WizardForm.ComponentsDiskSpaceLabel.Font.Color := InkMuted;
+  WizardForm.ComponentsDiskSpaceLabel.SetBounds(ScaleX(496) - SpaceW, ScaleY(345), SpaceW, ScaleY(20));
+
+  // Preparing page spacing (when another running instance prompts to close)
+  WizardForm.PreparingLabel.SetBounds(ScaleX(24), ScaleY(36), ScaleX(452), ScaleY(28));
+  WizardForm.PreparingErrorBitmapImage.Left := ScaleX(24);
+  WizardForm.PreparingErrorBitmapImage.Top := ScaleY(76);
+  WizardForm.PreparingMemo.SetBounds(ScaleX(24), ScaleY(112), ScaleX(452), ScaleY(180));
+
+  // --- Page 3: Progress Page (500 x 370) ---
+  WizardForm.FilenameLabel.Visible := False;
+
+  InitLogoImage(WizardForm.InstallingPage, 500, 68, IconPath);
+
+  ProgTitleLabel := TNewStaticText.Create(WizardForm);
+  ProgTitleLabel.Parent := WizardForm.InstallingPage;
+  ProgTitleLabel.AutoSize := False;
+  ProgTitleLabel.SetBounds(ScaleX(24), ScaleY(148), ScaleX(452), ScaleY(30));
+  ProgTitleLabel.Alignment := taCenter;
+  ProgTitleLabel.StyleElements := ProgTitleLabel.StyleElements - [seFont];
+  ProgTitleLabel.Font.Name := WizardForm.Font.Name;
+  ProgTitleLabel.Font.Size := 15;
+  ProgTitleLabel.Font.Style := [fsBold];
+  ProgTitleLabel.Font.Color := InkPrimary;
+  if InstallKind = 1 then
+    ProgTitleLabel.Caption := CustomMessage('ProgressUpdating')
+  else
+    ProgTitleLabel.Caption := CustomMessage('ProgressInstalling');
+
+  WizardForm.ProgressGauge.SetBounds(ScaleX(75), ScaleY(202), ScaleX(350), ScaleY(10));
+
+  WizardForm.StatusLabel.AutoSize := False;
+  WizardForm.StatusLabel.Alignment := taCenter;
+  WizardForm.StatusLabel.StyleElements := WizardForm.StatusLabel.StyleElements - [seFont];
+  WizardForm.StatusLabel.Font.Color := InkMuted;
+  WizardForm.StatusLabel.SetBounds(ScaleX(24), ScaleY(226), ScaleX(452), ScaleY(22));
+
+  // --- Page 4: Finish Page (500 x 370) ---
+  WizardForm.WizardBitmapImage2.Visible := False;
+  WizardForm.FinishedHeadingLabel.Visible := False;
+  WizardForm.FinishedLabel.Visible := False;
+  WizardForm.RunList.Visible := False;
+
+  InitLogoImage(WizardForm.FinishedPage, 500, 44, IconPath);
+
+  Lbl := TNewStaticText.Create(WizardForm);
+  Lbl.Parent := WizardForm.FinishedPage;
+  Lbl.AutoSize := False;
+  Lbl.SetBounds(ScaleX(24), ScaleY(120), ScaleX(452), ScaleY(34));
+  Lbl.Alignment := taCenter;
+  Lbl.StyleElements := Lbl.StyleElements - [seFont];
+  Lbl.Font.Name := WizardForm.Font.Name;
+  Lbl.Font.Size := 18;
+  Lbl.Font.Style := [fsBold];
+  Lbl.Font.Color := InkPrimary;
+  Lbl.Caption := CustomMessage('FinishHeading');
+
+  FinishSubLabel := TNewStaticText.Create(WizardForm);
+  FinishSubLabel.Parent := WizardForm.FinishedPage;
+  FinishSubLabel.AutoSize := False;
+  FinishSubLabel.SetBounds(ScaleX(24), ScaleY(160), ScaleX(452), ScaleY(24));
+  FinishSubLabel.Alignment := taCenter;
+  FinishSubLabel.StyleElements := FinishSubLabel.StyleElements - [seFont];
+  FinishSubLabel.Font.Name := WizardForm.Font.Name;
+  FinishSubLabel.Font.Size := 10;
+  FinishSubLabel.Font.Color := InkSecondary;
+  FinishSubLabel.Caption := CustomMessage('FinishBody');
+
+  FinishCloseLink := TNewLinkLabel.Create(WizardForm);
+  FinishCloseLink.Parent := WizardForm.FinishedPage;
+  FinishCloseLink.AutoSize := False;
+  FinishCloseLink.Caption := '<a id="close">' + CustomMessage('BtnClose') + '</a>';
+  FinishCloseLink.UseVisualStyle := HighContrastActive;
+  FinishCloseLink.OnLinkClick := @FinishCloseLinkOnClick;
+  FinishCloseLink.SetBounds(ScaleX(210), ScaleY(284), ScaleX(80), ScaleY(22));
+  FinishCloseLink.AdjustHeight;
+  FinishCloseLink.Left := (ScaleX(500) - FinishCloseLink.Width) div 2;
+end;
+
+procedure InitializeUninstallProgressForm;
+begin
+  ApplySeamlessTitleBar(UninstallProgressForm.Handle);
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  if (PageID = wpSelectDir) or (PageID = wpSelectTasks) then
+    Result := True
+  else if (PageID = wpSelectComponents) and (not CustomMode) then
+    Result := True;
 end;
 
 procedure CurPageChanged(CurPageID: Integer);
-var
-  SavedWidth: Integer;
 begin
-  if CurPageID = wpFinished then
+  ParkOffscreen(WizardForm.BackButton);
+  ParkOffscreen(WizardForm.CancelButton);
+
+  if CurPageID = wpWelcome then
   begin
-    SavedWidth := WizardForm.FinishedLabel.Width;
-    WizardForm.FinishedLabel.Caption := CustomMessage('FinishedBody');
-    WizardForm.FinishedLabel.AutoSize := False;
-    WizardForm.FinishedLabel.Width := SavedWidth;
-    WizardForm.FinishedLabel.AutoSize := True;
-    WizardForm.FinishedLabel.Top := WizardForm.FinishedHeadingLabel.Top + WizardForm.FinishedHeadingLabel.Height + ScaleY(14);
-    WizardForm.RunList.Top := WizardForm.FinishedLabel.Top + WizardForm.FinishedLabel.Height + ScaleY(16);
+    ResizeAndCenterWindow(500, 370);
+    RefreshHeroPath;
+    if InstallKind = 1 then
+      WizardForm.NextButton.Caption := CustomMessage('BtnUpgradeNow')
+    else if InstallKind = 2 then
+      WizardForm.NextButton.Caption := CustomMessage('BtnReinstall')
+    else
+      WizardForm.NextButton.Caption := CustomMessage('BtnInstallNow');
+    WizardForm.NextButton.TabStop := True;
+    WizardForm.NextButton.SetBounds(ScaleX(152), ScaleY(232), ScaleX(196), ScaleY(40));
+    WizardForm.NextButton.BringToFront;
+  end
+  else if CurPageID = wpSelectComponents then
+  begin
+    ResizeAndCenterWindow(520, 460);
+    if CustomDirEdit <> nil then
+      CustomDirEdit.Text := WizardForm.DirEdit.Text;
+    SyncTasksToUI;
+    if InstallKind = 1 then
+      WizardForm.NextButton.Caption := CustomMessage('BtnStartUpgrade')
+    else
+      WizardForm.NextButton.Caption := CustomMessage('BtnStartInstall');
+    WizardForm.NextButton.TabStop := True;
+    WizardForm.NextButton.SetBounds(ScaleX(162), ScaleY(396), ScaleX(196), ScaleY(38));
+    WizardForm.NextButton.BringToFront;
+  end
+  else if CurPageID = wpPreparing then
+  begin
+    ResizeAndCenterWindow(500, 370);
+    WizardForm.NextButton.TabStop := True;
+    WizardForm.NextButton.SetBounds(ScaleX(152), ScaleY(306), ScaleX(196), ScaleY(38));
+    WizardForm.NextButton.BringToFront;
+  end
+  else if CurPageID = wpInstalling then
+  begin
+    ResizeAndCenterWindow(500, 370);
+    ParkOffscreen(WizardForm.NextButton);
+  end
+  else if CurPageID = wpFinished then
+  begin
+    ResizeAndCenterWindow(500, 370);
+    if WizardForm.RunList.Items.Count > 0 then
+    begin
+      WizardForm.NextButton.Caption := WizardForm.RunList.ItemCaption[0];
+      FinishCloseLink.Visible := True;
+    end else begin
+      WizardForm.NextButton.Caption := CustomMessage('BtnClose');
+      FinishCloseLink.Visible := False;
+    end;
+    WizardForm.NextButton.TabStop := True;
+    WizardForm.NextButton.SetBounds(ScaleX(152), ScaleY(224), ScaleX(196), ScaleY(40));
+    WizardForm.NextButton.BringToFront;
+  end else begin
+    ResizeAndCenterWindow(500, 370);
+    WizardForm.NextButton.TabStop := True;
+    WizardForm.NextButton.SetBounds(ScaleX(152), ScaleY(306), ScaleX(196), ScaleY(38));
+    WizardForm.NextButton.BringToFront;
   end;
 end;
 
@@ -870,6 +1354,14 @@ begin
   Result := True;
   if CurPageID = wpSelectComponents then
   begin
+    if CustomDirEdit <> nil then
+      WizardForm.DirEdit.Text := RemoveBackslashUnlessRoot(Trim(CustomDirEdit.Text));
+    if Trim(WizardForm.DirEdit.Text) = '' then
+    begin
+      Result := False;
+      Exit;
+    end;
+    SyncTasksFromUI;
     if (not WizardIsComponentSelected('capture')) and
        (not WizardIsComponentSelected('history')) and
        (not WizardIsComponentSelected('viewer')) and

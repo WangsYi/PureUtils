@@ -158,6 +158,13 @@ jobs:
           "bytes_fmt=$($bytes.ToString('N0'))" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host "Packed $installer ($mb MB, $bytes bytes, sha256=$sha)"
 
+      - name: Smoke-test silent install and uninstall
+        shell: pwsh
+        run: |
+          $ver = '${{ steps.meta.outputs.version }}'
+          .\scripts\test-installer-smoke.ps1 -InstallerPath "artifacts\installer\PureUtils-$ver-setup.exe" -Version $ver -AllowOverwrite
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Refresh showcase screenshots and sync docs/index.html size
         shell: pwsh
         run: |
