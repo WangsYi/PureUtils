@@ -5,7 +5,7 @@
 # PureUtils
 
 **Modular Native GPU-Rendered Desktop Utility Suite for Windows**  
-Screenshot & Pinning · Clipboard History · Fast Image Viewer & Spacebar Preview · Archive Manager · Global Launcher
+Screenshot & Pinning · Clipboard History · Fast Image & Video Browser · Archive Manager · Global Launcher
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/Go-1.27%2B-00ADD8?logo=go&logoColor=white)](go.mod)
@@ -25,13 +25,14 @@ Screenshot & Pinning · Clipboard History · Fast Image Viewer & Spacebar Previe
 
 ## Key Features
 
-### Four Decoupled Built-in Plugins (Zero Cross-Plugin Imports)
+### Five Decoupled Built-in Plugins (Zero Cross-Plugin Imports)
 
 | Plugin | Module ID | Capabilities |
 |---|---|---|
 | **PureShot** | `capture` | Frozen region capture, smart window snapping, pixel magnifier (`C` silent hex copy), 9 vector annotation tools, double-click quick finish, always-on-top desktop pins |
 | **PureClip** | `history` | Isolated SQLite (WAL) & SHA-1 content-addressed image blobs, instant in-memory multi-token search (`<1ms`), async thumbnail/preview decoding cache, filters/favorites, sensitive process exclusion, read-only legacy DB fallback |
 | **PureImage** | `viewer` | **40+ formats** (JPG, PNG, GIF, WebP, HEIC, AVIF, JPEG XL, 24 camera RAW formats & animations), native `libjpeg-turbo` DCT scaling, EXIF inspector, Windows Explorer **Spacebar quick preview** & `P` desktop pin |
+| **PureVideo** | `video` | Bundled Tier 1 trimmed **`libmpv` hardware decoding engine**, supporting 21 video formats (MP4, MKV, MOV, HEVC, FLV, WebM, etc.), external subtitles, frame-step, speed/loop controls, and HKCU file associations |
 | **PureZip** | `zip` | Pure-Go archive manager (read/write `ZIP, 7Z, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, TAR.ZST`; read `RAR v4/v5` & single-file `GZ/BZ2/XZ/ZST`), folder tree, smart extract, AES-256 / `-mhe`, codepage switcher, Explorer cascading context menu & file associations |
 
 ### Platform Capabilities
@@ -54,17 +55,17 @@ Screenshot & Pinning · Clipboard History · Fast Image Viewer & Spacebar Previe
 | :---: | :---: |
 | ![PureClip History](docs/screenshots/history.png) | ![PureClip Compact](docs/screenshots/history-compact.png) |
 
-### Screenshot & Annotation (PureShot) & Archive Manager (PureZip)
-| PureShot Region & Annotations | PureZip Archive Manager |
-| :---: | :---: |
-| ![PureShot Overlay](docs/screenshots/overlay.png) | ![PureZip Manager](docs/screenshots/zip.png) |
+### Screenshot & Annotation (PureShot), Archive Manager (PureZip) & Video Browser (PureVideo)
+| PureShot Region & Annotations | PureZip Archive Manager | PureVideo Browser |
+| :---: | :---: | :---: |
+| ![PureShot Overlay](docs/screenshots/overlay.png) | ![PureZip Manager](docs/screenshots/zip.png) | ![PureVideo Player](docs/screenshots/video.png) |
 
 ---
 
 ## Installation
 
-- Download the modular installer `PureUtils-1.0.0-setup.exe` from [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases).
-- Installs per-user (`%LOCALAPPDATA%\Programs\PureUtils`, no UAC required) with customizable components: **Full Suite / PureShot+PureClip / PureImage only / PureZip only**, optional `turbojpeg.dll`, Explorer context menus, and HKCU file associations.
+- Download the modular installer `PureUtils-1.1.0-setup.exe` (with built-in trimmed `libmpv-2.dll`) from [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases).
+- Installs per-user (`%LOCALAPPDATA%\Programs\PureUtils`, no UAC required) with customizable components: **Full Suite / PureShot+PureClip / PureImage only / PureVideo only / PureZip only**, optional `turbojpeg.dll`, Explorer context menus, and HKCU file associations.
 
 ---
 
@@ -73,13 +74,13 @@ Screenshot & Pinning · Clipboard History · Fast Image Viewer & Spacebar Previe
 Prerequisites: Windows 10/11 (x64) + **Go 1.27.3+** (no cgo, no Node, no WebView2). Optional: Inno Setup 6/7 (`ISCC.exe`) for installer packaging.
 
 ```powershell
-# Build full binary with all 4 plugins
+# Build full binary with all 5 plugins
 .\build.ps1 build
 
 # Build slim core binary without PureImage / turbojpeg.dll (-tags nofreeimage)
 .\build.ps1 build -CoreOnly
 
-# Selectively exclude specific plugins at compile time
+# Selectively exclude specific plugins at compile time (supports pureshot, pureclip, pureimage, purevideo, purezip)
 .\build.ps1 build -Exclude purezip,pureimage
 
 # Run full test suite (including Go AST dependency boundary tests & headless UI tests)
@@ -107,6 +108,7 @@ Prerequisites: Windows 10/11 (x64) + **Go 1.27.3+** (no cgo, no Node, no WebView
 | `Ctrl+Alt+X` | Show / Hide All Desktop Pins | `--toggle-pins` |
 | `Ctrl+Shift+V` | Open Clipboard History Popup | `--history` |
 | Configurable | Open PureImage / Toggle Explorer Spacebar Preview | `--view [path]` / `--toggle-space-preview` |
+| Configurable | Open PureVideo Fast Video Browser | `--video [path]` |
 | Configurable | Open PureZip / Archive Operations | `--zip [path]` / `--extract-smart <file>` |
 
 Additional CLI flags: `--settings`, `--toggle-monitoring`, `--extract-here`, `--extract-to`, `--extract-dialog`, `--compress`, `--compress-zip`, `--compress-7z`, `--test-archive`, `--background`, `--perf`, `--exit`, or pass an image/archive/folder path directly.
@@ -139,6 +141,7 @@ plugins/
   ├─ pureshot/                Region capture, vector annotation baker (annotate/), and floating pins
   ├─ pureclip/                Clipboard watcher, SQLite/blob storage, and fast search history UI
   ├─ pureimage/               40+ image/RAW codecs, EXIF, TurboJPEG, Spacebar preview & HKCU associations
+  ├─ purevideo/               Bundled libmpv hardware playback, controls & HKCU associations
   └─ purezip/                 Pure-Go archive engine (archive/), Explorer shell integration (zipshell/)
 internal/host/                Thin host shell (conditional builtin_*.go bridges, tray, hotkeys, launcher, settings, AST tests)
 installer/pureutils.iss       Inno Setup modular installer script
@@ -149,8 +152,8 @@ See [**docs/ARCHITECTURE.en.md**](docs/ARCHITECTURE.en.md) ([中文版](docs/ARC
 
 ---
 
-## Contributing & License
+## Maintenance Policy & License
 
-- See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md).
-- Third-party dependency notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **PureUtils** is maintained personally by the author and **does not accept external Pull Requests or code contributions** (see [CONTRIBUTING.md](CONTRIBUTING.md)). You are still welcome to file bug reports via GitHub Issues; please review [SECURITY.md](SECURITY.md) for vulnerability reports.
+- See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and third-party notices in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 - Licensed under the [**GNU Affero General Public License v3.0 (AGPL-3.0)**](LICENSE).

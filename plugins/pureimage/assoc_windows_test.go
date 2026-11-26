@@ -61,7 +61,6 @@ func TestInstallerScriptCoversAllImageExtensions(t *testing.T) {
 	for _, needle := range []string{
 		"ChangesAssociations=yes",
 		`Software\Classes\Applications\PureUtils.exe`,
-		`ms-settings:defaultapps?registeredAppUser=PureImage`,
 	} {
 		if !strings.Contains(src, needle) {
 			t.Errorf("pureutils.iss missing %q", needle)

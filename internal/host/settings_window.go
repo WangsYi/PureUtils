@@ -51,6 +51,9 @@ type settingsView struct {
 
 	hotkeys []hotkeyEntry
 
+	updateSourceLabel string
+	updateIntervalIdx int
+
 	recorder     *platform.HotkeyRecorder
 	recordingID  string
 	recordingErr string
@@ -59,6 +62,9 @@ type settingsView struct {
 
 // ShowSettings opens or focuses the unified Settings window, optionally navigating to tabID.
 func (a *App) ShowSettings(tabID string) {
+	if a.log != nil {
+		a.log.Infof("打开设置窗口: tab=%q reuse=%v", tabID, a.settingsWin != nil)
+	}
 	if a.settingsWin != nil {
 		if tabID != "" && a.settingsView != nil {
 			a.settingsView.selectSection(tabID)
@@ -96,6 +102,9 @@ func (a *App) ShowSettings(tabID string) {
 		a.NotifyWindowClosed()
 	})
 	a.settingsWin = win
+	if a.log != nil {
+		a.log.Infof("设置窗口已创建: section=%q", h.section)
+	}
 	win.Focus()
 }
 
@@ -186,7 +195,7 @@ func (h *settingsView) buildSections() {
 		id:    "advanced",
 		label: "高级",
 		title: "高级与维护",
-		sub:   "开机自启、日志诊断与已安装模块",
+		sub:   "自动更新、开机自启、日志诊断与已安装模块",
 		icon:  pureui.IconWrench,
 	})
 	h.sections = secs
@@ -215,6 +224,8 @@ func (h *settingsView) loadFromHost() {
 	h.modDraft = active
 	h.themeIdx = themeIndex(hc.Appearance.Theme)
 	h.launcherMax = float64(hc.Launcher.MaxResults)
+	h.updateSourceLabel = UpdateSourceLabel(hc.Update.DownloadSource)
+	h.updateIntervalIdx = updateIntervalIndex(hc.Update.CheckIntervalHours)
 	for i := range h.hotkeys {
 		var cur string
 		if h.hotkeys[i].spec.CurrentGesture != nil {
@@ -267,7 +278,7 @@ func (h *settingsView) sidebar(c *ui.Context, pal pureui.Palette) {
 			ui.Column(c).Gap(1).Children(func() {
 				ui.Row(c).Gap(5).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, "PureUtils").FontSize(14).FontWeight(700).TextColor(pal.Text)
-					pureui.PillBadge(c, "1.0", pal.Accent, pal.AccentSoft)
+					pureui.PillBadge(c, core.ShortVersion(core.AppVersion), pal.Accent, pal.AccentSoft)
 				})
 				ui.Text(c, "系统设置").FontSize(11).TextColor(pal.TextMuted)
 			})
@@ -526,6 +537,8 @@ func (h *settingsView) hotkeyError(idx int) string {
 }
 
 func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
+	h.renderUpdateCard(c, pal)
+
 	pureui.SettingCard(c, "系统与日志", "管理开机自启与诊断日志级别", pal, func() {
 		pureui.SettingRow(c, "开机自动启动", "登录 Windows 时在系统托盘后台自动启动 PureUtils", pal, func() {
 			ui.Switch(c, &h.hostDraft.Advanced.RunOnStartup).Label("开关：开机自动启动")
@@ -561,6 +574,7 @@ func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 			{"pureshot", "PureShot", core.ModuleCapture, "PureShot（截图、标注与悬浮贴图）", "区域/整屏截图、9 种标注与置顶悬浮贴图", h.app.compiled.Capture, &h.modDraft.Capture},
 			{"pureclip", "PureClip", core.ModuleHistory, "PureClip（剪贴板历史）", "自动监听文本/富文本/图片/文件并持久化检索", h.app.compiled.History, &h.modDraft.History},
 			{"pureimage", "PureImage", core.ModuleViewer, "PureImage（看图与空格预览）", "支持 JPEG Turbo/HEIC/AVIF/JXL/RAW、动图与资源管理器空格预览", h.app.compiled.Viewer, &h.modDraft.Viewer},
+			{"purevideo", "PureVideo", core.ModuleVideo, "PureVideo（极速视频浏览）", "内置 libmpv 硬件解码，支持 21 种常见视频格式与外挂字幕", h.app.compiled.Video, &h.modDraft.Video},
 			{"purezip", "PureZip", core.ModuleZip, "PureZip（压缩与解压管理）", "浏览/智能解压/多线程压缩/加密/右键菜单与文件关联", h.app.compiled.Zip, &h.modDraft.Zip},
 		}
 		installed := h.app.InstalledModules()
@@ -598,6 +612,200 @@ func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 				pureui.PillBadge(c, "已启用", pal.Success, pal.SuccessSoft)
 			})
 		}
+	})
+}
+
+func (h *settingsView) renderUpdateCard(c *ui.Context, pal pureui.Palette) {
+	var snap UpdateSnapshot
+	if h.app.updater != nil {
+		snap = h.app.updater.Snapshot()
+	} else {
+		snap = UpdateSnapshot{
+			Status:         UpdateIdle,
+			CurrentVersion: core.AppVersion,
+		}
+	}
+
+	sub := fmt.Sprintf("当前版本 v%s（数据源 GitHub: %s/%s）", core.ShortVersion(snap.CurrentVersion), core.DefaultRepoOwner, core.DefaultRepoName)
+	if !snap.LastCheck.IsZero() {
+		sub += " · 上次检查 " + snap.LastCheck.Format("01-02 15:04")
+	}
+
+	pureui.SettingCard(c, "软件更新", sub, pal, func() {
+		badgeLabel := "未检查"
+		badgeFg, badgeBg := pal.TextMuted, pal.Bg
+		statusTitle := "版本状态"
+		statusDesc := "点击「检查更新」获取最新正式版本与更新日志"
+		switch snap.Status {
+		case UpdateChecking:
+			badgeLabel = "检查中…"
+			badgeFg, badgeBg = pal.Accent, pal.AccentSoft
+			statusDesc = snap.Stage
+		case UpdateUpToDate:
+			badgeLabel = "已是最新"
+			badgeFg, badgeBg = pal.Success, pal.SuccessSoft
+			statusDesc = "当前已是最新版本 v" + core.ShortVersion(snap.CurrentVersion)
+		case UpdateAvailable:
+			badgeLabel = "有新版本"
+			badgeFg, badgeBg = pal.Accent, pal.AccentSoft
+			if snap.Release != nil {
+				statusTitle = "发现新版本 " + snap.Release.TagName
+				if snap.Release.AssetSize > 0 {
+					statusDesc = fmt.Sprintf("安装包：%s（%.1f MB）", snap.Release.AssetName, float64(snap.Release.AssetSize)/(1024*1024))
+				} else {
+					statusDesc = "安装包：" + snap.Release.AssetName
+				}
+			}
+		case UpdateDownloading:
+			badgeLabel = "正在下载"
+			badgeFg, badgeBg = pal.Accent, pal.AccentSoft
+			if snap.Release != nil {
+				statusTitle = "正在下载 " + snap.Release.TagName
+			}
+			statusDesc = snap.Stage
+		case UpdateReady:
+			badgeLabel = "待安装"
+			badgeFg, badgeBg = pal.Success, pal.SuccessSoft
+			if snap.Release != nil {
+				statusTitle = "新版本 " + snap.Release.TagName + " 已就绪"
+			}
+			statusDesc = "点击「立即安装并重启」将自动完成升级并重新启动"
+		case UpdateInstalling:
+			badgeLabel = "正在安装…"
+			badgeFg, badgeBg = pal.Accent, pal.AccentSoft
+			statusDesc = snap.Stage
+		case UpdateError:
+			badgeLabel = "检查异常"
+			badgeFg, badgeBg = pal.Danger, pal.DangerSoft
+			if snap.Err != "" {
+				statusDesc = snap.Err
+			} else {
+				statusDesc = snap.Stage
+			}
+		}
+
+		pureui.SettingRow(c, statusTitle, statusDesc, pal, func() {
+			pureui.PillBadge(c, badgeLabel, badgeFg, badgeBg)
+		})
+
+		if snap.Release != nil && strings.TrimSpace(snap.Release.Body) != "" &&
+			(snap.Status == UpdateAvailable || snap.Status == UpdateDownloading || snap.Status == UpdateReady) {
+			notes := truncateUpdateNotes(snap.Release.Body, 240)
+			ui.Column(c).FillWidth().Padding(8, 10).Radius(8).Background(pal.Bg).Children(func() {
+				ui.Text(c, notes).FontSize(11.5).TextColor(pal.TextSecondary)
+			})
+		}
+
+		if snap.Status == UpdateDownloading {
+			pct := 0.0
+			if snap.TotalBytes > 0 {
+				pct = float64(snap.DoneBytes) / float64(snap.TotalBytes)
+				if pct > 1 {
+					pct = 1
+				}
+			}
+			ui.Column(c).Gap(6).FillWidth().Children(func() {
+				ui.Row(c).AlignItems(ui.Center).Gap(8).Children(func() {
+					ui.Text(c, snap.Stage).FontSize(11.5).FontWeight(500).TextColor(pal.Text).Grow(1)
+					if snap.TotalBytes > 0 {
+						ui.Text(c, fmt.Sprintf("%.1f MB / %.1f MB",
+							float64(snap.DoneBytes)/(1024*1024),
+							float64(snap.TotalBytes)/(1024*1024),
+						)).FontSize(11).TextColor(pal.TextSecondary)
+					} else if snap.DoneBytes > 0 {
+						ui.Text(c, fmt.Sprintf("%.1f MB", float64(snap.DoneBytes)/(1024*1024))).
+							FontSize(11).TextColor(pal.TextSecondary)
+					}
+				})
+				ui.Progress(c, pct).FillWidth().Height(6).Radius(3)
+			})
+		}
+
+		ui.Row(c).Gap(8).Wrap().Children(func() {
+			switch snap.Status {
+			case UpdateDownloading:
+				ui.Button(c, "取消下载").OnClick(func() {
+					h.app.CancelUpdateDownload()
+				}).Border(0, ui.Transparent)
+			case UpdateReady:
+				ui.PrimaryButton(c, "立即安装并重启").OnClick(func() {
+					if err := h.app.InstallUpdate(); err != nil {
+						h.status = "安装更新失败: " + err.Error()
+						h.invalidate()
+					}
+				})
+				if snap.Release != nil && snap.Release.HTMLURL != "" {
+					urlStr := snap.Release.HTMLURL
+					ui.Button(c, "查看发布页").OnClick(func() {
+						if !h.app.headless {
+							_ = mygo.Shell.OpenExternal(urlStr)
+						}
+					}).Border(0, ui.Transparent)
+				}
+			case UpdateAvailable:
+				ui.PrimaryButton(c, "下载更新").OnClick(func() {
+					h.app.DownloadUpdate()
+				})
+				if snap.Release != nil && snap.Release.TagName != "" {
+					tag := snap.Release.TagName
+					ui.Button(c, "忽略此版本").OnClick(func() {
+						if err := h.app.SkipUpdateVersion(tag); err != nil {
+							h.status = "记录忽略版本失败: " + err.Error()
+						} else {
+							h.status = "已忽略后台提示：" + tag
+							h.hostOrig.Update.SkippedVersion = tag
+							h.hostDraft.Update.SkippedVersion = tag
+						}
+						h.invalidate()
+					}).Border(0, ui.Transparent)
+				}
+				if snap.Release != nil && snap.Release.HTMLURL != "" {
+					urlStr := snap.Release.HTMLURL
+					ui.Button(c, "查看发布页").OnClick(func() {
+						if !h.app.headless {
+							_ = mygo.Shell.OpenExternal(urlStr)
+						}
+					}).Border(0, ui.Transparent)
+				}
+				ui.Button(c, "重新检查").OnClick(func() {
+					h.app.CheckForUpdates(true)
+				}).Border(0, ui.Transparent)
+			default:
+				busy := snap.Status == UpdateChecking || snap.Status == UpdateInstalling
+				ui.PrimaryButton(c, "检查更新").Disabled(busy).OnClick(func() {
+					h.app.CheckForUpdates(true)
+				})
+			}
+		})
+
+		ui.Divider(c)
+		pureui.SettingRow(c, "自动检查更新", "定期在后台静默检查 GitHub Releases 新版本（仅在有新版本时提醒）", pal, func() {
+			ui.Switch(c, &h.hostDraft.Update.AutoCheck).Label("开关：自动检查更新")
+		})
+		ui.Divider(c)
+		pureui.SettingRow(c, "发现新版本后自动下载", "在后台通过所选镜像提前下载并校验安装包，待您点击安装时一键升级", pal, func() {
+			ui.Switch(c, &h.hostDraft.Update.AutoDownload).Label("开关：自动下载更新")
+		})
+		ui.Divider(c)
+		opts := make([]string, len(UpdateDownloadSources))
+		for i, s := range UpdateDownloadSources {
+			opts[i] = s.Label
+		}
+		pureui.SettingRow(c, "更新下载源", "国内推荐「自动优选」，依次尝试镜像加速与 GitHub 官方源", pal, func() {
+			sel := ui.Select(c, &h.updateSourceLabel, opts).Width(220).Label("更新下载源")
+			sel.Border(0, ui.Transparent)
+			if sel.Changed() {
+				h.hostDraft.Update.DownloadSource = UpdateSourceIDFromLabel(h.updateSourceLabel)
+			}
+		})
+		ui.Divider(c)
+		pureui.SettingRow(c, "检查频率", "自动后台检查新版本的最小时间间隔", pal, func() {
+			seg := ui.Segmented(c, &h.updateIntervalIdx, "6 小时", "每天", "3 天", "每周").Label("更新检查频率")
+			seg.Border(0, ui.Transparent)
+			if seg.Changed() {
+				h.hostDraft.Update.CheckIntervalHours = updateIntervalFromIndex(h.updateIntervalIdx)
+			}
+		})
 	})
 }
 
@@ -695,6 +903,10 @@ func (h *settingsView) isDirty() bool {
 		h.hostDraft.Advanced.VerboseLogging != h.hostOrig.Advanced.VerboseLogging ||
 		h.hostDraft.Launcher.Enabled != h.hostOrig.Launcher.Enabled ||
 		int(h.launcherMax) != h.hostOrig.Launcher.MaxResults ||
+		h.hostDraft.Update.AutoCheck != h.hostOrig.Update.AutoCheck ||
+		h.hostDraft.Update.AutoDownload != h.hostOrig.Update.AutoDownload ||
+		h.hostDraft.Update.CheckIntervalHours != h.hostOrig.Update.CheckIntervalHours ||
+		h.hostDraft.Update.DownloadSource != h.hostOrig.Update.DownloadSource ||
 		(!h.app.custom && h.modDraft != h.modOrig) {
 		return true
 	}
@@ -788,9 +1000,13 @@ func (h *settingsView) save(c *ui.Context) {
 	nextHost.Advanced.VerboseLogging = h.hostDraft.Advanced.VerboseLogging
 	nextHost.Launcher.Enabled = h.hostDraft.Launcher.Enabled
 	nextHost.Launcher.MaxResults = int(h.launcherMax)
+	nextHost.Update.AutoCheck = h.hostDraft.Update.AutoCheck
+	nextHost.Update.AutoDownload = h.hostDraft.Update.AutoDownload
+	nextHost.Update.CheckIntervalHours = updateIntervalFromIndex(h.updateIntervalIdx)
+	nextHost.Update.DownloadSource = UpdateSourceIDFromLabel(h.updateSourceLabel)
 	if !h.app.custom {
 		installed := h.app.InstalledModules()
-		for _, mod := range []core.ModuleID{core.ModuleCapture, core.ModuleHistory, core.ModuleViewer, core.ModuleZip} {
+		for _, mod := range []core.ModuleID{core.ModuleCapture, core.ModuleHistory, core.ModuleViewer, core.ModuleVideo, core.ModuleZip} {
 			if installed.Enabled(mod) {
 				nextHost.SetModuleDisabled(mod, !h.modDraft.Enabled(mod))
 			}
@@ -895,4 +1111,43 @@ func clampInt(v, lo, hi int) int {
 		return hi
 	}
 	return v
+}
+
+func updateIntervalIndex(hours int) int {
+	switch hours {
+	case 6:
+		return 0
+	case 72:
+		return 2
+	case 168:
+		return 3
+	default:
+		return 1
+	}
+}
+
+func updateIntervalFromIndex(idx int) int {
+	switch idx {
+	case 0:
+		return 6
+	case 2:
+		return 72
+	case 3:
+		return 168
+	default:
+		return 24
+	}
+}
+
+func truncateUpdateNotes(body string, maxRunes int) string {
+	lines := strings.Split(strings.ReplaceAll(strings.TrimSpace(body), "\r\n", "\n"), "\n")
+	if len(lines) > 6 {
+		lines = append(lines[:6], "…")
+	}
+	s := strings.Join(lines, "\n")
+	r := []rune(s)
+	if len(r) > maxRunes {
+		return string(r[:maxRunes]) + "…"
+	}
+	return s
 }

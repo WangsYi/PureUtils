@@ -4,9 +4,32 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"sync"
 	"time"
 )
+
+// SetupCrashOutput configures Go's runtime crash output (unhandled panics and
+// Windows native exceptions caught by Go's VEH) to append to crash.log inside dir.
+func SetupCrashOutput(dir string) (string, error) {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	path := filepath.Join(dir, "crash.log")
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		return "", err
+	}
+	err = debug.SetCrashOutput(f, debug.CrashOptions{})
+	closeErr := f.Close()
+	if err != nil {
+		return path, err
+	}
+	if closeErr != nil {
+		return path, closeErr
+	}
+	return path, nil
+}
 
 // Logger writes one file per day. The GUI has no console, so this is the
 // only place diagnostics go.

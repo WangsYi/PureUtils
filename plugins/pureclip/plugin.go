@@ -58,7 +58,7 @@ func (p *Plugin) Info() purekit.PluginInfo {
 		ID:          PluginID,
 		Name:        "PureClip",
 		Description: "剪贴板历史监控、多格式去重检索与快捷回放",
-		Version:     "1.0.0",
+		Version:     core.AppVersion,
 		ModuleID:    core.ModuleHistory,
 		Capabilities: []purekit.CapabilityDescriptor{
 			{

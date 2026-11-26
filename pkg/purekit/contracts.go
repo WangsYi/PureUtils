@@ -17,6 +17,9 @@ const (
 	CapImagePreview = "image.preview"
 	// CapImagePin is registered by PureShot to create floating desktop pins.
 	CapImagePin = "image.pin"
+	// CapVideoPreview is registered by PureVideo to open local videos and
+	// advertise supported video extensions.
+	CapVideoPreview = "video.preview"
 )
 
 // ClipboardHistoryRequest is the typed request envelope for CapClipboardHistory.
@@ -161,4 +164,34 @@ func CallImagePinText(ctx context.Context, b *Bus, text string, cascade int) err
 func CallImagePinContent(ctx context.Context, b *Bus, content *core.ClipboardContent, cascade int) error {
 	_, err := b.Call(ctx, CapImagePin, ImagePinRequest{Action: "pin_content", Content: content, Cascade: cascade})
 	return err
+}
+
+// VideoPreviewRequest is the typed request envelope for CapVideoPreview.
+type VideoPreviewRequest struct {
+	Action string `json:"action"` // "open_path" | "supported_exts"
+	Path   string `json:"path,omitempty"`
+}
+
+// VideoPreviewResponse is returned by CapVideoPreview handlers.
+type VideoPreviewResponse struct {
+	Extensions []string `json:"extensions,omitempty"`
+}
+
+// CallVideoPreviewPath opens a video file or folder path in PureVideo.
+func CallVideoPreviewPath(ctx context.Context, b *Bus, path string) error {
+	_, err := b.Call(ctx, CapVideoPreview, VideoPreviewRequest{Action: "open_path", Path: path})
+	return err
+}
+
+// CallVideoPreviewSupportedExts queries supported video extensions from PureVideo.
+func CallVideoPreviewSupportedExts(ctx context.Context, b *Bus) ([]string, error) {
+	raw, err := b.Call(ctx, CapVideoPreview, VideoPreviewRequest{Action: "supported_exts"})
+	if err != nil {
+		return nil, err
+	}
+	res, ok := raw.(VideoPreviewResponse)
+	if !ok {
+		return nil, fmt.Errorf("purekit: unexpected %s response type %T", CapVideoPreview, raw)
+	}
+	return res.Extensions, nil
 }

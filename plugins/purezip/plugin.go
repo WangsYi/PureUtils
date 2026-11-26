@@ -98,7 +98,7 @@ func (p *Plugin) Info() purekit.PluginInfo {
 		ID:          PluginID,
 		Name:        "PureZip",
 		Description: "压缩包浏览、智能解压、多线程压缩与资源管理器右键集成",
-		Version:     "1.0.0",
+		Version:     core.AppVersion,
 		ModuleID:    core.ModuleZip,
 		IconPNG:     zipIconPNG,
 	}

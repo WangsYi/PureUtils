@@ -1,11 +1,12 @@
-﻿# PureUtils（PureShot + PureClip + PureImage + PureZip）Go/MyGo 开发与打包脚本：build / test / run / publish / pack / clean
+﻿# PureUtils（PureShot + PureClip + PureImage + PureVideo + PureZip）Go/MyGo 开发与打包脚本：build / test / run / publish / pack / clean
 param(
     [ValidateSet('build', 'test', 'run', 'publish', 'pack', 'clean', 'help')]
     [string]$Command = 'build',
     [ValidateSet('Release', 'Debug')]
     [string]$Configuration = 'Release',
+    [string]$Version = '1.1.0',
     [switch]$CoreOnly,
-    [ValidateSet('pureshot', 'pureclip', 'pureimage', 'purezip')]
+    [ValidateSet('pureshot', 'pureclip', 'pureimage', 'purevideo', 'purezip')]
     [string[]]$Exclude = @(),
     [string[]]$AppArgs = @()
 )
@@ -47,7 +48,7 @@ try {
 
     function Build-Binary([string]$OutPath, [bool]$NoFreeImage, [string[]]$Excludes = @()) {
         $args = @('build', '-trimpath', '-buildvcs=false')
-        $ldflags = @()
+        $ldflags = @("-X=pureutils/pkg/purekit/core.AppVersion=$Version")
         if ($Configuration -eq 'Release') {
             $ldflags += @('-s', '-w', '-H=windowsgui')
         }
@@ -78,6 +79,29 @@ try {
         $cmd = Get-Command iscc -ErrorAction SilentlyContinue
         if ($cmd) { return $cmd.Source }
         throw '未找到 Inno Setup ISCC.exe（可通过 $env:INNO_SETUP_ISCC 指定路径）'
+    }
+
+    function Ensure-LibMPV {
+        $mpvDir = Join-Path $root 'libs\mpv'
+        $mpvDll = Join-Path $mpvDir 'libmpv-2.dll'
+        if (-not (Test-Path $mpvDll) -or ((Get-Item $mpvDll).Length -lt 1048576)) {
+            Write-Host '未检测到 libs\mpv\libmpv-2.dll，正在自动下载并解压...' -ForegroundColor Cyan
+            Invoke-Go @('run', './tools/fetchmpv', '-out', $mpvDir) | Out-Host
+        }
+        if (-not (Test-Path $mpvDll)) {
+            throw "未找到 libmpv-2.dll：$mpvDll"
+        }
+        return $mpvDll
+    }
+
+    function Copy-FileIfChanged([string]$Src, [string]$Dst) {
+        $need = -not (Test-Path $Dst)
+        if (-not $need) {
+            $need = (Get-FileHash $Src -Algorithm SHA256).Hash -ne (Get-FileHash $Dst -Algorithm SHA256).Hash
+        }
+        if ($need) {
+            Copy-Item -Force $Src $Dst
+        }
     }
 
     switch ($Command) {
@@ -118,19 +142,26 @@ try {
             Copy-Item -Force (Join-Path $root 'resources\icon.ico') (Join-Path $out 'resources\icon.ico')
             Copy-Item -Force (Join-Path $root 'resources\image.ico') (Join-Path $out 'resources\image.ico')
             Copy-Item -Force (Join-Path $root 'resources\image.png') (Join-Path $out 'resources\image.png')
+            Copy-Item -Force (Join-Path $root 'resources\video.ico') (Join-Path $out 'resources\video.ico')
+            Copy-Item -Force (Join-Path $root 'resources\video.png') (Join-Path $out 'resources\video.png')
             Copy-Item -Force (Join-Path $root 'resources\zip.ico') (Join-Path $out 'resources\zip.ico')
             Copy-Item -Force (Join-Path $root 'resources\zip.png') (Join-Path $out 'resources\zip.png')
             $turbo = Join-Path $root 'libs\turbojpeg\turbojpeg.dll'
             if (Test-Path $turbo) {
                 Copy-Item -Force $turbo (Join-Path $out 'turbojpeg.dll')
             }
+            $mpvDll = Ensure-LibMPV
+            Copy-Item -Force $mpvDll (Join-Path $out 'libmpv-2.dll')
 
             Build-Binary (Join-Path $outCore 'PureUtils.exe') $true
             Copy-Item -Force (Join-Path $root 'resources\icon.png') (Join-Path $outCore 'resources\icon.png')
             Copy-Item -Force (Join-Path $root 'resources\icon.ico') (Join-Path $outCore 'resources\icon.ico')
+            Copy-Item -Force (Join-Path $root 'resources\video.ico') (Join-Path $outCore 'resources\video.ico')
+            Copy-Item -Force (Join-Path $root 'resources\video.png') (Join-Path $outCore 'resources\video.png')
             Copy-Item -Force (Join-Path $root 'resources\zip.ico') (Join-Path $outCore 'resources\zip.ico')
             Copy-Item -Force (Join-Path $root 'resources\zip.png') (Join-Path $outCore 'resources\zip.png')
-            Set-Content -Encoding UTF8 (Join-Path $outCore 'modules.json') "{`n  `"capture`": true,`n  `"history`": true,`n  `"viewer`": false,`n  `"zip`": true`n}"
+            Copy-Item -Force $mpvDll (Join-Path $outCore 'libmpv-2.dll')
+            Set-Content -Encoding UTF8 (Join-Path $outCore 'modules.json') "{`n  `"capture`": true,`n  `"history`": true,`n  `"viewer`": false,`n  `"video`": true,`n  `"zip`": true`n}"
 
             Write-Host "已发布完整版到 $out，精简版到 $outCore" -ForegroundColor Green
         }
@@ -149,25 +180,23 @@ try {
             Copy-Item -Force (Join-Path $root 'resources\setup.ico') (Join-Path $resStage 'setup.ico')
             Copy-Item -Force (Join-Path $root 'resources\image.ico') (Join-Path $resStage 'image.ico')
             Copy-Item -Force (Join-Path $root 'resources\image.png') (Join-Path $resStage 'image.png')
+            Copy-Item -Force (Join-Path $root 'resources\video.ico') (Join-Path $resStage 'video.ico')
+            Copy-Item -Force (Join-Path $root 'resources\video.png') (Join-Path $resStage 'video.png')
             Copy-Item -Force (Join-Path $root 'resources\zip.ico') (Join-Path $resStage 'zip.ico')
             Copy-Item -Force (Join-Path $root 'resources\zip.png') (Join-Path $resStage 'zip.png')
             $turbo = Join-Path $root 'libs\turbojpeg\turbojpeg.dll'
             if (Test-Path $turbo) {
-                $turboDst = Join-Path $stage 'turbojpeg.dll'
-                $needCopy = -not (Test-Path $turboDst)
-                if (-not $needCopy) {
-                    $needCopy = (Get-FileHash $turbo -Algorithm SHA256).Hash -ne (Get-FileHash $turboDst -Algorithm SHA256).Hash
-                }
-                if ($needCopy) {
-                    Copy-Item -Force $turbo $turboDst
-                }
+                Copy-FileIfChanged $turbo (Join-Path $stage 'turbojpeg.dll')
             }
+            $mpvDll = Ensure-LibMPV
+            Copy-FileIfChanged $mpvDll (Join-Path $stage 'libmpv-2.dll')
 
             $iscc = Find-ISCC
             $iss = Join-Path $root 'installer\pureutils.iss'
-            & $iscc "/DStageDir=$stage" "/DOutputDir=$outDir" $iss
+            $isccArgs = @("/DStageDir=$stage", "/DOutputDir=$outDir", "/DAppVersion=$Version", $iss)
+            & $iscc @isccArgs
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            Write-Host "已生成模块化安装包：$outDir\PureUtils-1.0.0-setup.exe" -ForegroundColor Green
+            Write-Host "已生成模块化安装包（内嵌 libmpv）：$outDir\PureUtils-$Version-setup.exe" -ForegroundColor Green
         }
         'clean' {
             Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $root 'PureUtils.exe')
@@ -180,10 +209,10 @@ try {
             Write-Host '已清理构建产物' -ForegroundColor Green
         }
         'help' {
-            Write-Host '用法: .\build.ps1 [-Command build|test|run|publish|pack|clean] [-CoreOnly] [-Exclude pureshot,pureclip,pureimage,purezip] [-AppArgs ...]'
+            Write-Host '用法: .\build.ps1 [-Command build|test|run|publish|pack|clean] [-Version 1.1.0] [-CoreOnly] [-Exclude pureshot,pureclip,pureimage,purevideo,purezip] [-AppArgs ...]'
             Write-Host '  build     编译 PureUtils.exe（加 -CoreOnly 不含 PureImage 看图，或用 -Exclude 裁剪指定插件）'
             Write-Host '  test      运行 go test -count=1 ./...（支持 -CoreOnly 与 -Exclude）'
-            Write-Host '  run       直接运行（可传 AppArgs，例如 --launcher、--history、--view 或 --zip）'
+            Write-Host '  run       直接运行（可传 AppArgs，例如 --launcher、--history、--view、--video 或 --zip）'
             Write-Host '  publish   输出完整版到 artifacts\publish 与精简版到 artifacts\publish-core'
             Write-Host '  pack      构建双版本并用 Inno Setup 打包模块化安装程序'
             Write-Host '  clean     删除构建与打包产物'

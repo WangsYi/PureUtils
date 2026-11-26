@@ -29,10 +29,15 @@ PureUtils builds upon and bundles the following third-party open-source packages
 | [`github.com/dustin/go-humanize`](https://github.com/dustin/go-humanize) | Human-readable sizes & formatting | MIT |
 | [`github.com/google/uuid`](https://github.com/google/uuid) | UUID generation | BSD-3-Clause |
 
-## Optional Prebuilt Native Library
+## Prebuilt Native Libraries / 内置可选原生动态库
 
-- `libs/turbojpeg/turbojpeg.dll` — **libjpeg-turbo** (<https://libjpeg-turbo.org>), optionally used at runtime by **PureImage** via pure-Go dynamic loading (`purego` / `syscall.LazyDLL`) for hardware-fast 1/2, 1/4, 1/8 DCT scaling of large JPEGs.
+- `turbojpeg.dll` (`libs/turbojpeg/turbojpeg.dll`) — **libjpeg-turbo** (<https://libjpeg-turbo.org>), optionally used at runtime by **PureImage** via pure-Go dynamic loading (`purego` / `syscall.LazyDLL`) for hardware-fast 1/2, 1/4, 1/8 DCT scaling of large JPEGs.
   - Licensed under the **IJG (Independent JPEG Group) License**, the **Modified 3-clause BSD License**, and the **zlib License**.
   - Users can omit `turbojpeg.dll` completely via the installer component checkbox or compile with `-CoreOnly` / `-tags nofreeimage`.
+
+- `libmpv-2.dll` (bundled when **PureVideo** is installed, fetched into `libs/mpv/libmpv-2.dll`) — **mpv / libmpv** (<https://mpv.io>) built in a Tier 1 trimmed Windows x64 configuration with static **FFmpeg**, **libass**, **libplacebo**, **dav1d**, and companion dependencies.
+  - Used at runtime by **PureVideo** via pure-Go dynamic loading (`syscall.LoadLibrary`) for hardware-accelerated video playback, subtitles, and container demuxing.
+  - Reproducible from source via [`tools/build-libmpv/build.sh`](tools/build-libmpv/build.sh) and [`.github/workflows/build-libmpv.yml`](.github/workflows/build-libmpv.yml).
+  - Subject to the upstream **GPL-2.0-or-later / LGPL-2.1-or-later / MIT / BSD / ISC** licenses of mpv and its statically linked media codecs (compatible with PureUtils' GNU AGPL-3.0 release).
 
 Full dependency graph can always be inspected via `go list -m all`.

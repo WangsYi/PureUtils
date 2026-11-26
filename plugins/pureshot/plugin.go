@@ -69,7 +69,7 @@ func (p *Plugin) Info() purekit.PluginInfo {
 		ID:          PluginID,
 		Name:        "PureShot",
 		Description: "区域与整屏截图、9 种矢量标注与悬浮置顶贴图",
-		Version:     "1.0.0",
+		Version:     core.AppVersion,
 		ModuleID:    core.ModuleCapture,
 		Capabilities: []purekit.CapabilityDescriptor{
 			{

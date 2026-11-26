@@ -1,5 +1,5 @@
 ; PureUtils modular installer (per-user, no admin required).
-; Components: PureShot (capture/pins) + PureClip (clipboard history) + PureImage (viewer & space preview) + PureZip (archive manager).
+; Components: PureShot (capture/pins) + PureClip (clipboard history) + PureImage (viewer & space preview) + PureVideo (fast video browser) + PureZip (archive manager).
 ; Build via: .\build.ps1 pack
 
 #ifndef StageDir
@@ -8,12 +8,15 @@
 #ifndef OutputDir
   #define OutputDir "..\artifacts\installer"
 #endif
+#ifndef AppVersion
+  #define AppVersion "1.1.0"
+#endif
 
 [Setup]
 AppId={{6D9E4A1B-3C82-4F55-9A14-2B7E8C3D5F10}
 AppName=PureUtils
-AppVersion=1.0.0
-AppVerName=PureUtils 1.0.0
+AppVersion={#AppVersion}
+AppVerName=PureUtils {#AppVersion}
 AppPublisher=PureUtils
 AppPublisherURL=https://github.com/WangsYi/PureUtils
 AppSupportURL=https://github.com/WangsYi/PureUtils/issues
@@ -23,7 +26,7 @@ DefaultGroupName=PureUtils
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir={#OutputDir}
-OutputBaseFilename=PureUtils-1.0.0-setup
+OutputBaseFilename=PureUtils-{#AppVersion}-setup
 SetupIconFile={#StageDir}\resources\setup.ico
 UninstallDisplayIcon={app}\resources\icon.ico
 Compression=lzma2/max
@@ -35,18 +38,19 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
 RestartApplications=no
-VersionInfoVersion=1.0.0.0
+VersionInfoVersion={#AppVersion}.0
 VersionInfoProductName=PureUtils
-VersionInfoProductVersion=1.0.0
+VersionInfoProductVersion={#AppVersion}
 
 [Languages]
 Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [CustomMessages]
-chinesesimplified.TypeFull=完整安装（PureShot + PureClip + PureImage + PureZip）
+chinesesimplified.TypeFull=完整安装（PureShot + PureClip + PureImage + PureVideo + PureZip）
 chinesesimplified.TypeShotClip=PureShot + PureClip（截图贴图 + 剪贴板历史）
 chinesesimplified.TypeViewer=仅 PureImage（高性能看图 + 空格预览）
+chinesesimplified.TypeVideo=仅 PureVideo（极速视频浏览）
 chinesesimplified.TypeZip=仅 PureZip（压缩与解压管理）
 chinesesimplified.TypeCustom=自定义选择组件
 chinesesimplified.CompCore=PureUtils 核心框架（必需）
@@ -54,20 +58,22 @@ chinesesimplified.CompCapture=PureShot — 截图、标注与悬浮贴图
 chinesesimplified.CompHistory=PureClip — 剪贴板历史管理
 chinesesimplified.CompViewer=PureImage — 高性能看图与空格预览
 chinesesimplified.CompTurbo=libjpeg-turbo 原生 JPEG 解码加速
-chinesesimplified.CompAssoc=关联 40 种图片格式（注册打开方式并引导设为默认应用）
+chinesesimplified.CompAssoc=关联 40 种图片格式（注册系统“打开方式”与默认应用条目）
+chinesesimplified.CompVideo=PureVideo — 极速视频浏览（内置 libmpv 硬件解码，支持 21 种格式与字幕）
+chinesesimplified.CompVideoAssoc=关联 21 种视频格式（注册系统“打开方式”与默认应用条目）
 chinesesimplified.CompZip=PureZip — 压缩与解压管理（浏览 / 智能解压 / AES-256 / 7z）
 chinesesimplified.CompZipContext=注册资源管理器右键压缩 / 解压级联菜单
-chinesesimplified.CompZipAssoc=关联 13 种压缩格式（注册打开方式并引导设为默认应用）
+chinesesimplified.CompZipAssoc=关联 13 种压缩格式（注册系统“打开方式”与默认应用条目）
 chinesesimplified.TaskAutostart=开机自动启动 PureUtils（后台托盘常驻）
 chinesesimplified.LaunchViewer=打开 PureImage 看图
+chinesesimplified.LaunchVideo=打开 PureVideo 视频
 chinesesimplified.LaunchZip=打开 PureZip 压缩管理
-chinesesimplified.OpenDefaultApps=打开 Windows“默认应用”以将 PureImage 设为默认看图程序
-chinesesimplified.OpenZipDefaultApps=打开 Windows“默认应用”以将 PureZip 设为默认压缩管理程序
-chinesesimplified.NeedModule=请至少选择一个功能组件（PureShot、PureClip、PureImage 或 PureZip）。
+chinesesimplified.NeedModule=请至少选择一个功能组件（PureShot、PureClip、PureImage、PureVideo 或 PureZip）。
 
-english.TypeFull=Full installation (PureShot + PureClip + PureImage + PureZip)
+english.TypeFull=Full installation (PureShot + PureClip + PureImage + PureVideo + PureZip)
 english.TypeShotClip=PureShot + PureClip (Screenshot, Pins + Clipboard History)
 english.TypeViewer=PureImage only (Fast Viewer + Explorer Space Preview)
+english.TypeVideo=PureVideo only (Instant Video Browser)
 english.TypeZip=PureZip only (Archive Manager, Smart Extract & Compression)
 english.TypeCustom=Custom component selection
 english.CompCore=PureUtils Core Runtime (Required)
@@ -75,31 +81,35 @@ english.CompCapture=PureShot — Screenshot, Annotation & Floating Pins
 english.CompHistory=PureClip — Clipboard History Manager
 english.CompViewer=PureImage — Fast Viewer & Explorer Space Preview
 english.CompTurbo=libjpeg-turbo Native JPEG Scaling Acceleration
-english.CompAssoc=Associate 40 Image Formats (Open With & Windows Default Apps)
+english.CompAssoc=Associate 40 Image Formats (Open With & Windows Default Apps Entry)
+english.CompVideo=PureVideo — Fast Video Browser (Bundled libmpv Hardware Decoding, 21 Formats & Subtitles)
+english.CompVideoAssoc=Associate 21 Video Formats (Open With & Windows Default Apps Entry)
 english.CompZip=PureZip — Archive Manager (Browse, Smart Extract, AES-256, 7z)
 english.CompZipContext=Register Windows Explorer Right-Click Archive Context Menu
-english.CompZipAssoc=Associate 13 Archive Formats (Open With & Windows Default Apps)
+english.CompZipAssoc=Associate 13 Archive Formats (Open With & Windows Default Apps Entry)
 english.TaskAutostart=Start PureUtils automatically at sign-in
 english.LaunchViewer=Launch PureImage Viewer
+english.LaunchVideo=Launch PureVideo
 english.LaunchZip=Launch PureZip Archive Manager
-english.OpenDefaultApps=Open Windows Default Apps to set PureImage as default image viewer
-english.OpenZipDefaultApps=Open Windows Default Apps to set PureZip as default archive manager
-english.NeedModule=Please select at least one component (PureShot, PureClip, PureImage, or PureZip).
+english.NeedModule=Please select at least one component (PureShot, PureClip, PureImage, PureVideo, or PureZip).
 
 [Types]
 Name: "full"; Description: "{cm:TypeFull}"
 Name: "shotclip"; Description: "{cm:TypeShotClip}"
 Name: "viewer"; Description: "{cm:TypeViewer}"
+Name: "video"; Description: "{cm:TypeVideo}"
 Name: "zip"; Description: "{cm:TypeZip}"
 Name: "custom"; Description: "{cm:TypeCustom}"; Flags: iscustom
 
 [Components]
-Name: "core"; Description: "{cm:CompCore}"; Types: full shotclip viewer zip custom; Flags: fixed
+Name: "core"; Description: "{cm:CompCore}"; Types: full shotclip viewer video zip custom; Flags: fixed
 Name: "capture"; Description: "{cm:CompCapture}"; Types: full shotclip custom
 Name: "history"; Description: "{cm:CompHistory}"; Types: full shotclip custom
 Name: "viewer"; Description: "{cm:CompViewer}"; Types: full viewer custom
 Name: "viewer\turbo"; Description: "{cm:CompTurbo}"; Types: full viewer custom
 Name: "viewer\assoc"; Description: "{cm:CompAssoc}"; Types: full viewer custom
+Name: "video"; Description: "{cm:CompVideo}"; Types: full video custom
+Name: "video\assoc"; Description: "{cm:CompVideoAssoc}"; Types: full video custom
 Name: "zip"; Description: "{cm:CompZip}"; Types: full zip custom
 Name: "zip\contextmenu"; Description: "{cm:CompZipContext}"; Types: full zip custom
 Name: "zip\assoc"; Description: "{cm:CompZipAssoc}"; Types: full zip custom
@@ -110,9 +120,12 @@ Name: "autostart"; Description: "{cm:TaskAutostart}"; GroupDescription: "{cm:Add
 
 [InstallDelete]
 Type: files; Name: "{app}\turbojpeg.dll"
+Type: files; Name: "{app}\libmpv-2.dll"
 Type: files; Name: "{app}\resources\freeimage.ico"
 Type: files; Name: "{app}\resources\image.ico"
 Type: files; Name: "{app}\resources\image.png"
+Type: files; Name: "{app}\resources\video.ico"
+Type: files; Name: "{app}\resources\video.png"
 Type: files; Name: "{app}\resources\zip.ico"
 Type: files; Name: "{app}\resources\zip.png"
 Type: files; Name: "{app}\ShotClip.exe"
@@ -122,25 +135,30 @@ Type: files; Name: "{app}\ynm3000.exe"
 Source: "{#StageDir}\PureUtils-full.exe"; DestDir: "{app}"; DestName: "PureUtils.exe"; Components: viewer; Flags: ignoreversion
 Source: "{#StageDir}\PureUtils-core.exe"; DestDir: "{app}"; DestName: "PureUtils.exe"; Components: not viewer; Flags: ignoreversion
 Source: "{#StageDir}\turbojpeg.dll"; DestDir: "{app}"; Components: viewer\turbo; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#StageDir}\libmpv-2.dll"; DestDir: "{app}"; Components: video; Flags: ignoreversion skipifsourcedoesntexist
 Source: "{#StageDir}\resources\icon.png"; DestDir: "{app}\resources"; Flags: ignoreversion
 Source: "{#StageDir}\resources\icon.ico"; DestDir: "{app}\resources"; Flags: ignoreversion
 Source: "{#StageDir}\resources\image.ico"; DestDir: "{app}\resources"; Components: viewer; Flags: ignoreversion
 Source: "{#StageDir}\resources\image.png"; DestDir: "{app}\resources"; Components: viewer; Flags: ignoreversion
+Source: "{#StageDir}\resources\video.ico"; DestDir: "{app}\resources"; Components: video; Flags: ignoreversion
+Source: "{#StageDir}\resources\video.png"; DestDir: "{app}\resources"; Components: video; Flags: ignoreversion
 Source: "{#StageDir}\resources\zip.ico"; DestDir: "{app}\resources"; Components: zip; Flags: ignoreversion
 Source: "{#StageDir}\resources\zip.png"; DestDir: "{app}\resources"; Components: zip; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\PureUtils"; Filename: "{app}\PureUtils.exe"; IconFilename: "{app}\resources\icon.ico"; Components: capture or history
 Name: "{group}\PureImage"; Filename: "{app}\PureUtils.exe"; Parameters: "--view"; IconFilename: "{app}\resources\image.ico"; AppUserModelID: "PureUtils.PureImage"; Components: viewer
+Name: "{group}\PureVideo"; Filename: "{app}\PureUtils.exe"; Parameters: "--video"; IconFilename: "{app}\resources\video.ico"; AppUserModelID: "PureUtils.PureVideo"; Components: video
 Name: "{group}\PureZip"; Filename: "{app}\PureUtils.exe"; Parameters: "--zip"; IconFilename: "{app}\resources\zip.ico"; AppUserModelID: "PureUtils.PureZip"; Components: zip
 Name: "{autodesktop}\PureUtils"; Filename: "{app}\PureUtils.exe"; IconFilename: "{app}\resources\icon.ico"; Tasks: desktopicon; Components: capture or history
 Name: "{autodesktop}\PureImage"; Filename: "{app}\PureUtils.exe"; Parameters: "--view"; IconFilename: "{app}\resources\image.ico"; AppUserModelID: "PureUtils.PureImage"; Tasks: desktopicon; Components: viewer and (not capture) and (not history)
-Name: "{autodesktop}\PureZip"; Filename: "{app}\PureUtils.exe"; Parameters: "--zip"; IconFilename: "{app}\resources\zip.ico"; AppUserModelID: "PureUtils.PureZip"; Tasks: desktopicon; Components: zip and (not capture) and (not history) and (not viewer)
+Name: "{autodesktop}\PureVideo"; Filename: "{app}\PureUtils.exe"; Parameters: "--video"; IconFilename: "{app}\resources\video.ico"; AppUserModelID: "PureUtils.PureVideo"; Tasks: desktopicon; Components: video and (not capture) and (not history) and (not viewer)
+Name: "{autodesktop}\PureZip"; Filename: "{app}\PureUtils.exe"; Parameters: "--zip"; IconFilename: "{app}\resources\zip.ico"; AppUserModelID: "PureUtils.PureZip"; Tasks: desktopicon; Components: zip and (not capture) and (not history) and (not viewer) and (not video)
 
 [Registry]
-; Optional autostart (standalone PureImage/PureZip installs launch to background tray without popping an empty window)
+; Optional autostart (standalone PureImage/PureVideo/PureZip installs launch to background tray without popping an empty window)
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "PureUtils"; ValueData: """{app}\PureUtils.exe"""; Flags: uninsdeletevalue; Tasks: autostart; Components: capture or history
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "PureUtils"; ValueData: """{app}\PureUtils.exe"" --background"; Flags: uninsdeletevalue; Tasks: autostart; Components: (viewer or zip) and (not capture) and (not history)
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "PureUtils"; ValueData: """{app}\PureUtils.exe"" --background"; Flags: uninsdeletevalue; Tasks: autostart; Components: (viewer or video or zip) and (not capture) and (not history)
 
 ; Image file associations (HKCU) when viewer\assoc is checked
 Root: HKCU; Subkey: "Software\Classes\PureUtils.Image"; ValueType: string; ValueName: ""; ValueData: "PureImage"; Flags: uninsdeletekey; Components: viewer\assoc
@@ -338,12 +356,95 @@ Root: HKCU; Subkey: "Software\Classes\.txz\OpenWithProgids"; ValueType: none; Va
 Root: HKCU; Subkey: "Software\Classes\.zst\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Zip"; Flags: uninsdeletevalue; Components: zip\assoc
 Root: HKCU; Subkey: "Software\Classes\.tzst\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Zip"; Flags: uninsdeletevalue; Components: zip\assoc
 
+; Video file associations (HKCU) when video\assoc is checked
+Root: HKCU; Subkey: "Software\Classes\PureUtils.Video"; ValueType: string; ValueName: ""; ValueData: "PureVideo"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\PureUtils.Video"; ValueType: string; ValueName: "FriendlyTypeName"; ValueData: "PureVideo"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\PureUtils.Video\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\resources\video.ico,0"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\PureUtils.Video\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\PureUtils.exe"" --video ""%1"""; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\PureUtils.Video\Application"; ValueType: string; ValueName: "ApplicationName"; ValueData: "PureVideo"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\PureUtils.Video\Application"; ValueType: string; ValueName: "ApplicationIcon"; ValueData: "{app}\resources\video.ico,0"; Flags: uninsdeletekey; Components: video\assoc
+
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "PureUtils"; Flags: uninsdeletekey; Components: video\assoc and (not viewer\assoc) and (not zip\assoc)
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\resources\video.ico,0"; Flags: uninsdeletekey; Components: video\assoc and (not viewer\assoc) and (not zip\assoc)
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\PureUtils.exe"" --video ""%1"""; Flags: uninsdeletekey; Components: video\assoc and (not viewer\assoc) and (not zip\assoc)
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".mp4"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".m4v"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".mov"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".mkv"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".webm"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".avi"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".wmv"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".ts"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".m2ts"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".mts"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".mpg"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".mpeg"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".3gp"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".3g2"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".asf"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".flv"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".rmvb"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".rm"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".ogv"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".vob"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\Applications\PureUtils.exe\SupportedTypes"; ValueType: none; ValueName: ".f4v"; Flags: uninsdeletevalue; Components: video\assoc
+
+Root: HKCU; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueName: "PureVideo"; ValueData: "Software\PureUtils\PureVideo\Capabilities"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities"; ValueType: string; ValueName: "ApplicationName"; ValueData: "PureVideo"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities"; ValueType: string; ValueName: "ApplicationIcon"; ValueData: "{app}\resources\video.ico,0"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "PureVideo 极速视频浏览"; Flags: uninsdeletekey; Components: video\assoc
+
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".mp4"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".m4v"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".mov"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".mkv"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".webm"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".avi"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".wmv"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".ts"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".m2ts"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".mts"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".mpg"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".mpeg"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".3gp"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".3g2"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".asf"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".flv"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".rmvb"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".rm"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".ogv"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".vob"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+Root: HKCU; Subkey: "Software\PureUtils\PureVideo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".f4v"; ValueData: "PureUtils.Video"; Flags: uninsdeletekey; Components: video\assoc
+
+Root: HKCU; Subkey: "Software\Classes\.mp4\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.m4v\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.mov\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.mkv\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.webm\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.avi\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.wmv\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.ts\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.m2ts\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.mts\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.mpg\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.mpeg\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.3gp\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.3g2\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.asf\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.flv\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.rmvb\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.rm\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.ogv\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.vob\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+Root: HKCU; Subkey: "Software\Classes\.f4v\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
+
 [Run]
 Filename: "{app}\PureUtils.exe"; Parameters: ""; Description: "{cm:LaunchProgram,PureUtils}"; Flags: nowait postinstall skipifsilent; Components: capture or history
 Filename: "{app}\PureUtils.exe"; Parameters: "--view"; Description: "{cm:LaunchViewer}"; Flags: nowait postinstall skipifsilent; Components: viewer and (not capture) and (not history)
-Filename: "{app}\PureUtils.exe"; Parameters: "--zip"; Description: "{cm:LaunchZip}"; Flags: nowait postinstall skipifsilent; Components: zip and (not capture) and (not history) and (not viewer)
-Filename: "ms-settings:defaultapps?registeredAppUser=PureImage"; Description: "{cm:OpenDefaultApps}"; Flags: shellexec nowait postinstall skipifsilent; Components: viewer\assoc
-Filename: "ms-settings:defaultapps?registeredAppUser=PureZip"; Description: "{cm:OpenZipDefaultApps}"; Flags: shellexec nowait postinstall skipifsilent; Components: zip\assoc
+Filename: "{app}\PureUtils.exe"; Parameters: "--video"; Description: "{cm:LaunchVideo}"; Flags: nowait postinstall skipifsilent; Components: video and (not capture) and (not history) and (not viewer)
+Filename: "{app}\PureUtils.exe"; Parameters: "--zip"; Description: "{cm:LaunchZip}"; Flags: nowait postinstall skipifsilent; Components: zip and (not capture) and (not history) and (not viewer) and (not video)
+Filename: "{app}\PureUtils.exe"; Parameters: "--background"; Flags: nowait skipifnotsilent; Components: capture or history
+Filename: "{app}\PureUtils.exe"; Parameters: "--settings"; Flags: nowait skipifnotsilent; Components: (not capture) and (not history)
 
 [UninstallRun]
 Filename: "{app}\PureUtils.exe"; Parameters: "--exit"; Flags: runhidden; RunOnceId: "ExitPureUtils"
@@ -369,6 +470,11 @@ end;
 function ZipExtensions: String;
 begin
   Result := 'zip,7z,rar,tar,gz,tgz,bz2,tbz,tbz2,xz,txz,zst,tzst';
+end;
+
+function VideoExtensions: String;
+begin
+  Result := 'mp4,m4v,mov,mkv,webm,avi,wmv,ts,m2ts,mts,mpg,mpeg,3gp,3g2,asf,flv,rmvb,rm,ogv,vob,f4v';
 end;
 
 procedure CleanupExeSupportedTypes(ExeKey, CommaExts: String);
@@ -469,6 +575,25 @@ begin
     Exts.Free;
   end;
   CleanupExeSupportedTypes('PureUtils.exe', ZipExtensions);
+end;
+
+procedure CleanupOldVideoAssociations;
+var
+  Exts: TStringList;
+  I: Integer;
+begin
+  RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\PureUtils.Video');
+  RegDeleteKeyIncludingSubkeys(HKCU, 'Software\PureUtils\PureVideo');
+  RegDeleteValue(HKCU, 'Software\RegisteredApplications', 'PureVideo');
+  Exts := TStringList.Create;
+  try
+    Exts.CommaText := VideoExtensions;
+    for I := 0 to Exts.Count - 1 do
+      RegDeleteValue(HKCU, 'Software\Classes\.' + Exts[I] + '\OpenWithProgids', 'PureUtils.Video');
+  finally
+    Exts.Free;
+  end;
+  CleanupExeSupportedTypes('PureUtils.exe', VideoExtensions);
 end;
 
 procedure WriteZipVerb(BaseKey, VerbID, LabelText, ExePath, Arg: String);
@@ -597,6 +722,7 @@ begin
     if (not WizardIsComponentSelected('capture')) and
        (not WizardIsComponentSelected('history')) and
        (not WizardIsComponentSelected('viewer')) and
+       (not WizardIsComponentSelected('video')) and
        (not WizardIsComponentSelected('zip')) then
     begin
       MsgBox(CustomMessage('NeedModule'), mbError, MB_OK);
@@ -615,6 +741,7 @@ begin
       '  "capture": ' + BoolToJson(WizardIsComponentSelected('capture')) + ',' + #13#10 +
       '  "history": ' + BoolToJson(WizardIsComponentSelected('history')) + ',' + #13#10 +
       '  "viewer": ' + BoolToJson(WizardIsComponentSelected('viewer')) + ',' + #13#10 +
+      '  "video": ' + BoolToJson(WizardIsComponentSelected('video')) + ',' + #13#10 +
       '  "zip": ' + BoolToJson(WizardIsComponentSelected('zip')) + #13#10 +
       '}' + #13#10;
     SaveStringToFile(ExpandConstant('{app}\modules.json'), Manifest, False);
@@ -625,6 +752,8 @@ begin
       UnregisterZipContextMenu;
     if not WizardIsComponentSelected('viewer\assoc') then
       CleanupOldAssociations;
+    if not WizardIsComponentSelected('video\assoc') then
+      CleanupOldVideoAssociations;
     if not WizardIsComponentSelected('zip\assoc') then
       CleanupOldZipAssociations;
     SHChangeNotify($08000000, 0, 0, 0);
@@ -637,6 +766,7 @@ begin
   begin
     UnregisterZipContextMenu;
     CleanupOldAssociations;
+    CleanupOldVideoAssociations;
     CleanupOldZipAssociations;
     CleanupLegacyAssociations;
     SHChangeNotify($08000000, 0, 0, 0);

@@ -16,6 +16,7 @@ const (
 	PluginPureClip  = "pureclip"
 	PluginPureImage = "pureimage"
 	PluginPureZip   = "purezip"
+	PluginPureVideo = "purevideo"
 
 	CurrentSchemaVersion = 2
 )

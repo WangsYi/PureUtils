@@ -68,9 +68,35 @@ func (a *App) buildTrayMenu() *mygo.Menu {
 		items = append(items, group...)
 	}
 
+	updateItem := &mygo.MenuItem{
+		Label: "检查更新",
+		Click: func(*mygo.MenuItem, *mygo.Window) { a.ExecuteCommand(core.CmdCheckUpdate) },
+	}
+	if a.updater != nil {
+		snap := a.updater.Snapshot()
+		openAdv := func(*mygo.MenuItem, *mygo.Window) { a.OpenSettings("advanced") }
+		switch snap.Status {
+		case UpdateReady:
+			if snap.Release != nil && snap.Release.TagName != "" {
+				updateItem = &mygo.MenuItem{
+					Label: "安装更新 " + snap.Release.TagName,
+					Click: openAdv,
+				}
+			}
+		case UpdateAvailable:
+			if snap.Release != nil && snap.Release.TagName != "" {
+				updateItem = &mygo.MenuItem{
+					Label: "发现新版本 " + snap.Release.TagName,
+					Click: openAdv,
+				}
+			}
+		}
+	}
+
 	appendGroup(primary)
 	appendGroup(toggles)
 	appendGroup([]*mygo.MenuItem{
+		updateItem,
 		{
 			Label: "设置",
 			Click: func(*mygo.MenuItem, *mygo.Window) { a.ExecuteCommand(core.CmdShowSettings) },

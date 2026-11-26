@@ -42,7 +42,7 @@ func (p *Plugin) Info() purekit.PluginInfo {
 		ID:          PluginID,
 		Name:        "PureImage",
 		Description: "高性能看图、RAW/动图解码与资源管理器空格预览",
-		Version:     "1.0.0",
+		Version:     core.AppVersion,
 		ModuleID:    core.ModuleViewer,
 		IconPNG:     viewerIconPNG,
 		Capabilities: []purekit.CapabilityDescriptor{

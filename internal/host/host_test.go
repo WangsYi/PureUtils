@@ -330,10 +330,21 @@ func TestSettingsWindowUnifiedTabsAndPersistence(t *testing.T) {
 		}
 	}
 
-	// Advanced tab renders module matrix
+	if compiled.Video {
+		if !tt.HasText("PureVideo · 视频") {
+			t.Fatalf("expected PureVideo tab in sidebar, texts=%v", tt.Texts())
+		}
+	}
+
+	// Advanced tab renders update & module matrix
 	if err := tt.Click("高级"); err != nil {
 		t.Fatal(err)
 	}
+	tt.Frame()
+	if !tt.HasText("软件更新") {
+		t.Fatalf("advanced tab missing update card: %v", tt.Texts())
+	}
+	tt.Scroll(450, 300, 0, 500)
 	tt.Frame()
 	if !tt.HasText("已安装模块") || !tt.HasText(a.Paths().Home) {
 		t.Fatalf("advanced tab missing module matrix or data dir: %v", tt.Texts())
@@ -344,7 +355,7 @@ func TestSettingsWindowUnifiedTabsAndPersistence(t *testing.T) {
 	vCore := newSettingsView(aCore, "")
 	ttCore := ui.NewTester(vCore.view, 860, 640)
 	ttCore.Frame()
-	if ttCore.HasText("PureImage · 看图") || ttCore.HasText("PureZip · 压缩") {
+	if ttCore.HasText("PureImage · 看图") || ttCore.HasText("PureVideo · 视频") || ttCore.HasText("PureZip · 压缩") {
 		t.Fatalf("disabled modules should hide sidebar tabs: %v", ttCore.Texts())
 	}
 }
@@ -407,6 +418,17 @@ func (archiveSpyMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 	return nil
 }
 
+type videoSpyMatcher struct{}
+
+func (videoSpyMatcher) ID() string    { return "purevideo.matcher" }
+func (videoSpyMatcher) Title() string { return "video spy" }
+func (videoSpyMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
+	if len(ctx.SelectedFiles) > 0 && strings.HasSuffix(strings.ToLower(ctx.SelectedFiles[0]), ".mp4") {
+		return []purekit.MatchResult{{FeatureID: "purevideo.open", PluginID: "purevideo"}}
+	}
+	return nil
+}
+
 func TestBarePathCLIRouting(t *testing.T) {
 	compiled := CompiledModules()
 	if compiled.Zip {
@@ -416,6 +438,15 @@ func TestBarePathCLIRouting(t *testing.T) {
 		}
 		if a.isArchiveByMatchers("photo.png") {
 			t.Fatal("unexpected archive match for .png")
+		}
+	}
+	if compiled.Video {
+		a := testHostWithModules(t, compiled, nil, nil)
+		if !a.isVideoByMatchers("demo.mp4") || !a.isVideoByMatchers("clip.mkv") {
+			t.Fatal("expected PureVideo matcher to recognize video paths")
+		}
+		if a.isVideoByMatchers("photo.png") {
+			t.Fatal("unexpected video match for .png")
 		}
 	}
 
@@ -436,6 +467,7 @@ func TestBarePathCLIRouting(t *testing.T) {
 		Headless: true,
 		Plugins: []purekit.Plugin{
 			&spyPlugin{id: "pureimage", mod: core.ModuleViewer, commands: []core.Command{core.CmdOpenViewer}, onExecute: record},
+			&spyPlugin{id: "purevideo", mod: core.ModuleVideo, matcher: videoSpyMatcher{}, commands: []core.Command{core.CmdOpenVideo}, onExecute: record},
 			&spyPlugin{id: "purezip", mod: core.ModuleZip, matcher: archiveSpyMatcher{}, commands: []core.Command{core.CmdOpenZip}, onExecute: record},
 		},
 	})
@@ -447,6 +479,11 @@ func TestBarePathCLIRouting(t *testing.T) {
 	app.HandleArgs([]string{"release.zip"})
 	if gotCmd != core.CmdOpenZip || len(gotPaths) != 1 || gotPaths[0] != "release.zip" {
 		t.Fatalf("archive bare path routed to (%s, %v), want (%s, [release.zip])", gotCmd, gotPaths, core.CmdOpenZip)
+	}
+
+	app.HandleArgs([]string{"clip.mp4"})
+	if gotCmd != core.CmdOpenVideo || len(gotPaths) != 1 || gotPaths[0] != "clip.mp4" {
+		t.Fatalf("video bare path routed to (%s, %v), want (%s, [clip.mp4])", gotCmd, gotPaths, core.CmdOpenVideo)
 	}
 
 	app.HandleArgs([]string{"shot.png"})
@@ -671,7 +708,7 @@ func TestWinKeyTakeoverFallbackAndSettingsToggle(t *testing.T) {
 	}
 
 	// Toggling TakeoverWinKeys off rejects system-occupied Win combos cleanly.
-	tt.Scroll(450, 300, 0, 300)
+	tt.Scroll(450, 300, 0, 380)
 	tt.Frame()
 	if err := tt.Click("开关：接管系统 Win 组合键"); err != nil {
 		t.Fatalf("toggle TakeoverWinKeys off: %v", err)
@@ -738,7 +775,9 @@ func TestSettingsHotToggleModules(t *testing.T) {
 		t.Fatalf("expected PureClip sidebar tab before disable, texts=%v", tt.Texts())
 	}
 
-	tt.Scroll(450, 300, 0, 500)
+	tt.Scroll(450, 300, 0, 600)
+	tt.Frame()
+	tt.Scroll(450, 300, 0, 600)
 	tt.Frame()
 	if err := tt.Click("开关：启用 PureClip"); err != nil {
 		t.Fatalf("toggle PureClip off: %v", err)

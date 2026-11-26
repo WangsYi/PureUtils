@@ -179,13 +179,35 @@ func TestDecouplingPureZipAlone(t *testing.T) {
 	a := testHostWithModules(t, core.ModuleConfig{Zip: true}, nil, nil)
 	a.Start([]string{"--background"})
 
-	if a.Bus().Has(purekit.CapImagePreview) || a.Bus().Has(purekit.CapImagePin) || a.Bus().Has(purekit.CapClipboardHistory) {
+	if a.Bus().Has(purekit.CapImagePreview) || a.Bus().Has(purekit.CapImagePin) || a.Bus().Has(purekit.CapClipboardHistory) || a.Bus().Has(purekit.CapVideoPreview) {
 		t.Fatalf("unexpected capabilities when running PureZip alone: %v", a.Bus().List())
 	}
 	sampleDir := t.TempDir()
 	_ = os.WriteFile(filepath.Join(sampleDir, "hello.txt"), []byte("zip-only"), 0o600)
 	// Invoking CmdOpenZip with a nonexistent path should not panic cleanly in headless mode.
 	a.ExecuteCommand(core.CmdOpenZip)
+}
+
+func TestDecouplingPureVideoAlone(t *testing.T) {
+	if !CompiledModules().Video {
+		t.Skip("requires PureVideo compiled")
+	}
+	a := testHostWithModules(t, core.ModuleConfig{Video: true}, nil, nil)
+	a.Start([]string{"--background"})
+
+	if !a.Bus().Has(purekit.CapVideoPreview) {
+		t.Fatal("expected CapVideoPreview registered when PureVideo enabled")
+	}
+	if a.Bus().Has(purekit.CapImagePreview) || a.Bus().Has(purekit.CapImagePin) || a.Bus().Has(purekit.CapClipboardHistory) {
+		t.Fatalf("unexpected sibling capabilities when running PureVideo alone: %v", a.Bus().List())
+	}
+	exts, err := purekit.CallVideoPreviewSupportedExts(context.Background(), a.Bus())
+	if err != nil || len(exts) == 0 {
+		t.Fatalf("CallVideoPreviewSupportedExts = (%v, %v)", exts, err)
+	}
+	if a.ShouldStayInTray() {
+		t.Error("expected ShouldStayInTray=false for PureVideo alone")
+	}
 }
 
 func TestDecouplingAllCompiledPluginsAndShutdown(t *testing.T) {
@@ -202,6 +224,9 @@ func TestDecouplingAllCompiledPluginsAndShutdown(t *testing.T) {
 	}
 	if compiled.Viewer && !a.Bus().Has(purekit.CapImagePreview) {
 		t.Error("missing CapImagePreview")
+	}
+	if compiled.Video && !a.Bus().Has(purekit.CapVideoPreview) {
+		t.Error("missing CapVideoPreview")
 	}
 
 	a.Shutdown()

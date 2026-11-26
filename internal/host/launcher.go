@@ -363,6 +363,20 @@ func (a *App) hostFeatures() []purekit.Feature {
 			},
 		},
 		{
+			ID:       "host.check_update",
+			PluginID: "host",
+			Title:    "检查软件更新",
+			Subtitle: "检查 GitHub 新版本并支持多镜像加速下载安装",
+			Keywords: []string{"update", "upgrade", "version", "check", "更新", "升级", "版本", "检查更新"},
+			Command:  core.CmdCheckUpdate,
+			Badge:    "PureUtils",
+			Icon:     pureui.IconDownload,
+			Run: func(_ context.Context, _ purekit.ActionInput) error {
+				a.ExecuteCommand(core.CmdCheckUpdate)
+				return nil
+			},
+		},
+		{
 			ID:       "host.exit",
 			PluginID: "host",
 			Title:    "退出 PureUtils",

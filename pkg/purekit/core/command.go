@@ -19,6 +19,7 @@ const (
 	CmdToggleMonitoring      Command = "toggle-monitoring"
 	CmdOpenViewer            Command = "open-viewer"
 	CmdToggleSpacePreview    Command = "toggle-space-preview"
+	CmdOpenVideo             Command = "open-video"
 	CmdOpenZip               Command = "open-zip"
 	CmdExtractSmart          Command = "extract-smart"
 	CmdExtractHere           Command = "extract-here"
@@ -28,6 +29,7 @@ const (
 	CmdCompressZip           Command = "compress-zip"
 	CmdCompress7z            Command = "compress-7z"
 	CmdTestArchive           Command = "test-archive"
+	CmdCheckUpdate           Command = "check-update"
 	CmdPerfReport            Command = "perf-report"
 	CmdExit                  Command = "exit"
 )
@@ -50,6 +52,7 @@ var Verbs = []Verb{
 	{"--settings", CmdShowSettings, "打开设置窗口"},
 	{"--toggle-monitoring", CmdToggleMonitoring, "暂停/恢复剪贴板监听"},
 	{"--view", CmdOpenViewer, "打开 PureImage 看图器（可后接图片或目录路径）"},
+	{"--video", CmdOpenVideo, "打开 PureVideo 极速视频浏览（可后接视频或目录路径）"},
 	{"--toggle-space-preview", CmdToggleSpacePreview, "开启/关闭资源管理器空格预览"},
 	{"--zip", CmdOpenZip, "打开 PureZip 压缩管理器（可后接压缩文件路径）"},
 	{"--extract-smart", CmdExtractSmart, "智能解压：单一根目录直接解压，否则解压到同名文件夹"},
@@ -60,6 +63,7 @@ var Verbs = []Verb{
 	{"--compress-zip", CmdCompressZip, "一键压缩为同名 .zip"},
 	{"--compress-7z", CmdCompress7z, "一键压缩为同名 .7z"},
 	{"--test-archive", CmdTestArchive, "测试压缩文件完整性"},
+	{"--check-update", CmdCheckUpdate, "打开设置并检查 PureUtils 新版本"},
 	{"--perf", CmdPerfReport, "把性能打点统计写进日志"},
 	{"--exit", CmdExit, "退出 PureUtils"},
 }
@@ -91,6 +95,12 @@ func ParseArgs(args []string) LaunchRequest {
 			req.Command = CmdOpenViewer
 			req.HasCommand = true
 			req.Paths = append(req.Paths, strings.TrimSpace(arg[len("--view="):]))
+			continue
+		}
+		if len(arg) > len("--video=") && strings.EqualFold(arg[:len("--video=")], "--video=") {
+			req.Command = CmdOpenVideo
+			req.HasCommand = true
+			req.Paths = append(req.Paths, strings.TrimSpace(arg[len("--video="):]))
 			continue
 		}
 		matched := false
@@ -125,7 +135,7 @@ func ParseArgs(args []string) LaunchRequest {
 // TakesPaths reports whether cmd consumes the request's positional paths.
 func (c Command) TakesPaths() bool {
 	switch c {
-	case CmdOpenViewer, CmdOpenZip, CmdExtractSmart, CmdExtractHere, CmdExtractTo,
+	case CmdOpenViewer, CmdOpenVideo, CmdOpenZip, CmdExtractSmart, CmdExtractHere, CmdExtractTo,
 		CmdExtractDialog, CmdCompress, CmdCompressZip, CmdCompress7z, CmdTestArchive:
 		return true
 	}

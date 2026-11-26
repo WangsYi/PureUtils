@@ -3,10 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -20,13 +22,19 @@ import (
 var iconSizes = []int{16, 24, 32, 48, 64, 128, 256}
 
 func main() {
-	if err := run(); err != nil {
+	videoOnly := flag.Bool("video-only", false, "generate only PureVideo icon assets without touching .syso")
+	flag.Parse()
+	if err := run(*videoOnly); err != nil {
 		fmt.Fprintf(os.Stderr, "genicon: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func run() error {
+func run(videoOnly bool) error {
+	if videoOnly {
+		return generateVideoIcons()
+	}
+
 	appMaster := renderAppIcon(1024)
 	appPNGs, err := buildScaledPNGs(appMaster, iconSizes)
 	if err != nil {
@@ -54,6 +62,10 @@ func run() error {
 		return err
 	}
 
+	if err := generateVideoIcons(); err != nil {
+		return err
+	}
+
 	syso, err := buildSysoAMD64(iconSizes, appPNGs)
 	if err != nil {
 		return fmt.Errorf("build syso: %w", err)
@@ -61,8 +73,119 @@ func run() error {
 	if err := os.WriteFile("rsrc_windows_amd64.syso", syso, 0o644); err != nil {
 		return err
 	}
-	fmt.Println("Generated resources/icon.{png,ico}, internal/host/icon.png, resources/setup.{png,ico}, rsrc_windows_amd64.syso")
+	fmt.Println("Generated resources/icon.{png,ico}, internal/host/icon.png, resources/setup.{png,ico}, resources/video.{png,ico}, plugins/purevideo/video.png, rsrc_windows_amd64.syso")
 	return nil
+}
+
+func generateVideoIcons() error {
+	videoMaster := renderVideoIcon(1024)
+	videoPNGs, err := buildScaledPNGs(videoMaster, iconSizes)
+	if err != nil {
+		return fmt.Errorf("scale video icon: %w", err)
+	}
+	if err := os.MkdirAll("resources", 0o755); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Join("plugins", "purevideo"), 0o755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join("resources", "video.png"), videoPNGs[256], 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join("plugins", "purevideo", "video.png"), videoPNGs[256], 0o644); err != nil {
+		return err
+	}
+	if err := writeICO(filepath.Join("resources", "video.ico"), iconSizes, videoPNGs); err != nil {
+		return err
+	}
+	fmt.Println("Generated resources/video.{png,ico} and plugins/purevideo/video.png")
+	return nil
+}
+
+func renderVideoIcon(size int) *image.RGBA {
+	dc := gg.NewContext(size, size)
+	s := float64(size)
+	dc.Push()
+
+	radius := s * 0.22
+	dc.DrawRoundedRectangle(0, 0, s, s, radius)
+	dc.Clip()
+
+	// Cool obsidian-indigo to sapphire gradient tailored for PureVideo.
+	bg := gg.NewLinearGradient(0, 0, s, s)
+	bg.AddColorStop(0.0, color.RGBA{R: 30, G: 41, B: 59, A: 255})   // #1E293B
+	bg.AddColorStop(0.45, color.RGBA{R: 67, G: 56, B: 202, A: 255}) // #4338CA
+	bg.AddColorStop(1.0, color.RGBA{R: 14, G: 165, B: 233, A: 255}) // #0EA5E9
+	dc.SetFillStyle(bg)
+	dc.DrawRectangle(0, 0, s, s)
+	dc.Fill()
+
+	// Specular glow at top-left
+	glow := gg.NewRadialGradient(s*0.26, s*0.22, 0, s*0.26, s*0.22, s*0.66)
+	glow.AddColorStop(0.0, color.RGBA{R: 255, G: 255, B: 255, A: 62})
+	glow.AddColorStop(1.0, color.RGBA{R: 255, G: 255, B: 255, A: 0})
+	dc.SetFillStyle(glow)
+	dc.DrawRectangle(0, 0, s, s)
+	dc.Fill()
+
+	// Subtle inner rim highlight
+	dc.SetRGBA255(255, 255, 255, 44)
+	dc.SetLineWidth(s * 0.014)
+	dc.DrawRoundedRectangle(s*0.007, s*0.007, s-s*0.014, s-s*0.014, radius-s*0.007)
+	dc.Stroke()
+
+	// Translucent outer cinema frame
+	fx, fy, fw, fh := s*0.18, s*0.23, s*0.64, s*0.54
+	dc.SetRGBA255(255, 255, 255, 48)
+	dc.SetLineWidth(s * 0.032)
+	dc.DrawRoundedRectangle(fx, fy, fw, fh, s*0.095)
+	dc.Stroke()
+
+	// Subtle film sprocket accents on left and right edges inside frame
+	dc.SetRGBA255(224, 231, 255, 110)
+	dotW, dotH := s*0.042, s*0.056
+	for _, dy := range []float64{s * 0.31, s * 0.472, s * 0.634} {
+		dc.DrawRoundedRectangle(fx+s*0.045, dy, dotW, dotH, s*0.014)
+		dc.Fill()
+		dc.DrawRoundedRectangle(fx+fw-s*0.045-dotW, dy, dotW, dotH, s*0.014)
+		dc.Fill()
+	}
+
+	// Play triangle soft drop shadow
+	cx, cy := s*0.515, s*0.50
+	triR := s * 0.165
+	x0, y0 := cx-triR*0.62, cy-triR*0.88
+	x1, y1 := cx-triR*0.62, cy+triR*0.88
+	x2, y2 := cx+triR*0.95, cy
+	_ = math.Pi
+
+	dc.SetRGBA255(15, 23, 42, 72)
+	dc.MoveTo(x0, y0+s*0.025)
+	dc.LineTo(x1, y1+s*0.025)
+	dc.LineTo(x2, y2+s*0.025)
+	dc.ClosePath()
+	dc.SetLineWidth(s * 0.048)
+	dc.SetLineJoin(gg.LineJoinRound)
+	dc.FillPreserve()
+	dc.Stroke()
+
+	// Crisp luminous white play triangle
+	triGrad := gg.NewLinearGradient(x0, y0, x2, y1)
+	triGrad.AddColorStop(0.0, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+	triGrad.AddColorStop(1.0, color.RGBA{R: 224, G: 242, B: 254, A: 255}) // #E0F2FE
+	dc.SetFillStyle(triGrad)
+	dc.SetStrokeStyle(triGrad)
+	dc.MoveTo(x0, y0)
+	dc.LineTo(x1, y1)
+	dc.LineTo(x2, y2)
+	dc.ClosePath()
+	dc.SetLineWidth(s * 0.044)
+	dc.SetLineJoin(gg.LineJoinRound)
+	dc.FillPreserve()
+	dc.Stroke()
+
+	dc.Pop()
+	return imageToRGBA(dc.Image())
 }
 
 func drawRoundedTile(dc *gg.Context, x, y, w, h, r float64) {
@@ -442,7 +565,7 @@ func sortedKeys[V any](m map[uint16]V) []uint16 {
 func buildManifest() string {
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity type="win32" name="com.pureutils.app" version="1.0.0.0" processorArchitecture="*"/>
+  <assemblyIdentity type="win32" name="com.pureutils.app" version="1.1.0.0" processorArchitecture="*"/>
   <dependency>
     <dependentAssembly>
       <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/>
@@ -469,7 +592,7 @@ func buildVersionInfo() []byte {
 	le := binary.LittleEndian
 	le.PutUint32(fixed[0:], 0xFEEF04BD)
 	le.PutUint32(fixed[4:], 0x00010000)
-	le.PutUint32(fixed[8:], uint32(1)<<16|uint32(0))
+	le.PutUint32(fixed[8:], uint32(1)<<16|uint32(1))
 	le.PutUint32(fixed[12:], uint32(0)<<16|uint32(0))
 	copy(fixed[16:24], fixed[8:16])
 	le.PutUint32(fixed[24:], 0x3F)
@@ -480,12 +603,12 @@ func buildVersionInfo() []byte {
 	for _, s := range [][2]string{
 		{"CompanyName", "PureUtils"},
 		{"FileDescription", "PureUtils"},
-		{"FileVersion", "1.0.0"},
+		{"FileVersion", "1.1.0"},
 		{"InternalName", "PureUtils.exe"},
 		{"LegalCopyright", "© 2026 PureUtils"},
 		{"OriginalFilename", "PureUtils.exe"},
 		{"ProductName", "PureUtils"},
-		{"ProductVersion", "1.0.0"},
+		{"ProductVersion", "1.1.0"},
 		{"MyGoIdentifier", "com.pureutils.app"},
 	} {
 		text := utf16.Encode([]rune(s[1] + "\x00"))

@@ -6,6 +6,7 @@ ShotClip.exe
 *.test
 *.out
 artifacts/
+libs/mpv/
 
 # Local runtime data & caches
 .tmp-*

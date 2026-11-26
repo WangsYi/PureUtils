@@ -26,6 +26,7 @@ type HotkeyConfig struct {
 	ShowHistory     string            `json:"showHistory"`
 	TogglePins      string            `json:"togglePins"`
 	OpenViewer      string            `json:"openViewer,omitempty"`
+	OpenVideo       string            `json:"openVideo,omitempty"`
 	OpenZip         string            `json:"openZip,omitempty"`
 	Launcher        string            `json:"launcher,omitempty"`
 	TakeoverWinKeys bool              `json:"takeoverWinKeys"`
@@ -53,6 +54,15 @@ type LauncherConfig struct {
 	MaxResults int    `json:"maxResults"`
 }
 
+// UpdateConfig controls automatic update checking and download mirrors.
+type UpdateConfig struct {
+	AutoCheck          bool   `json:"autoCheck"`
+	AutoDownload       bool   `json:"autoDownload"`
+	CheckIntervalHours int    `json:"checkIntervalHours"`
+	DownloadSource     string `json:"downloadSource"` // "auto" | "ghproxy" | "ghfast" | "github"
+	SkippedVersion     string `json:"skippedVersion,omitempty"`
+}
+
 // HostConfig holds host-level configuration persisted outside plugins.<id>.
 type HostConfig struct {
 	SchemaVersion   int              `json:"schemaVersion"`
@@ -60,6 +70,7 @@ type HostConfig struct {
 	Appearance      AppearanceConfig `json:"appearance"`
 	Advanced        AdvancedConfig   `json:"advanced"`
 	Launcher        LauncherConfig   `json:"launcher"`
+	Update          UpdateConfig     `json:"update"`
 	DisabledModules []core.ModuleID  `json:"disabledModules,omitempty"`
 }
 
@@ -88,6 +99,12 @@ func DefaultHostConfig() HostConfig {
 			Enabled:    true,
 			Shortcut:   "Alt+Space",
 			MaxResults: 12,
+		},
+		Update: UpdateConfig{
+			AutoCheck:          true,
+			AutoDownload:       false,
+			CheckIntervalHours: 24,
+			DownloadSource:     "auto",
 		},
 	}
 }
@@ -152,6 +169,22 @@ func (h *HostConfig) Normalize() {
 	if h.Advanced.DebounceMs > 2000 {
 		h.Advanced.DebounceMs = 2000
 	}
+	if h.Update.CheckIntervalHours <= 0 {
+		h.Update.CheckIntervalHours = d.Update.CheckIntervalHours
+	}
+	if h.Update.CheckIntervalHours < 1 {
+		h.Update.CheckIntervalHours = 1
+	}
+	if h.Update.CheckIntervalHours > 168 {
+		h.Update.CheckIntervalHours = 168
+	}
+	switch strings.ToLower(strings.TrimSpace(h.Update.DownloadSource)) {
+	case "ghproxy", "ghfast", "github", "auto":
+		h.Update.DownloadSource = strings.ToLower(strings.TrimSpace(h.Update.DownloadSource))
+	default:
+		h.Update.DownloadSource = d.Update.DownloadSource
+	}
+	h.Update.SkippedVersion = strings.TrimSpace(h.Update.SkippedVersion)
 	h.DisabledModules = normalizeDisabledModules(h.DisabledModules)
 }
 
@@ -587,6 +620,82 @@ func LoadPureZip(sec Section) PureZipConfig {
 }
 
 func SavePureZip(sec Section, cfg PureZipConfig) error {
+	cfg.Normalize()
+	return sec.Save(cfg)
+}
+
+// PureVideoConfig is the plugin-scoped configuration for PureVideo (`plugins.purevideo`).
+type PureVideoConfig struct {
+	Engine          string  `json:"engine"`          // "mpv" (default and sole backend)
+	DownloadSource  string  `json:"downloadSource"`  // "auto" | "ghproxy" | "ghfast" | "sourceforge" | "github"
+	CustomMirrorURL string  `json:"customMirrorUrl"`
+	Volume          int     `json:"volume"`          // 0..100
+	Muted           bool    `json:"muted"`
+	Loop            bool    `json:"loop"`
+	AutoPlay        bool    `json:"autoPlay"`
+	RememberVolume  bool    `json:"rememberVolume"`
+	DefaultSpeed    float64 `json:"defaultSpeed"`    // 0.25..4.0
+	Sort            string  `json:"sort"`            // "name" | "modified" | "size"
+	SortDesc        bool    `json:"sortDesc"`
+}
+
+// DefaultPureVideoConfig returns default settings for PureVideo.
+func DefaultPureVideoConfig() PureVideoConfig {
+	return PureVideoConfig{
+		Engine:         "mpv",
+		DownloadSource: "auto",
+		Volume:         80,
+		AutoPlay:       true,
+		RememberVolume: true,
+		DefaultSpeed:   1.0,
+		Sort:           "name",
+	}
+}
+
+// Normalize enforces valid bounds and choices on PureVideoConfig.
+func (c *PureVideoConfig) Normalize() {
+	d := DefaultPureVideoConfig()
+	c.Engine = "mpv"
+	switch strings.ToLower(strings.TrimSpace(c.DownloadSource)) {
+	case "ghproxy", "ghfast", "sourceforge", "github", "auto":
+		c.DownloadSource = strings.ToLower(strings.TrimSpace(c.DownloadSource))
+	default:
+		c.DownloadSource = d.DownloadSource
+	}
+	c.CustomMirrorURL = strings.TrimSpace(c.CustomMirrorURL)
+	if c.Volume < 0 {
+		c.Volume = 0
+	}
+	if c.Volume > 100 {
+		c.Volume = 100
+	}
+	if c.DefaultSpeed <= 0 {
+		c.DefaultSpeed = d.DefaultSpeed
+	}
+	if c.DefaultSpeed < 0.25 {
+		c.DefaultSpeed = 0.25
+	}
+	if c.DefaultSpeed > 4.0 {
+		c.DefaultSpeed = 4.0
+	}
+	switch strings.ToLower(strings.TrimSpace(c.Sort)) {
+	case "modified", "size", "name":
+		c.Sort = strings.ToLower(strings.TrimSpace(c.Sort))
+	default:
+		c.Sort = d.Sort
+	}
+}
+
+func LoadPureVideo(sec Section) PureVideoConfig {
+	cfg := DefaultPureVideoConfig()
+	if sec != nil {
+		_ = sec.Load(&cfg)
+	}
+	cfg.Normalize()
+	return cfg
+}
+
+func SavePureVideo(sec Section, cfg PureVideoConfig) error {
 	cfg.Normalize()
 	return sec.Save(cfg)
 }

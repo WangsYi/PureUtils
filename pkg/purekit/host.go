@@ -29,3 +29,9 @@ type Host interface {
 	IsGlobalHookSuppressed() bool
 	NotifyWindowClosed()
 }
+
+// SettingsInvalidator is optionally implemented by Host to let plugin settings
+// tabs request an immediate repaint when background state (e.g. downloads) changes.
+type SettingsInvalidator interface {
+	InvalidateSettings()
+}

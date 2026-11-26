@@ -55,7 +55,6 @@ func TestInstallerScriptCoversZipComponentAndExtensions(t *testing.T) {
 		`Name: "zip\assoc";`,
 		`RegisterZipContextMenu`,
 		`CleanupOldZipAssociations`,
-		`ms-settings:defaultapps?registeredAppUser=PureZip`,
 	} {
 		if !strings.Contains(src, needle) {
 			t.Errorf("pureutils.iss missing %q", needle)

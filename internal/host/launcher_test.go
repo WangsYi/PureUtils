@@ -52,10 +52,20 @@ func TestLauncherKeywordSearchAcrossPlugins(t *testing.T) {
 			t.Fatalf("expected pureimage feature for query 看图, got %+v", items)
 		}
 	}
+	if compiled.Video {
+		items := a.QueryLauncher(purekit.MatchContext{Query: "视频"})
+		if !hasLauncherItem(items, "purevideo", "PureVideo") {
+			t.Fatalf("expected purevideo feature for query 视频, got %+v", items)
+		}
+	}
 
 	hostItems := a.QueryLauncher(purekit.MatchContext{Query: "设置"})
 	if !hasLauncherItem(hostItems, "host", "设置") {
 		t.Fatalf("expected host.settings for query 设置, got %+v", hostItems)
+	}
+	updItems := a.QueryLauncher(purekit.MatchContext{Query: "更新"})
+	if !hasLauncherItem(updItems, "host", "检查软件更新") {
+		t.Fatalf("expected host.check_update for query 更新, got %+v", updItems)
 	}
 }
 
@@ -97,6 +107,14 @@ func TestLauncherContextualMatchingClipboardAndFiles(t *testing.T) {
 		imgItems := a.QueryLauncher(purekit.MatchContext{SelectedFiles: []string{pngPath}})
 		if !hasLauncherItem(imgItems, "pureimage", "用 PureImage 查看") {
 			t.Fatalf("expected PureImage contextual match for .png selection, got %+v", imgItems)
+		}
+	}
+	if compiled.Video {
+		mp4Path := filepath.Join(tmpDir, "clip.mp4")
+		_ = os.WriteFile(mp4Path, []byte("MP4"), 0o600)
+		vidItems := a.QueryLauncher(purekit.MatchContext{SelectedFiles: []string{mp4Path}})
+		if !hasLauncherItem(vidItems, "purevideo", "用 PureVideo 播放") {
+			t.Fatalf("expected PureVideo contextual match for .mp4 selection, got %+v", vidItems)
 		}
 	}
 

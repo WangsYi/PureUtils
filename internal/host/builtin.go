@@ -21,6 +21,7 @@ func CompiledModules() core.ModuleConfig {
 		History: pureclipCompiled,
 		Viewer:  pureimageCompiled,
 		Zip:     purezipCompiled,
+		Video:   purevideoCompiled,
 	}
 }
 
@@ -40,6 +41,9 @@ func BuiltinPlugins() []PluginFactory {
 		out = append(out, f)
 	}
 	if f, ok := builtinPureImage(); ok {
+		out = append(out, f)
+	}
+	if f, ok := builtinPureVideo(); ok {
 		out = append(out, f)
 	}
 	if f, ok := builtinPureZip(); ok {

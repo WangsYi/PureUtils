@@ -3,6 +3,7 @@ package host
 import (
 	_ "embed"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -74,6 +75,10 @@ type App struct {
 	launcherView        *launcherView
 	launcherCtxProvider func() purekit.MatchContext
 
+	updater    *Updater
+	updateMu   sync.Mutex
+	updateStop chan struct{}
+
 	quitHook     func()
 	started      atomic.Bool
 	shuttingDown atomic.Bool
@@ -121,6 +126,9 @@ func NewApp(opts Options) (*App, error) {
 	if !compiled.Zip {
 		installed.Zip = false
 	}
+	if !compiled.Video {
+		installed.Video = false
+	}
 	active := installed
 	if opts.Plugins == nil {
 		active = applyDisabledModules(installed, hc)
@@ -147,6 +155,29 @@ func NewApp(opts Options) (*App, error) {
 		hookSuppress:    map[string]bool{},
 		quitHook:        opts.QuitFunc,
 	}
+
+	var trayStatusMu sync.Mutex
+	var lastTrayStatus UpdateStatus
+	a.updater = NewUpdater(UpdaterOptions{
+		CurrentVersion: core.AppVersion,
+		DataDir:        filepath.Join(opts.Paths.Home, "updates"),
+		OnChange: func(snap UpdateSnapshot) {
+			a.InvalidateSettings()
+			trayStatusMu.Lock()
+			changed := snap.Status != lastTrayStatus
+			if changed {
+				lastTrayStatus = snap.Status
+			}
+			trayStatusMu.Unlock()
+			if changed && (snap.Status == UpdateAvailable || snap.Status == UpdateReady ||
+				snap.Status == UpdateUpToDate || snap.Status == UpdateError || snap.Status == UpdateIdle) {
+				a.RebuildTray()
+			}
+		},
+		OnNotify: a.Notify,
+		OnQuit:   a.Quit,
+		Log:      opts.Logger,
+	})
 
 	var candidates []purekit.Plugin
 	if opts.Plugins != nil {
@@ -252,6 +283,9 @@ func applyDisabledModules(installed core.ModuleConfig, hc config.HostConfig) cor
 	if hc.IsModuleDisabled(core.ModuleZip) {
 		out.Zip = false
 	}
+	if hc.IsModuleDisabled(core.ModuleVideo) {
+		out.Video = false
+	}
 	return out
 }
 
@@ -311,6 +345,9 @@ func (a *App) applyPluginModules(hc config.HostConfig) (bool, error) {
 		if !desired.Zip {
 			stoppedMods.Zip = false
 		}
+		if !desired.Video {
+			stoppedMods.Video = false
+		}
 		a.pluginMu.Lock()
 		a.plugins = kept
 		a.pluginByID = keptByID
@@ -368,6 +405,8 @@ func (a *App) applyPluginModules(hc config.HostConfig) (bool, error) {
 				actualMods.Viewer = false
 			case core.ModuleZip:
 				actualMods.Zip = false
+			case core.ModuleVideo:
+				actualMods.Video = false
 			}
 			continue
 		}
@@ -462,6 +501,18 @@ func (a *App) OpenSettings(tabID string) {
 		return
 	}
 	mygo.RunOnMain(func() { a.ShowSettings(tabID) })
+}
+
+// InvalidateSettings triggers a thread-safe repaint of the Settings window if open.
+func (a *App) InvalidateSettings() {
+	if a.headless || a.shuttingDown.Load() {
+		return
+	}
+	mygo.RunOnMain(func() {
+		if a.settingsView != nil && !a.settingsView.closed {
+			a.settingsView.invalidate()
+		}
+	})
 }
 
 func (a *App) ExecuteCommand(cmd core.Command, paths ...string) {
@@ -573,11 +624,12 @@ func (a *App) HasOpenWindows() bool {
 // Start boots active plugins, hotkeys, tray, and initial command-line launch action.
 func (a *App) Start(args []string) {
 	if a.log != nil {
-		a.log.Infof("PureUtils 启动，数据目录 %s，模块 shot=%v clip=%v image=%v zip=%v",
+		a.log.Infof("PureUtils 启动，数据目录 %s，模块 shot=%v clip=%v image=%v video=%v zip=%v",
 			a.paths.Home,
 			a.ModuleEnabled(core.ModuleCapture),
 			a.ModuleEnabled(core.ModuleHistory),
 			a.ModuleEnabled(core.ModuleViewer),
+			a.ModuleEnabled(core.ModuleVideo),
 			a.ModuleEnabled(core.ModuleZip),
 		)
 	}
@@ -596,6 +648,10 @@ func (a *App) Start(args []string) {
 			a.createTray()
 		}
 		a.applyStartupSetting()
+		if a.updater != nil {
+			go a.updater.CleanupOldDownloads()
+			a.startUpdateScheduler()
+		}
 	}
 
 	switch {
@@ -606,6 +662,8 @@ func (a *App) Start(args []string) {
 		switch {
 		case a.ModuleEnabled(core.ModuleViewer):
 			a.ExecuteCommand(core.CmdOpenViewer)
+		case a.ModuleEnabled(core.ModuleVideo):
+			a.ExecuteCommand(core.CmdOpenVideo)
 		case a.ModuleEnabled(core.ModuleZip):
 			a.ExecuteCommand(core.CmdOpenZip)
 		case len(a.snapshotPlugins()) == 0:
@@ -617,6 +675,9 @@ func (a *App) Start(args []string) {
 // HandleArgs dispatches a second-instance command line.
 func (a *App) HandleArgs(args []string) {
 	req := core.ParseArgs(args)
+	if a.log != nil {
+		a.log.Infof("收到外部启动命令: argc=%d cmd=%s", len(args), req.Command)
+	}
 	switch {
 	case a.routeLaunch(req):
 	case req.HasCommand:
@@ -625,6 +686,8 @@ func (a *App) HandleArgs(args []string) {
 		a.ExecuteCommand(core.CmdShowHistory)
 	case a.ModuleEnabled(core.ModuleViewer):
 		a.ExecuteCommand(core.CmdOpenViewer)
+	case a.ModuleEnabled(core.ModuleVideo):
+		a.ExecuteCommand(core.CmdOpenVideo)
 	case a.ModuleEnabled(core.ModuleZip):
 		a.ExecuteCommand(core.CmdOpenZip)
 	default:
@@ -646,6 +709,15 @@ func (a *App) routeLaunch(req core.LaunchRequest) bool {
 				return true
 			}
 		}
+		if a.isVideoByMatchers(req.Paths[0]) {
+			a.pluginMu.RLock()
+			_, hasVideo := a.cliHandlers[core.CmdOpenVideo]
+			a.pluginMu.RUnlock()
+			if hasVideo {
+				a.ExecuteCommand(core.CmdOpenVideo, req.Paths...)
+				return true
+			}
+		}
 	}
 	a.pluginMu.RLock()
 	spec, ok := a.cliHandlers[req.Command]
@@ -663,7 +735,15 @@ func (a *App) routeLaunch(req core.LaunchRequest) bool {
 	return true
 }
 
+func (a *App) isVideoByMatchers(path string) bool {
+	return a.matchFeatureByPath(path, "purevideo.open")
+}
+
 func (a *App) isArchiveByMatchers(path string) bool {
+	return a.matchFeatureByPath(path, "purezip.open")
+}
+
+func (a *App) matchFeatureByPath(path, featureID string) bool {
 	if strings.TrimSpace(path) == "" {
 		return false
 	}
@@ -671,7 +751,7 @@ func (a *App) isArchiveByMatchers(path string) bool {
 	for _, p := range a.snapshotPlugins() {
 		for _, m := range p.Matchers() {
 			for _, res := range m.Match(ctx) {
-				if res.FeatureID == "purezip.open" {
+				if res.FeatureID == featureID {
 					return true
 				}
 			}
@@ -684,6 +764,9 @@ func (a *App) dispatch(cmd core.Command, paths []string) {
 	if a.shuttingDown.Load() {
 		return
 	}
+	if a.log != nil {
+		a.log.Infof("执行命令: %s (paths=%d)", cmd, len(paths))
+	}
 	trace := core.BeginPerf()
 	defer core.EndPerf("cmd."+string(cmd), trace)
 
@@ -693,6 +776,10 @@ func (a *App) dispatch(cmd core.Command, paths []string) {
 		return
 	case core.CmdShowSettings:
 		a.ShowSettings("")
+		return
+	case core.CmdCheckUpdate:
+		a.ShowSettings("advanced")
+		a.CheckForUpdates(true)
 		return
 	case core.CmdPerfReport:
 		if report := core.PerfReport(); report != "" && a.log != nil {
@@ -715,11 +802,111 @@ func (a *App) dispatch(cmd core.Command, paths []string) {
 func (a *App) applyStartupSetting() {
 	hc := a.HostConfig()
 	args := ""
-	if !a.ModuleEnabled(core.ModuleCapture) && !a.ModuleEnabled(core.ModuleHistory) && a.ModuleEnabled(core.ModuleViewer) {
+	if !a.ModuleEnabled(core.ModuleCapture) && !a.ModuleEnabled(core.ModuleHistory) &&
+		(a.ModuleEnabled(core.ModuleViewer) || a.ModuleEnabled(core.ModuleVideo) || a.ModuleEnabled(core.ModuleZip)) {
 		args = "--background"
 	}
 	if err := platform.SetRunOnStartupWithArgs(hc.Advanced.RunOnStartup, args); err != nil && a.log != nil {
 		a.log.Warnf("更新开机自启失败: %v", err)
+	}
+}
+
+// Updater returns the host self-updater instance.
+func (a *App) Updater() *Updater { return a.updater }
+
+// CheckForUpdates starts an asynchronous release check.
+func (a *App) CheckForUpdates(manual bool) {
+	if a.updater == nil || a.shuttingDown.Load() {
+		return
+	}
+	a.updater.StartCheck(a.HostConfig().Update, manual)
+}
+
+// DownloadUpdate starts downloading the discovered release using configured mirror settings.
+func (a *App) DownloadUpdate() {
+	if a.updater == nil || a.shuttingDown.Load() {
+		return
+	}
+	a.updater.StartDownload(a.HostConfig().Update.DownloadSource)
+}
+
+// CancelUpdateDownload aborts an active update download.
+func (a *App) CancelUpdateDownload() {
+	if a.updater != nil {
+		a.updater.CancelDownload()
+	}
+}
+
+// InstallUpdate launches the downloaded installer and exits cleanly.
+func (a *App) InstallUpdate() error {
+	if a.updater == nil {
+		return fmt.Errorf("更新器未初始化")
+	}
+	return a.updater.InstallAndRestart()
+}
+
+// SkipUpdateVersion records ver so background notifications ignore it until a newer tag appears.
+func (a *App) SkipUpdateVersion(ver string) error {
+	hc := a.HostConfig()
+	hc.Update.SkippedVersion = strings.TrimSpace(ver)
+	return a.SaveHostConfig(hc)
+}
+
+func (a *App) startUpdateScheduler() {
+	a.updateMu.Lock()
+	if a.updateStop != nil {
+		close(a.updateStop)
+	}
+	stop := make(chan struct{})
+	a.updateStop = stop
+	a.updateMu.Unlock()
+
+	go func() {
+		initTimer := time.NewTimer(10 * time.Second)
+		defer initTimer.Stop()
+		select {
+		case <-stop:
+			return
+		case <-initTimer.C:
+		}
+		a.maybeRunAutoUpdateCheck()
+
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-stop:
+				return
+			case <-ticker.C:
+				a.maybeRunAutoUpdateCheck()
+			}
+		}
+	}()
+}
+
+func (a *App) maybeRunAutoUpdateCheck() {
+	if a.updater == nil || a.shuttingDown.Load() {
+		return
+	}
+	uc := a.HostConfig().Update
+	if !uc.AutoCheck {
+		return
+	}
+	interval := time.Duration(uc.CheckIntervalHours) * time.Hour
+	if a.updater.ShouldAutoCheck(interval, time.Now()) {
+		a.updater.StartCheck(uc, false)
+	}
+}
+
+func (a *App) stopUpdateScheduler() {
+	a.updateMu.Lock()
+	if a.updateStop != nil {
+		close(a.updateStop)
+		a.updateStop = nil
+	}
+	a.updateMu.Unlock()
+	if a.updater != nil {
+		a.updater.Stop()
 	}
 }
 
@@ -739,6 +926,7 @@ func (a *App) Shutdown() {
 	if a.shuttingDown.Swap(true) {
 		return
 	}
+	a.stopUpdateScheduler()
 	if a.winTakeover != nil {
 		a.winTakeover.Close()
 		a.winTakeover = nil
