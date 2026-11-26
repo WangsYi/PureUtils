@@ -43,7 +43,7 @@ VersionInfoProductName=PureUtils
 VersionInfoProductVersion={#AppVersion}
 
 [Languages]
-Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [CustomMessages]

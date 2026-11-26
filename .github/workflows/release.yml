@@ -137,6 +137,7 @@ jobs:
         run: |
           $ver = '${{ steps.meta.outputs.version }}'
           .\build.ps1 pack -Version $ver
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $installer = "artifacts\installer\PureUtils-$ver-setup.exe"
           if (-not (Test-Path -LiteralPath $installer)) {
             throw "Installer not found at $installer"
