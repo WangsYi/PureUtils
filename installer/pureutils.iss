@@ -45,6 +45,7 @@ ChangesAssociations=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
+CloseApplicationsFilter=*.exe,*.dll
 RestartApplications=no
 VersionInfoVersion={#AppVersion}.0
 VersionInfoProductName=PureUtils
@@ -113,6 +114,9 @@ chinesesimplified.LabelLocation=安装位置：%1
 chinesesimplified.LabelCustomTitle=自定义安装
 chinesesimplified.LabelInstallDir=安装目录
 chinesesimplified.ChooseDirPrompt=选择 PureUtils 的安装文件夹
+chinesesimplified.PrepTitle=正在准备安装…
+chinesesimplified.PrepChecking=正在检查运行状态…
+chinesesimplified.PrepClosing=正在关闭运行中的 %1…
 chinesesimplified.ProgressInstalling=正在安装 PureUtils…
 chinesesimplified.ProgressUpdating=正在升级 PureUtils…
 chinesesimplified.FinishHeading=安装完成
@@ -159,6 +163,9 @@ english.LabelLocation=Location: %1
 english.LabelCustomTitle=Custom Installation
 english.LabelInstallDir=Install folder
 english.ChooseDirPrompt=Choose a folder to install PureUtils
+english.PrepTitle=Preparing installation…
+english.PrepChecking=Checking running instances…
+english.PrepClosing=Closing running %1…
 english.ProgressInstalling=Installing PureUtils…
 english.ProgressUpdating=Updating PureUtils…
 english.FinishHeading=Installation Complete
@@ -788,48 +795,81 @@ begin
   end;
 end;
 
-function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
-  ExePath, LegacyYnm, LegacyShot: String;
-  ResultCode: Integer;
+  CustomMode, NavPending: Boolean;
+  InstalledOldVersion: String;
+  InstallKind: Integer;
+  HeroPathLabel, FinishSubLabel, PrepTitleLabel, PrepStatusLabel, ProgTitleLabel: TNewStaticText;
+  HeroPrimaryLabel, CustomPrimaryLabel, FinishPrimaryLabel: TLabel;
+  HeroCustomizeLink, CustomBackLink, FinishCloseLink: TLabel;
+  PrepLogo: TBitmapImage;
+  CustomDirEdit: TNewEdit;
+  CustomBrowseBtn: TNewButton;
+  CustomDesktopCheck, CustomAutostartCheck: TNewCheckBox;
+
+function IsProcessRunning(const ExeName: String; var QueryOK: Boolean): Boolean;
+var
+  WMILocator, WMIService, WMIResult: Variant;
 begin
-  Result := '';
-  ExePath := ExpandConstant('{app}\PureUtils.exe');
-  if FileExists(ExePath) then
+  QueryOK := False;
+  Result := False;
+  try
+    WMILocator := CreateOleObject('WbemScripting.SWbemLocator');
+    WMIService := WMILocator.ConnectServer('.', 'root\cimv2');
+    WMIResult := WMIService.ExecQuery('SELECT ProcessId FROM Win32_Process WHERE Name=''' + ExeName + '''');
+    QueryOK := True;
+    Result := WMIResult.Count > 0;
+  except
+    QueryOK := False;
+    Result := False;
+  end;
+end;
+
+procedure StopRunningApp(const ExePath, ProcName, DisplayName: String);
+var
+  QueryOK, Running: Boolean;
+  ResultCode, I: Integer;
+begin
+  if not FileExists(ExePath) then Exit;
+  Running := IsProcessRunning(ProcName, QueryOK);
+  if QueryOK then
   begin
+    if not Running then Exit;
+    if PrepStatusLabel <> nil then
+    begin
+      PrepStatusLabel.Caption := FmtMessage(CustomMessage('PrepClosing'), [DisplayName]);
+      WizardForm.Update;
+    end;
     Exec(ExePath, '--exit', '', SW_HIDE, ewNoWait, ResultCode);
-    Sleep(800);
-    Exec(ExpandConstant('{cmd}'), '/C taskkill /IM PureUtils.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(250);
-  end;
-  LegacyYnm := ExpandConstant('{localappdata}\Programs\ynm3000\ynm3000.exe');
-  if FileExists(LegacyYnm) then
-  begin
-    Exec(LegacyYnm, '--exit', '', SW_HIDE, ewNoWait, ResultCode);
-    Sleep(500);
-    Exec(ExpandConstant('{cmd}'), '/C taskkill /IM ynm3000.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(200);
-  end;
-  LegacyShot := ExpandConstant('{localappdata}\Programs\ShotClip\ShotClip.exe');
-  if FileExists(LegacyShot) then
-  begin
-    Exec(LegacyShot, '--exit', '', SW_HIDE, ewNoWait, ResultCode);
-    Sleep(500);
-    Exec(ExpandConstant('{cmd}'), '/C taskkill /IM ShotClip.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    for I := 1 to 10 do
+    begin
+      Sleep(100);
+      WizardForm.Update;
+      Running := IsProcessRunning(ProcName, QueryOK);
+      if QueryOK and (not Running) then Exit;
+    end;
+    Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM ' + ProcName + ' /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    for I := 1 to 5 do
+    begin
+      Sleep(100);
+      WizardForm.Update;
+      Running := IsProcessRunning(ProcName, QueryOK);
+      if QueryOK and (not Running) then Exit;
+    end;
+  end else begin
+    Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM ' + ProcName + ' /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Sleep(200);
   end;
 end;
 
-var
-  CustomMode: Boolean;
-  InstalledOldVersion: String;
-  InstallKind: Integer;
-  HeroPathLabel, FinishSubLabel, ProgTitleLabel: TNewStaticText;
-  HeroPrimaryLabel, CustomPrimaryLabel, FinishPrimaryLabel: TLabel;
-  HeroCustomizeLink, CustomBackLink, FinishCloseLink: TLabel;
-  CustomDirEdit: TNewEdit;
-  CustomBrowseBtn: TNewButton;
-  CustomDesktopCheck, CustomAutostartCheck: TNewCheckBox;
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  WizardForm.Update;
+  StopRunningApp(ExpandConstant('{app}\PureUtils.exe'), 'PureUtils.exe', 'PureUtils');
+  StopRunningApp(ExpandConstant('{localappdata}\Programs\ynm3000\ynm3000.exe'), 'ynm3000.exe', 'ynm3000');
+  StopRunningApp(ExpandConstant('{localappdata}\Programs\ShotClip\ShotClip.exe'), 'ShotClip.exe', 'ShotClip');
+end;
 
 function InkPrimary: TColor;
 begin
@@ -970,19 +1010,18 @@ begin
   Ctrl.SetBounds(0, WizardForm.ClientHeight + ScaleY(200), ScaleX(80), ScaleY(24));
 end;
 
-procedure InitLogoImage(ParentCtrl: TWinControl; WinW, TopDp: Integer; IconFile: String);
+function InitLogoImage(ParentCtrl: TWinControl; WinW, TopDp: Integer; IconFile: String): TBitmapImage;
 var
-  Img: TBitmapImage;
   Sz: Integer;
 begin
   Sz := ScaleX(64);
-  Img := TBitmapImage.Create(WizardForm);
-  Img.Parent := ParentCtrl;
-  Img.SetBounds((ScaleX(WinW) - Sz) div 2, ScaleY(TopDp), Sz, Sz);
-  Img.BackColor := clNone;
-  Img.Stretch := True;
-  Img.Center := True;
-  Img.PngImage.LoadFromFile(IconFile);
+  Result := TBitmapImage.Create(WizardForm);
+  Result.Parent := ParentCtrl;
+  Result.SetBounds((ScaleX(WinW) - Sz) div 2, ScaleY(TopDp), Sz, Sz);
+  Result.BackColor := clNone;
+  Result.Stretch := True;
+  Result.Center := True;
+  Result.PngImage.LoadFromFile(IconFile);
 end;
 
 function CreatePrimaryBtnVisual(
@@ -1050,21 +1089,28 @@ begin
   SyncTasksFromUI;
 end;
 
+procedure TriggerWizardBtn(Btn: TNewButton);
+begin
+  if NavPending then Exit;
+  NavPending := True;
+  PostMessage(Btn.Handle, $BD11, 0, 0);
+end;
+
 procedure HeroPrimaryOnClick(Sender: TObject);
 begin
   CustomMode := False;
-  SendMessage(WizardForm.NextButton.Handle, $00F5, 0, 0);
+  TriggerWizardBtn(WizardForm.NextButton);
 end;
 
 procedure HeroCustomizeOnClick(Sender: TObject);
 begin
   CustomMode := True;
-  SendMessage(WizardForm.NextButton.Handle, $00F5, 0, 0);
+  TriggerWizardBtn(WizardForm.NextButton);
 end;
 
 procedure CustomPrimaryOnClick(Sender: TObject);
 begin
-  SendMessage(WizardForm.NextButton.Handle, $00F5, 0, 0);
+  TriggerWizardBtn(WizardForm.NextButton);
 end;
 
 procedure CustomBackOnClick(Sender: TObject);
@@ -1074,12 +1120,12 @@ begin
     WizardForm.DirEdit.Text := RemoveBackslashUnlessRoot(Trim(CustomDirEdit.Text));
   SyncTasksFromUI;
   RefreshHeroPath;
-  SendMessage(WizardForm.BackButton.Handle, $00F5, 0, 0);
+  TriggerWizardBtn(WizardForm.BackButton);
 end;
 
 procedure FinishPrimaryOnClick(Sender: TObject);
 begin
-  SendMessage(WizardForm.NextButton.Handle, $00F5, 0, 0);
+  TriggerWizardBtn(WizardForm.NextButton);
 end;
 
 procedure FinishCloseOnClick(Sender: TObject);
@@ -1088,17 +1134,18 @@ var
 begin
   for I := 0 to WizardForm.RunList.Items.Count - 1 do
     WizardForm.RunList.Checked[I] := False;
-  SendMessage(WizardForm.NextButton.Handle, $00F5, 0, 0);
+  TriggerWizardBtn(WizardForm.NextButton);
 end;
 
 procedure InitializeWizard;
 var
   IconPath, BtnPath, StatusText: String;
   Lbl, DirLbl: TNewStaticText;
-  BtnImg: TBitmapImage;
+  BtnImg, LogoImg: TBitmapImage;
   SpaceW, BrowseW: Integer;
 begin
   CustomMode := False;
+  NavPending := False;
   DetectInstalledVersion;
   ApplySeamlessTitleBar(WizardForm.Handle);
 
@@ -1116,9 +1163,15 @@ begin
   WizardForm.TypesCombo.Anchors := [akLeft, akTop];
   WizardForm.ComponentsList.Anchors := [akLeft, akTop];
   WizardForm.ComponentsDiskSpaceLabel.Anchors := [akLeft, akTop];
+  WizardForm.PreparingLabel.Anchors := [akLeft, akTop];
+  WizardForm.PreparingMemo.Anchors := [akLeft, akTop];
+  WizardForm.PreparingYesRadio.Anchors := [akLeft, akTop];
+  WizardForm.PreparingNoRadio.Anchors := [akLeft, akTop];
   WizardForm.ProgressGauge.Anchors := [akLeft, akTop];
   WizardForm.StatusLabel.Anchors := [akLeft, akTop];
   WizardForm.RunList.Anchors := [akLeft, akTop];
+  WizardForm.YesRadio.Anchors := [akLeft, akTop];
+  WizardForm.NoRadio.Anchors := [akLeft, akTop];
   WizardForm.MainPanel.Visible := False;
   WizardForm.Bevel1.Visible := False;
   WizardForm.Bevel.Visible := False;
@@ -1132,7 +1185,7 @@ begin
   WizardForm.WelcomeLabel1.Visible := False;
   WizardForm.WelcomeLabel2.Visible := False;
 
-  InitLogoImage(WizardForm.WelcomePage, 500, 34, IconPath);
+  LogoImg := InitLogoImage(WizardForm.WelcomePage, 500, 34, IconPath);
 
   Lbl := TNewStaticText.Create(WizardForm);
   Lbl.Parent := WizardForm.WelcomePage;
@@ -1291,16 +1344,44 @@ begin
   BtnImg.OnClick := @CustomPrimaryOnClick;
   CustomPrimaryLabel.OnClick := @CustomPrimaryOnClick;
 
-  // Preparing page spacing (when another running instance prompts to close)
-  WizardForm.PreparingLabel.SetBounds(ScaleX(24), ScaleY(36), ScaleX(452), ScaleY(28));
+  // --- Page 2.5: Preparing Page (500 x 370) ---
+  PrepLogo := InitLogoImage(WizardForm.PreparingPage, 500, 68, IconPath);
+
+  PrepTitleLabel := TNewStaticText.Create(WizardForm);
+  PrepTitleLabel.Parent := WizardForm.PreparingPage;
+  PrepTitleLabel.AutoSize := False;
+  PrepTitleLabel.SetBounds(ScaleX(24), ScaleY(148), ScaleX(452), ScaleY(30));
+  PrepTitleLabel.Alignment := taCenter;
+  PrepTitleLabel.StyleElements := PrepTitleLabel.StyleElements - [seFont];
+  PrepTitleLabel.Font.Name := WizardForm.Font.Name;
+  PrepTitleLabel.Font.Size := 15;
+  PrepTitleLabel.Font.Style := [fsBold];
+  PrepTitleLabel.Font.Color := InkPrimary;
+  PrepTitleLabel.Caption := CustomMessage('PrepTitle');
+
+  PrepStatusLabel := TNewStaticText.Create(WizardForm);
+  PrepStatusLabel.Parent := WizardForm.PreparingPage;
+  PrepStatusLabel.AutoSize := False;
+  PrepStatusLabel.SetBounds(ScaleX(24), ScaleY(190), ScaleX(452), ScaleY(22));
+  PrepStatusLabel.Alignment := taCenter;
+  PrepStatusLabel.StyleElements := PrepStatusLabel.StyleElements - [seFont];
+  PrepStatusLabel.Font.Name := WizardForm.Font.Name;
+  PrepStatusLabel.Font.Size := 9;
+  PrepStatusLabel.Font.Color := InkMuted;
+  PrepStatusLabel.Caption := CustomMessage('PrepChecking');
+
+  // Fallback RestartManager prompt spacing (when locked apps require user choice)
+  WizardForm.PreparingLabel.SetBounds(ScaleX(24), ScaleY(24), ScaleX(452), ScaleY(36));
   WizardForm.PreparingErrorBitmapImage.Left := ScaleX(24);
-  WizardForm.PreparingErrorBitmapImage.Top := ScaleY(76);
-  WizardForm.PreparingMemo.SetBounds(ScaleX(24), ScaleY(112), ScaleX(452), ScaleY(180));
+  WizardForm.PreparingErrorBitmapImage.Top := ScaleY(68);
+  WizardForm.PreparingMemo.SetBounds(ScaleX(24), ScaleY(100), ScaleX(452), ScaleY(130));
+  WizardForm.PreparingYesRadio.SetBounds(ScaleX(24), ScaleY(240), ScaleX(452), ScaleY(22));
+  WizardForm.PreparingNoRadio.SetBounds(ScaleX(24), ScaleY(266), ScaleX(452), ScaleY(22));
 
   // --- Page 3: Progress Page (500 x 370) ---
   WizardForm.FilenameLabel.Visible := False;
 
-  InitLogoImage(WizardForm.InstallingPage, 500, 68, IconPath);
+  LogoImg := InitLogoImage(WizardForm.InstallingPage, 500, 68, IconPath);
 
   ProgTitleLabel := TNewStaticText.Create(WizardForm);
   ProgTitleLabel.Parent := WizardForm.InstallingPage;
@@ -1330,8 +1411,10 @@ begin
   WizardForm.FinishedHeadingLabel.Visible := False;
   WizardForm.FinishedLabel.Visible := False;
   ParkOffscreen(WizardForm.RunList);
+  ParkOffscreen(WizardForm.YesRadio);
+  ParkOffscreen(WizardForm.NoRadio);
 
-  InitLogoImage(WizardForm.FinishedPage, 500, 44, IconPath);
+  LogoImg := InitLogoImage(WizardForm.FinishedPage, 500, 44, IconPath);
 
   Lbl := TNewStaticText.Create(WizardForm);
   Lbl.Parent := WizardForm.FinishedPage;
@@ -1393,7 +1476,10 @@ begin
 end;
 
 procedure CurPageChanged(CurPageID: Integer);
+var
+  IsPrepPrompt: Boolean;
 begin
+  NavPending := False;
   ParkOffscreen(WizardForm.BackButton);
   ParkOffscreen(WizardForm.CancelButton);
 
@@ -1433,9 +1519,29 @@ begin
   else if CurPageID = wpPreparing then
   begin
     ResizeAndCenterWindow(500, 370);
-    WizardForm.NextButton.TabStop := True;
-    WizardForm.NextButton.SetBounds(ScaleX(152), ScaleY(306), ScaleX(196), ScaleY(38));
-    WizardForm.NextButton.BringToFront;
+    IsPrepPrompt := WizardForm.PreparingMemo.Visible or
+                    WizardForm.PreparingYesRadio.Visible or
+                    WizardForm.PreparingNoRadio.Visible or
+                    WizardForm.PreparingErrorBitmapImage.Visible;
+    if IsPrepPrompt then
+    begin
+      if PrepLogo <> nil then PrepLogo.Visible := False;
+      if PrepTitleLabel <> nil then PrepTitleLabel.Visible := False;
+      if PrepStatusLabel <> nil then PrepStatusLabel.Visible := False;
+      WizardForm.NextButton.TabStop := True;
+      WizardForm.NextButton.SetBounds(ScaleX(152), ScaleY(306), ScaleX(196), ScaleY(38));
+      WizardForm.NextButton.BringToFront;
+    end else begin
+      if PrepLogo <> nil then PrepLogo.Visible := True;
+      if PrepTitleLabel <> nil then PrepTitleLabel.Visible := True;
+      if PrepStatusLabel <> nil then
+      begin
+        PrepStatusLabel.Caption := CustomMessage('PrepChecking');
+        PrepStatusLabel.Visible := True;
+      end;
+      ParkOffscreen(WizardForm.NextButton);
+    end;
+    WizardForm.Update;
   end
   else if CurPageID = wpInstalling then
   begin
@@ -1459,6 +1565,16 @@ begin
       FinishPrimaryLabel.Caption := CustomMessage('BtnClose');
       FinishCloseLink.Visible := False;
     end;
+    if not WizardForm.YesRadio.Visible then
+      ParkOffscreen(WizardForm.YesRadio)
+    else begin
+      WizardForm.YesRadio.SetBounds(ScaleX(120), ScaleY(268), ScaleX(260), ScaleY(22));
+      FinishCloseLink.Visible := False;
+    end;
+    if not WizardForm.NoRadio.Visible then
+      ParkOffscreen(WizardForm.NoRadio)
+    else
+      WizardForm.NoRadio.SetBounds(ScaleX(120), ScaleY(294), ScaleX(260), ScaleY(22));
     ParkOffscreen(WizardForm.NextButton);
   end else begin
     ResizeAndCenterWindow(500, 370);
@@ -1477,6 +1593,7 @@ begin
       WizardForm.DirEdit.Text := RemoveBackslashUnlessRoot(Trim(CustomDirEdit.Text));
     if Trim(WizardForm.DirEdit.Text) = '' then
     begin
+      NavPending := False;
       Result := False;
       Exit;
     end;
@@ -1488,6 +1605,7 @@ begin
        (not WizardIsComponentSelected('zip')) then
     begin
       MsgBox(CustomMessage('NeedModule'), mbError, MB_OK);
+      NavPending := False;
       Result := False;
     end;
   end;
