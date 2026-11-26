@@ -1,4 +1,4 @@
-# PureUtils（PureShot + PureClip + PureImage + PureVideo + PureZip）Go/MyGo 开发与打包脚本：build / test / run / publish / pack / clean
+﻿# PureUtils（PureShot + PureClip + PureImage + PureVideo + PureZip）Go/MyGo 开发与打包脚本：build / test / run / publish / pack / clean
 param(
     [ValidateSet('build', 'test', 'ui', 'e2e', 'coverage', 'ci', 'run', 'publish', 'pack', 'clean', 'help')]
     [string]$Command = 'build',

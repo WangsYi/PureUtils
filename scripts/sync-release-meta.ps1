@@ -15,16 +15,21 @@ $patch = [int]$Matches[3]
 
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+$utf8WithBom = [System.Text.UTF8Encoding]::new($true)
 
 function Update-TextFile([string]$RelPath, [scriptblock]$Transform) {
     $fullPath = Join-Path $root $RelPath
     if (-not (Test-Path -LiteralPath $fullPath)) {
         throw "Missing target file: $fullPath"
     }
-    $orig = [System.IO.File]::ReadAllText($fullPath, $utf8NoBom)
+    $rawBytes = [System.IO.File]::ReadAllBytes($fullPath)
+    $hadBom = ($rawBytes.Length -ge 3 -and $rawBytes[0] -eq 0xEF -and $rawBytes[1] -eq 0xBB -and $rawBytes[2] -eq 0xBF)
+    $wantBom = ($RelPath -like '*.ps1') -or $hadBom
+    $orig = if ($hadBom) { $utf8NoBom.GetString($rawBytes, 3, $rawBytes.Length - 3) } else { $utf8NoBom.GetString($rawBytes) }
     $next = & $Transform $orig
-    if ($next -ne $orig) {
-        [System.IO.File]::WriteAllText($fullPath, $next, $utf8NoBom)
+    if (($next -ne $orig) -or ($wantBom -ne $hadBom)) {
+        $enc = if ($wantBom) { $utf8WithBom } else { $utf8NoBom }
+        [System.IO.File]::WriteAllText($fullPath, $next, $enc)
         Write-Host "Updated $RelPath -> v$clean"
     } else {
         Write-Host "Unchanged $RelPath (already v$clean)"

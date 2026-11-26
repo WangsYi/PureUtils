@@ -21,26 +21,59 @@ if (-not $AllowOverwrite -and (Test-Path -LiteralPath $uninstRegPath)) {
     throw "Existing PureUtils installation found at $uninstRegPath. Pass -AllowOverwrite only in disposable CI/VM environments."
 }
 
+function Invoke-WithLogTimeout {
+    param(
+        [Parameter(Mandatory)][string]$FilePath,
+        [Parameter(Mandatory)][string[]]$ArgumentList,
+        [Parameter(Mandatory)][string]$LogPath,
+        [Parameter(Mandatory)][string]$Label,
+        [int]$TimeoutMs = 120000
+    )
+
+    if (Test-Path -LiteralPath $LogPath) {
+        Remove-Item -Force $LogPath -ErrorAction SilentlyContinue
+    }
+    $proc = Start-Process -FilePath $FilePath -ArgumentList $ArgumentList -WindowStyle Hidden -PassThru
+    $done = $proc.WaitForExit($TimeoutMs)
+    if (-not $done) {
+        try { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch {}
+        if (Test-Path -LiteralPath $LogPath) {
+            Write-Host "--- $Label Log Tail (timeout) ---"
+            Get-Content -LiteralPath $LogPath -Tail 80
+        }
+        throw "$Label timed out after $TimeoutMs ms"
+    }
+    $proc.Refresh()
+    if ($proc.ExitCode -ne 0) {
+        if (Test-Path -LiteralPath $LogPath) {
+            Write-Host "--- $Label Log Tail (exit $($proc.ExitCode)) ---"
+            Get-Content -LiteralPath $LogPath -Tail 80
+        }
+        throw "$Label exited with code $($proc.ExitCode)"
+    }
+}
+
+$baseTemp = if (-not [string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { $env:RUNNER_TEMP } else { [System.IO.Path]::GetTempPath() }
 $targetDir = $InstallDir
 if ([string]::IsNullOrWhiteSpace($targetDir)) {
-    $baseTemp = if (-not [string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { $env:RUNNER_TEMP } else { [System.IO.Path]::GetTempPath() }
     $targetDir = Join-Path $baseTemp 'pureutils-smoke'
 }
+$installLog = Join-Path $baseTemp 'pureutils-smoke-install.log'
+$uninstallLog = Join-Path $baseTemp 'pureutils-smoke-uninstall.log'
 
 if (Test-Path -LiteralPath $targetDir) {
     Remove-Item -Recurse -Force $targetDir
 }
 
 Write-Host "Running silent install -> $targetDir"
-$instProc = Start-Process -FilePath $resolvedInstaller -ArgumentList @(
+Invoke-WithLogTimeout -FilePath $resolvedInstaller -ArgumentList @(
     '/VERYSILENT',
     '/SUPPRESSMSGBOXES',
     '/NORESTART',
+    '/NOLAUNCH=1',
+    "/LOG=$installLog",
     "/DIR=$targetDir"
-) -WindowStyle Hidden -Wait -PassThru
-if ($instProc.ExitCode -ne 0) {
-    throw "Silent installer exited with code $($instProc.ExitCode)"
-}
+) -LogPath $installLog -Label 'Silent installer' -TimeoutMs 120000
 
 foreach ($rel in @(
     'PureUtils.exe',
@@ -77,14 +110,12 @@ if ($regProps.Publisher -ne 'PureUtils') {
 
 $uninstaller = Join-Path $targetDir 'unins000.exe'
 Write-Host "Running silent uninstall -> $uninstaller"
-$uninstProc = Start-Process -FilePath $uninstaller -ArgumentList @(
+Invoke-WithLogTimeout -FilePath $uninstaller -ArgumentList @(
     '/VERYSILENT',
     '/SUPPRESSMSGBOXES',
-    '/NORESTART'
-) -WindowStyle Hidden -Wait -PassThru
-if ($uninstProc.ExitCode -ne 0) {
-    throw "Silent uninstaller exited with code $($uninstProc.ExitCode)"
-}
+    '/NORESTART',
+    "/LOG=$uninstallLog"
+) -LogPath $uninstallLog -Label 'Silent uninstaller' -TimeoutMs 120000
 
 # unins000.exe spawns a temp copy so its process can exit slightly before directory cleanup completes
 $deadline = (Get-Date).AddSeconds(30)
@@ -104,4 +135,5 @@ if (Test-Path -LiteralPath $uninstRegPath) {
     throw "Leftover uninstall registry key remains after uninstall: $uninstRegPath"
 }
 
+Remove-Item -Force $installLog, $uninstallLog -ErrorAction SilentlyContinue
 Write-Host "Installer smoke test passed cleanly for PureUtils $ver"

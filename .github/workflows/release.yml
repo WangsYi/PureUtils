@@ -159,6 +159,7 @@ jobs:
           Write-Host "Packed $installer ($mb MB, $bytes bytes, sha256=$sha)"
 
       - name: Smoke-test silent install and uninstall
+        timeout-minutes: 5
         shell: pwsh
         run: |
           $ver = '${{ steps.meta.outputs.version }}'

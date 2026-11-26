@@ -547,12 +547,12 @@ Filename: "{app}\PureUtils.exe"; Parameters: ""; Description: "{cm:LaunchMain}";
 Filename: "{app}\PureUtils.exe"; Parameters: "--view"; Description: "{cm:LaunchViewer}"; Flags: nowait postinstall skipifsilent; Components: viewer and (not capture) and (not history)
 Filename: "{app}\PureUtils.exe"; Parameters: "--video"; Description: "{cm:LaunchVideo}"; Flags: nowait postinstall skipifsilent; Components: video and (not capture) and (not history) and (not viewer)
 Filename: "{app}\PureUtils.exe"; Parameters: "--zip"; Description: "{cm:LaunchZip}"; Flags: nowait postinstall skipifsilent; Components: zip and (not capture) and (not history) and (not viewer) and (not video)
-Filename: "{app}\PureUtils.exe"; Parameters: "--background"; Flags: nowait skipifnotsilent; Components: capture or history
-Filename: "{app}\PureUtils.exe"; Parameters: "--settings"; Flags: nowait skipifnotsilent; Components: (not capture) and (not history)
+Filename: "{app}\PureUtils.exe"; Parameters: "--background"; Flags: nowait skipifnotsilent; Components: capture or history; Check: ShouldAutoLaunchSilent
+Filename: "{app}\PureUtils.exe"; Parameters: "--settings"; Flags: nowait skipifnotsilent; Components: (not capture) and (not history); Check: ShouldAutoLaunchSilent
 
 [UninstallRun]
-Filename: "{app}\PureUtils.exe"; Parameters: "--exit"; Flags: runhidden; RunOnceId: "ExitPureUtils"
-Filename: "{cmd}"; Parameters: "/C taskkill /IM PureUtils.exe /F"; Flags: runhidden; RunOnceId: "KillPureUtils"
+Filename: "{app}\PureUtils.exe"; Parameters: "--exit"; Flags: runhidden; RunOnceId: "ExitPureUtils"; Check: IsPureUtilsRunning
+Filename: "{sys}\taskkill.exe"; Parameters: "/IM PureUtils.exe /F"; Flags: runhidden; RunOnceId: "KillPureUtils"; Check: NeedForceKillPureUtils
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
@@ -823,6 +823,26 @@ begin
     QueryOK := False;
     Result := False;
   end;
+end;
+
+function ShouldAutoLaunchSilent: Boolean;
+begin
+  Result := ExpandConstant('{param:nolaunch|0}') <> '1';
+end;
+
+function IsPureUtilsRunning: Boolean;
+var
+  QueryOK: Boolean;
+begin
+  Result := IsProcessRunning('PureUtils.exe', QueryOK) and QueryOK;
+end;
+
+function NeedForceKillPureUtils: Boolean;
+var
+  QueryOK, Running: Boolean;
+begin
+  Running := IsProcessRunning('PureUtils.exe', QueryOK);
+  Result := (not QueryOK) or Running;
 end;
 
 procedure StopRunningApp(const ExePath, ProcName, DisplayName: String);
