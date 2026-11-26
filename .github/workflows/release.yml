@@ -36,8 +36,6 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
-      pages: write
-      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -236,7 +234,6 @@ jobs:
             'pkg/purekit/core/version.go',
             'installer/pureutils.iss',
             'build.ps1',
-            '.github/workflows/ci.yml',
             'tools/genicon/main.go',
             'rsrc_windows_amd64.syso',
             'README.md',
@@ -267,7 +264,10 @@ jobs:
           foreach ($rel in $tracked) {
             $src = Join-Path $stageDir $rel
             if (Test-Path -LiteralPath $src) {
-              New-Item -ItemType Directory -Force -Path (Split-Path -Parent $rel) | Out-Null
+              $parent = Split-Path -Parent $rel
+              if (-not [string]::IsNullOrWhiteSpace($parent)) {
+                New-Item -ItemType Directory -Force -Path $parent | Out-Null
+              }
               Copy-Item -Force $src $rel
             }
           }
@@ -285,6 +285,32 @@ jobs:
             Write-Host "No metadata or docs changes to commit back to main for $tag."
           }
 
+      - name: Upload refreshed docs artifact for Pages deployment
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-pages-docs
+          path: docs
+          retention-days: 1
+          if-no-files-found: error
+
+  deploy-pages:
+    name: Deploy Updated Showcase Site to Pages
+    needs: [package-and-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download refreshed docs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-pages-docs
+          path: docs
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
@@ -293,17 +319,6 @@ jobs:
         with:
           path: docs
 
-  deploy-pages:
-    name: Deploy Updated Showcase Site to Pages
-    needs: [package-and-release]
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
