@@ -402,6 +402,7 @@ try {
             Copy-Item -Force (Join-Path $root 'resources\icon.png') (Join-Path $resStage 'icon.png')
             Copy-Item -Force (Join-Path $root 'resources\icon.ico') (Join-Path $resStage 'icon.ico')
             Copy-Item -Force (Join-Path $root 'resources\setup.ico') (Join-Path $resStage 'setup.ico')
+            Copy-Item -Force (Join-Path $root 'resources\btn-primary.png') (Join-Path $resStage 'btn-primary.png')
             Copy-Item -Force (Join-Path $root 'resources\image.ico') (Join-Path $resStage 'image.ico')
             Copy-Item -Force (Join-Path $root 'resources\image.png') (Join-Path $resStage 'image.png')
             Copy-Item -Force (Join-Path $root 'resources\video.ico') (Join-Path $resStage 'video.ico')

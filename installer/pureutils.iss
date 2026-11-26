@@ -37,6 +37,7 @@ WizardBackColor=#f8fafc
 WizardBackColorDynamicDark=#18181b
 WizardImageFile=
 WizardSmallImageFile=
+DisableWelcomePage=no
 DisableReadyPage=yes
 ShowLanguageDialog=auto
 MinVersion=10.0
@@ -180,7 +181,7 @@ english.CompZip=PureZip — Archive Manager
 english.CompZipContext=Explorer Context Menu
 english.CompZipAssoc=Associate Archive Formats
 english.TaskDesktopIcon=Create desktop shortcut
-english.TaskAutostart=Start automatically at Windows sign-in
+english.TaskAutostart=Run at sign-in
 english.LaunchMain=Launch PureUtils
 english.LaunchViewer=Launch PureImage
 english.LaunchVideo=Launch PureVideo
@@ -227,6 +228,7 @@ Type: files; Name: "{app}\ynm3000.exe"
 
 [Files]
 Source: "{#StageDir}\resources\icon.png"; Flags: dontcopy
+Source: "{#StageDir}\resources\btn-primary.png"; Flags: dontcopy
 Source: "{#StageDir}\PureUtils-full.exe"; DestDir: "{app}"; DestName: "PureUtils.exe"; Components: viewer; Flags: ignoreversion
 Source: "{#StageDir}\PureUtils-core.exe"; DestDir: "{app}"; DestName: "PureUtils.exe"; Components: not viewer; Flags: ignoreversion
 Source: "{#StageDir}\turbojpeg.dll"; DestDir: "{app}"; Components: viewer\turbo; Flags: ignoreversion skipifsourcedoesntexist
@@ -823,7 +825,8 @@ var
   InstalledOldVersion: String;
   InstallKind: Integer;
   HeroPathLabel, FinishSubLabel, ProgTitleLabel: TNewStaticText;
-  HeroCustomizeLink, CustomBackLink, FinishCloseLink: TNewLinkLabel;
+  HeroPrimaryLabel, CustomPrimaryLabel, FinishPrimaryLabel: TLabel;
+  HeroCustomizeLink, CustomBackLink, FinishCloseLink: TLabel;
   CustomDirEdit: TNewEdit;
   CustomBrowseBtn: TNewButton;
   CustomDesktopCheck, CustomAutostartCheck: TNewCheckBox;
@@ -850,6 +853,14 @@ begin
     Result := StrToColor('#71717A')
   else
     Result := StrToColor('#78716C');
+end;
+
+function InkAccent: TColor;
+begin
+  if IsDarkInstallMode then
+    Result := StrToColor('#818CF8')
+  else
+    Result := StrToColor('#4F46E5');
 end;
 
 procedure ApplySeamlessTitleBar(
@@ -956,7 +967,6 @@ end;
 procedure ParkOffscreen(Ctrl: TWinControl);
 begin
   Ctrl.TabStop := False;
-  Ctrl.Visible := True;
   Ctrl.SetBounds(0, WizardForm.ClientHeight + ScaleY(200), ScaleX(80), ScaleY(24));
 end;
 
@@ -973,6 +983,47 @@ begin
   Img.Stretch := True;
   Img.Center := True;
   Img.PngImage.LoadFromFile(IconFile);
+end;
+
+function CreatePrimaryBtnVisual(
+  ParentCtrl: TWinControl;
+  LeftDp, TopDp, WidthDp, HeightDp: Integer;
+  BtnFile, CaptionText: String;
+  var OutLbl: TLabel
+): TBitmapImage;
+var
+  X, Y, W, H, TextH: Integer;
+begin
+  X := ScaleX(LeftDp);
+  Y := ScaleY(TopDp);
+  W := ScaleX(WidthDp);
+  H := ScaleY(HeightDp);
+
+  Result := TBitmapImage.Create(WizardForm);
+  Result.Parent := ParentCtrl;
+  Result.SetBounds(X, Y, W, H);
+  Result.BackColor := clNone;
+  Result.Stretch := True;
+  Result.PngImage.LoadFromFile(BtnFile);
+  Result.Cursor := crHand;
+
+  OutLbl := TLabel.Create(WizardForm);
+  OutLbl.Parent := ParentCtrl;
+  OutLbl.Transparent := True;
+  OutLbl.WordWrap := False;
+  OutLbl.StyleElements := OutLbl.StyleElements - [seFont];
+  OutLbl.Font.Name := WizardForm.Font.Name;
+  OutLbl.Font.Size := 10;
+  OutLbl.Font.Style := [fsBold];
+  OutLbl.Font.Color := clWhite;
+  OutLbl.AutoSize := True;
+  OutLbl.Caption := CaptionText;
+  TextH := OutLbl.Height;
+  OutLbl.AutoSize := False;
+  OutLbl.Alignment := taCenter;
+  OutLbl.SetBounds(X, Y + (H - TextH) div 2, W, TextH + ScaleY(2));
+  OutLbl.Cursor := crHand;
+  OutLbl.BringToFront;
 end;
 
 procedure BrowseInstallDirOnClick(Sender: TObject);
@@ -999,13 +1050,24 @@ begin
   SyncTasksFromUI;
 end;
 
-procedure HeroCustomizeLinkOnClick(Sender: TObject; const Link: String; LinkType: TSysLinkType);
+procedure HeroPrimaryOnClick(Sender: TObject);
+begin
+  CustomMode := False;
+  SendMessage(WizardForm.NextButton.Handle, $00F5, 0, 0);
+end;
+
+procedure HeroCustomizeOnClick(Sender: TObject);
 begin
   CustomMode := True;
   SendMessage(WizardForm.NextButton.Handle, $00F5, 0, 0);
 end;
 
-procedure CustomBackLinkOnClick(Sender: TObject; const Link: String; LinkType: TSysLinkType);
+procedure CustomPrimaryOnClick(Sender: TObject);
+begin
+  SendMessage(WizardForm.NextButton.Handle, $00F5, 0, 0);
+end;
+
+procedure CustomBackOnClick(Sender: TObject);
 begin
   CustomMode := False;
   if CustomDirEdit <> nil then
@@ -1015,7 +1077,12 @@ begin
   SendMessage(WizardForm.BackButton.Handle, $00F5, 0, 0);
 end;
 
-procedure FinishCloseLinkOnClick(Sender: TObject; const Link: String; LinkType: TSysLinkType);
+procedure FinishPrimaryOnClick(Sender: TObject);
+begin
+  SendMessage(WizardForm.NextButton.Handle, $00F5, 0, 0);
+end;
+
+procedure FinishCloseOnClick(Sender: TObject);
 var
   I: Integer;
 begin
@@ -1026,8 +1093,9 @@ end;
 
 procedure InitializeWizard;
 var
-  IconPath, StatusText: String;
+  IconPath, BtnPath, StatusText: String;
   Lbl, DirLbl: TNewStaticText;
+  BtnImg: TBitmapImage;
   SpaceW, BrowseW: Integer;
 begin
   CustomMode := False;
@@ -1035,14 +1103,22 @@ begin
   ApplySeamlessTitleBar(WizardForm.Handle);
 
   ExtractTemporaryFile('icon.png');
+  ExtractTemporaryFile('btn-primary.png');
   IconPath := ExpandConstant('{tmp}\icon.png');
+  BtnPath := ExpandConstant('{tmp}\btn-primary.png');
 
-  WizardForm.BorderIcons := [biSystemMenu, biMinimize];
+  WizardForm.BorderIcons := [biSystemMenu];
   WizardForm.OuterNotebook.Anchors := [akLeft, akTop];
   WizardForm.InnerNotebook.Anchors := [akLeft, akTop];
   WizardForm.NextButton.Anchors := [akLeft, akTop];
   WizardForm.BackButton.Anchors := [akLeft, akTop];
   WizardForm.CancelButton.Anchors := [akLeft, akTop];
+  WizardForm.TypesCombo.Anchors := [akLeft, akTop];
+  WizardForm.ComponentsList.Anchors := [akLeft, akTop];
+  WizardForm.ComponentsDiskSpaceLabel.Anchors := [akLeft, akTop];
+  WizardForm.ProgressGauge.Anchors := [akLeft, akTop];
+  WizardForm.StatusLabel.Anchors := [akLeft, akTop];
+  WizardForm.RunList.Anchors := [akLeft, akTop];
   WizardForm.MainPanel.Visible := False;
   WizardForm.Bevel1.Visible := False;
   WizardForm.Bevel.Visible := False;
@@ -1056,12 +1132,12 @@ begin
   WizardForm.WelcomeLabel1.Visible := False;
   WizardForm.WelcomeLabel2.Visible := False;
 
-  InitLogoImage(WizardForm.WelcomePage, 500, 36, IconPath);
+  InitLogoImage(WizardForm.WelcomePage, 500, 34, IconPath);
 
   Lbl := TNewStaticText.Create(WizardForm);
   Lbl.Parent := WizardForm.WelcomePage;
   Lbl.AutoSize := False;
-  Lbl.SetBounds(ScaleX(24), ScaleY(112), ScaleX(452), ScaleY(38));
+  Lbl.SetBounds(ScaleX(24), ScaleY(108), ScaleX(452), ScaleY(38));
   Lbl.Alignment := taCenter;
   Lbl.StyleElements := Lbl.StyleElements - [seFont];
   Lbl.Font.Name := WizardForm.Font.Name;
@@ -1073,7 +1149,7 @@ begin
   Lbl := TNewStaticText.Create(WizardForm);
   Lbl.Parent := WizardForm.WelcomePage;
   Lbl.AutoSize := False;
-  Lbl.SetBounds(ScaleX(24), ScaleY(156), ScaleX(452), ScaleY(24));
+  Lbl.SetBounds(ScaleX(24), ScaleY(152), ScaleX(452), ScaleY(24));
   Lbl.Alignment := taCenter;
   Lbl.StyleElements := Lbl.StyleElements - [seFont];
   Lbl.Font.Name := WizardForm.Font.Name;
@@ -1091,7 +1167,7 @@ begin
   Lbl := TNewStaticText.Create(WizardForm);
   Lbl.Parent := WizardForm.WelcomePage;
   Lbl.AutoSize := False;
-  Lbl.SetBounds(ScaleX(24), ScaleY(188), ScaleX(452), ScaleY(20));
+  Lbl.SetBounds(ScaleX(24), ScaleY(182), ScaleX(452), ScaleY(20));
   Lbl.Alignment := taCenter;
   Lbl.StyleElements := Lbl.StyleElements - [seFont];
   Lbl.Font.Name := WizardForm.Font.Name;
@@ -1099,11 +1175,18 @@ begin
   Lbl.Font.Color := InkMuted;
   Lbl.Caption := StatusText;
 
+  BtnImg := CreatePrimaryBtnVisual(
+    WizardForm.WelcomePage, 152, 226, 196, 40, BtnPath,
+    CustomMessage('BtnInstallNow'), HeroPrimaryLabel
+  );
+  BtnImg.OnClick := @HeroPrimaryOnClick;
+  HeroPrimaryLabel.OnClick := @HeroPrimaryOnClick;
+
   HeroPathLabel := TNewStaticText.Create(WizardForm);
   HeroPathLabel.Parent := WizardForm.WelcomePage;
   HeroPathLabel.AutoSize := False;
   HeroPathLabel.WordWrap := False;
-  HeroPathLabel.SetBounds(ScaleX(24), ScaleY(330), ScaleX(330), ScaleY(20));
+  HeroPathLabel.SetBounds(ScaleX(24), ScaleY(328), ScaleX(324), ScaleY(20));
   HeroPathLabel.StyleElements := HeroPathLabel.StyleElements - [seFont];
   HeroPathLabel.Font.Name := WizardForm.Font.Name;
   HeroPathLabel.Font.Size := 9;
@@ -1113,26 +1196,35 @@ begin
   HeroPathLabel.OnClick := @BrowseInstallDirOnClick;
   RefreshHeroPath;
 
-  HeroCustomizeLink := TNewLinkLabel.Create(WizardForm);
+  HeroCustomizeLink := TLabel.Create(WizardForm);
   HeroCustomizeLink.Parent := WizardForm.WelcomePage;
+  HeroCustomizeLink.Transparent := True;
   HeroCustomizeLink.AutoSize := False;
-  HeroCustomizeLink.Caption := '<a id="customize">' + CustomMessage('LinkCustomize') + '</a>';
-  HeroCustomizeLink.UseVisualStyle := HighContrastActive;
-  HeroCustomizeLink.OnLinkClick := @HeroCustomizeLinkOnClick;
-  HeroCustomizeLink.SetBounds(ScaleX(362), ScaleY(330), ScaleX(114), ScaleY(20));
-  HeroCustomizeLink.AdjustHeight;
+  HeroCustomizeLink.Alignment := taRightJustify;
+  HeroCustomizeLink.StyleElements := HeroCustomizeLink.StyleElements - [seFont];
+  HeroCustomizeLink.Font.Name := WizardForm.Font.Name;
+  HeroCustomizeLink.Font.Size := 9;
+  HeroCustomizeLink.Font.Color := InkAccent;
+  HeroCustomizeLink.Caption := CustomMessage('LinkCustomize');
+  HeroCustomizeLink.SetBounds(ScaleX(350), ScaleY(328), ScaleX(126), ScaleY(20));
+  HeroCustomizeLink.Cursor := crHand;
+  HeroCustomizeLink.OnClick := @HeroCustomizeOnClick;
 
-  // --- Page 2: Unified Custom Options Page (520 x 460) ---
+  // --- Page 2: Unified Custom Options Page (520 x 468) ---
   WizardForm.SelectComponentsLabel.Visible := False;
 
-  CustomBackLink := TNewLinkLabel.Create(WizardForm);
+  CustomBackLink := TLabel.Create(WizardForm);
   CustomBackLink.Parent := WizardForm.SelectComponentsPage;
+  CustomBackLink.Transparent := True;
   CustomBackLink.AutoSize := False;
-  CustomBackLink.Caption := '<a id="back">' + CustomMessage('LinkBack') + '</a>';
-  CustomBackLink.UseVisualStyle := HighContrastActive;
-  CustomBackLink.OnLinkClick := @CustomBackLinkOnClick;
+  CustomBackLink.StyleElements := CustomBackLink.StyleElements - [seFont];
+  CustomBackLink.Font.Name := WizardForm.Font.Name;
+  CustomBackLink.Font.Size := 9;
+  CustomBackLink.Font.Color := InkSecondary;
+  CustomBackLink.Caption := CustomMessage('LinkBack');
   CustomBackLink.SetBounds(ScaleX(24), ScaleY(16), ScaleX(120), ScaleY(20));
-  CustomBackLink.AdjustHeight;
+  CustomBackLink.Cursor := crHand;
+  CustomBackLink.OnClick := @CustomBackOnClick;
 
   Lbl := TNewStaticText.Create(WizardForm);
   Lbl.Parent := WizardForm.SelectComponentsPage;
@@ -1148,7 +1240,7 @@ begin
   DirLbl := TNewStaticText.Create(WizardForm);
   DirLbl.Parent := WizardForm.SelectComponentsPage;
   DirLbl.AutoSize := False;
-  DirLbl.SetBounds(ScaleX(24), ScaleY(75), ScaleX(74), ScaleY(22));
+  DirLbl.SetBounds(ScaleX(24), ScaleY(76), ScaleX(72), ScaleY(22));
   DirLbl.StyleElements := DirLbl.StyleElements - [seFont];
   DirLbl.Font.Name := WizardForm.Font.Name;
   DirLbl.Font.Size := 9;
@@ -1161,36 +1253,43 @@ begin
 
   CustomDirEdit := TNewEdit.Create(WizardForm);
   CustomDirEdit.Parent := WizardForm.SelectComponentsPage;
-  CustomDirEdit.SetBounds(ScaleX(100), ScaleY(72), ScaleX(496) - ScaleX(100) - BrowseW - ScaleX(8), ScaleY(24));
+  CustomDirEdit.SetBounds(ScaleX(100), ScaleY(73), ScaleX(496) - ScaleX(100) - BrowseW - ScaleX(8), ScaleY(24));
   CustomDirEdit.Text := WizardForm.DirEdit.Text;
 
   CustomBrowseBtn := TNewButton.Create(WizardForm);
   CustomBrowseBtn.Parent := WizardForm.SelectComponentsPage;
   CustomBrowseBtn.Caption := CustomMessage('BtnBrowse');
-  CustomBrowseBtn.SetBounds(ScaleX(496) - BrowseW, ScaleY(71), BrowseW, ScaleY(26));
+  CustomBrowseBtn.SetBounds(ScaleX(496) - BrowseW, ScaleY(72), BrowseW, ScaleY(26));
   CustomBrowseBtn.OnClick := @BrowseInstallDirOnClick;
 
-  WizardForm.TypesCombo.SetBounds(ScaleX(24), ScaleY(108), ScaleX(472), WizardForm.TypesCombo.Height);
-  WizardForm.ComponentsList.SetBounds(ScaleX(24), ScaleY(142), ScaleX(472), ScaleY(188));
+  WizardForm.TypesCombo.SetBounds(ScaleX(24), ScaleY(110), ScaleX(472), WizardForm.TypesCombo.Height);
+  WizardForm.ComponentsList.SetBounds(ScaleX(24), ScaleY(144), ScaleX(472), ScaleY(190));
 
   CustomDesktopCheck := TNewCheckBox.Create(WizardForm);
   CustomDesktopCheck.Parent := WizardForm.SelectComponentsPage;
-  CustomDesktopCheck.SetBounds(ScaleX(24), ScaleY(342), ScaleX(155), ScaleY(22));
+  CustomDesktopCheck.SetBounds(ScaleX(24), ScaleY(346), ScaleX(155), ScaleY(22));
   CustomDesktopCheck.Caption := CustomMessage('TaskDesktopIcon');
   CustomDesktopCheck.OnClick := @CustomTaskCheckOnClick;
 
   CustomAutostartCheck := TNewCheckBox.Create(WizardForm);
   CustomAutostartCheck.Parent := WizardForm.SelectComponentsPage;
-  CustomAutostartCheck.SetBounds(ScaleX(182), ScaleY(342), ScaleX(175), ScaleY(22));
+  CustomAutostartCheck.SetBounds(ScaleX(182), ScaleY(346), ScaleX(155), ScaleY(22));
   CustomAutostartCheck.Caption := CustomMessage('TaskAutostart');
   CustomAutostartCheck.OnClick := @CustomTaskCheckOnClick;
 
-  SpaceW := ScaleX(142);
+  SpaceW := ScaleX(152);
   WizardForm.ComponentsDiskSpaceLabel.AutoSize := False;
   WizardForm.ComponentsDiskSpaceLabel.Alignment := taRightJustify;
   WizardForm.ComponentsDiskSpaceLabel.StyleElements := WizardForm.ComponentsDiskSpaceLabel.StyleElements - [seFont];
   WizardForm.ComponentsDiskSpaceLabel.Font.Color := InkMuted;
-  WizardForm.ComponentsDiskSpaceLabel.SetBounds(ScaleX(496) - SpaceW, ScaleY(345), SpaceW, ScaleY(20));
+  WizardForm.ComponentsDiskSpaceLabel.SetBounds(ScaleX(496) - SpaceW, ScaleY(349), SpaceW, ScaleY(20));
+
+  BtnImg := CreatePrimaryBtnVisual(
+    WizardForm.SelectComponentsPage, 162, 400, 196, 40, BtnPath,
+    CustomMessage('BtnStartInstall'), CustomPrimaryLabel
+  );
+  BtnImg.OnClick := @CustomPrimaryOnClick;
+  CustomPrimaryLabel.OnClick := @CustomPrimaryOnClick;
 
   // Preparing page spacing (when another running instance prompts to close)
   WizardForm.PreparingLabel.SetBounds(ScaleX(24), ScaleY(36), ScaleX(452), ScaleY(28));
@@ -1230,7 +1329,7 @@ begin
   WizardForm.WizardBitmapImage2.Visible := False;
   WizardForm.FinishedHeadingLabel.Visible := False;
   WizardForm.FinishedLabel.Visible := False;
-  WizardForm.RunList.Visible := False;
+  ParkOffscreen(WizardForm.RunList);
 
   InitLogoImage(WizardForm.FinishedPage, 500, 44, IconPath);
 
@@ -1257,15 +1356,26 @@ begin
   FinishSubLabel.Font.Color := InkSecondary;
   FinishSubLabel.Caption := CustomMessage('FinishBody');
 
-  FinishCloseLink := TNewLinkLabel.Create(WizardForm);
+  BtnImg := CreatePrimaryBtnVisual(
+    WizardForm.FinishedPage, 152, 216, 196, 40, BtnPath,
+    CustomMessage('BtnClose'), FinishPrimaryLabel
+  );
+  BtnImg.OnClick := @FinishPrimaryOnClick;
+  FinishPrimaryLabel.OnClick := @FinishPrimaryOnClick;
+
+  FinishCloseLink := TLabel.Create(WizardForm);
   FinishCloseLink.Parent := WizardForm.FinishedPage;
+  FinishCloseLink.Transparent := True;
   FinishCloseLink.AutoSize := False;
-  FinishCloseLink.Caption := '<a id="close">' + CustomMessage('BtnClose') + '</a>';
-  FinishCloseLink.UseVisualStyle := HighContrastActive;
-  FinishCloseLink.OnLinkClick := @FinishCloseLinkOnClick;
-  FinishCloseLink.SetBounds(ScaleX(210), ScaleY(284), ScaleX(80), ScaleY(22));
-  FinishCloseLink.AdjustHeight;
-  FinishCloseLink.Left := (ScaleX(500) - FinishCloseLink.Width) div 2;
+  FinishCloseLink.Alignment := taCenter;
+  FinishCloseLink.StyleElements := FinishCloseLink.StyleElements - [seFont];
+  FinishCloseLink.Font.Name := WizardForm.Font.Name;
+  FinishCloseLink.Font.Size := 9;
+  FinishCloseLink.Font.Color := InkSecondary;
+  FinishCloseLink.Caption := CustomMessage('BtnClose');
+  FinishCloseLink.SetBounds(ScaleX(24), ScaleY(272), ScaleX(452), ScaleY(22));
+  FinishCloseLink.Cursor := crHand;
+  FinishCloseLink.OnClick := @FinishCloseOnClick;
 end;
 
 procedure InitializeUninstallProgressForm;
@@ -1290,30 +1400,35 @@ begin
   if CurPageID = wpWelcome then
   begin
     ResizeAndCenterWindow(500, 370);
+    WizardForm.WizardBitmapImage.Visible := False;
+    WizardForm.WelcomeLabel1.Visible := False;
+    WizardForm.WelcomeLabel2.Visible := False;
     RefreshHeroPath;
     if InstallKind = 1 then
-      WizardForm.NextButton.Caption := CustomMessage('BtnUpgradeNow')
+      HeroPrimaryLabel.Caption := CustomMessage('BtnUpgradeNow')
     else if InstallKind = 2 then
-      WizardForm.NextButton.Caption := CustomMessage('BtnReinstall')
+      HeroPrimaryLabel.Caption := CustomMessage('BtnReinstall')
     else
-      WizardForm.NextButton.Caption := CustomMessage('BtnInstallNow');
-    WizardForm.NextButton.TabStop := True;
-    WizardForm.NextButton.SetBounds(ScaleX(152), ScaleY(232), ScaleX(196), ScaleY(40));
-    WizardForm.NextButton.BringToFront;
+      HeroPrimaryLabel.Caption := CustomMessage('BtnInstallNow');
+    ParkOffscreen(WizardForm.NextButton);
   end
   else if CurPageID = wpSelectComponents then
   begin
-    ResizeAndCenterWindow(520, 460);
+    ResizeAndCenterWindow(520, 468);
+    WizardForm.SelectComponentsLabel.Visible := False;
+    WizardForm.TypesCombo.SetBounds(ScaleX(24), ScaleY(110), ScaleX(472), WizardForm.TypesCombo.Height);
+    WizardForm.ComponentsList.SetBounds(ScaleX(24), ScaleY(144), ScaleX(472), ScaleY(190));
+    WizardForm.ComponentsDiskSpaceLabel.SetBounds(ScaleX(496) - ScaleX(152), ScaleY(349), ScaleX(152), ScaleY(20));
     if CustomDirEdit <> nil then
       CustomDirEdit.Text := WizardForm.DirEdit.Text;
     SyncTasksToUI;
+    if CustomBrowseBtn <> nil then
+      WizardForm.ActiveControl := CustomBrowseBtn;
     if InstallKind = 1 then
-      WizardForm.NextButton.Caption := CustomMessage('BtnStartUpgrade')
+      CustomPrimaryLabel.Caption := CustomMessage('BtnStartUpgrade')
     else
-      WizardForm.NextButton.Caption := CustomMessage('BtnStartInstall');
-    WizardForm.NextButton.TabStop := True;
-    WizardForm.NextButton.SetBounds(ScaleX(162), ScaleY(396), ScaleX(196), ScaleY(38));
-    WizardForm.NextButton.BringToFront;
+      CustomPrimaryLabel.Caption := CustomMessage('BtnStartInstall');
+    ParkOffscreen(WizardForm.NextButton);
   end
   else if CurPageID = wpPreparing then
   begin
@@ -1325,22 +1440,26 @@ begin
   else if CurPageID = wpInstalling then
   begin
     ResizeAndCenterWindow(500, 370);
+    WizardForm.FilenameLabel.Visible := False;
     ParkOffscreen(WizardForm.NextButton);
   end
   else if CurPageID = wpFinished then
   begin
     ResizeAndCenterWindow(500, 370);
+    WizardForm.WizardBitmapImage2.Visible := False;
+    WizardForm.FinishedHeadingLabel.Visible := False;
+    WizardForm.FinishedLabel.Visible := False;
+    WizardForm.RunList.Visible := False;
+    ParkOffscreen(WizardForm.RunList);
     if WizardForm.RunList.Items.Count > 0 then
     begin
-      WizardForm.NextButton.Caption := WizardForm.RunList.ItemCaption[0];
+      FinishPrimaryLabel.Caption := WizardForm.RunList.ItemCaption[0];
       FinishCloseLink.Visible := True;
     end else begin
-      WizardForm.NextButton.Caption := CustomMessage('BtnClose');
+      FinishPrimaryLabel.Caption := CustomMessage('BtnClose');
       FinishCloseLink.Visible := False;
     end;
-    WizardForm.NextButton.TabStop := True;
-    WizardForm.NextButton.SetBounds(ScaleX(152), ScaleY(224), ScaleX(196), ScaleY(40));
-    WizardForm.NextButton.BringToFront;
+    ParkOffscreen(WizardForm.NextButton);
   end else begin
     ResizeAndCenterWindow(500, 370);
     WizardForm.NextButton.TabStop := True;

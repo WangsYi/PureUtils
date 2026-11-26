@@ -66,6 +66,10 @@ func run(videoOnly bool) error {
 		return err
 	}
 
+	if err := generateButtonArt(); err != nil {
+		return err
+	}
+
 	syso, err := buildSysoAMD64(iconSizes, appPNGs)
 	if err != nil {
 		return fmt.Errorf("build syso: %w", err)
@@ -73,8 +77,43 @@ func run(videoOnly bool) error {
 	if err := os.WriteFile("rsrc_windows_amd64.syso", syso, 0o644); err != nil {
 		return err
 	}
-	fmt.Println("Generated resources/icon.{png,ico}, internal/host/icon.png, resources/setup.{png,ico}, resources/video.{png,ico}, plugins/purevideo/video.png, rsrc_windows_amd64.syso")
+	fmt.Println("Generated resources/icon.{png,ico}, internal/host/icon.png, resources/setup.{png,ico}, resources/video.{png,ico}, plugins/purevideo/video.png, resources/btn-primary.png, rsrc_windows_amd64.syso")
 	return nil
+}
+
+func generateButtonArt() error {
+	const targetW, targetH = 392, 80
+	sw, sh := targetW*2, targetH*2
+	dc := gg.NewContext(sw, sh)
+	w, h := float64(sw), float64(sh)
+	r := 32.0 // 16px at 2x, 8px at 100% DPI
+
+	dc.DrawRoundedRectangle(0, 0, w, h, r)
+	dc.Clip()
+
+	bg := gg.NewLinearGradient(0, 0, 0, h)
+	bg.AddColorStop(0.0, color.NRGBA{R: 99, G: 102, B: 241, A: 255}) // #6366F1
+	bg.AddColorStop(1.0, color.NRGBA{R: 79, G: 70, B: 229, A: 255})  // #4F46E5
+	dc.SetFillStyle(bg)
+	dc.DrawRectangle(0, 0, w, h)
+	dc.Fill()
+
+	// Delicate top highlight rim so button separates cleanly on both light and dark surfaces
+	dc.SetRGBA255(255, 255, 255, 48)
+	dc.SetLineWidth(3.0)
+	dc.DrawRoundedRectangle(1.5, 1.5, w-3.0, h-3.0, r-1.5)
+	dc.Stroke()
+
+	master := imageToRGBA(dc.Image())
+	dst := image.NewRGBA(image.Rect(0, 0, targetW, targetH))
+	xdraw.CatmullRom.Scale(dst, dst.Bounds(), master, master.Bounds(), xdraw.Over, nil)
+
+	var buf bytes.Buffer
+	enc := png.Encoder{CompressionLevel: png.BestCompression}
+	if err := enc.Encode(&buf, dst); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join("resources", "btn-primary.png"), buf.Bytes(), 0o644)
 }
 
 func generateVideoIcons() error {
