@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"pureutils/pkg/purekit/i18n"
 	"pureutils/plugins/purezip/archive"
 )
 
@@ -24,34 +25,38 @@ const (
 	zipCatExe
 )
 
+type zipLabelPair struct {
+	zh, en string
+}
+
 var zipExtCategory = map[string]zipFileCategory{}
-var zipExtLabel = map[string]string{}
+var zipExtLabel = map[string]zipLabelPair{}
 
 func init() {
-	add := func(cat zipFileCategory, label string, exts ...string) {
+	add := func(cat zipFileCategory, zh, en string, exts ...string) {
 		for _, e := range exts {
 			zipExtCategory[e] = cat
-			if label != "" {
-				zipExtLabel[e] = label
+			if zh != "" || en != "" {
+				zipExtLabel[e] = zipLabelPair{zh: zh, en: en}
 			}
 		}
 	}
-	add(zipCatImage, "图片", "jpg", "jpeg", "png", "gif", "bmp", "webp", "tif", "tiff", "ico", "svg", "heic", "heif", "avif", "jxl", "psd", "raw", "cr2", "nef", "arw", "dng")
-	add(zipCatCode, "源代码", "go", "js", "ts", "tsx", "jsx", "py", "c", "h", "cpp", "hpp", "cs", "java", "kt", "rs", "rb", "php", "swift", "lua", "sh", "ps1", "bat", "cmd", "sql", "vue", "css", "scss", "less")
-	add(zipCatCode, "网页", "html", "htm", "xhtml")
-	add(zipCatCode, "配置文件", "json", "yaml", "yml", "toml", "ini", "xml", "conf", "cfg", "env", "mod", "sum", "lock")
-	add(zipCatAudio, "音频", "mp3", "flac", "wav", "aac", "ogg", "m4a", "wma", "opus", "ape")
-	add(zipCatVideo, "视频", "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "rmvb")
-	add(zipCatArchive, "压缩文件", "zip", "7z", "rar", "tar", "gz", "tgz", "bz2", "tbz", "tbz2", "xz", "txz", "zst", "tzst", "lz4", "cab", "iso", "001", "jar", "apk")
-	add(zipCatDoc, "文本文档", "txt", "log", "md", "rtf", "csv")
-	add(zipCatDoc, "PDF 文档", "pdf")
-	add(zipCatDoc, "Word 文档", "doc", "docx", "odt", "wps")
-	add(zipCatDoc, "Excel 表格", "xls", "xlsx", "ods", "et")
-	add(zipCatDoc, "演示文稿", "ppt", "pptx", "odp", "dps")
-	add(zipCatDoc, "电子书", "epub", "mobi", "azw3")
-	add(zipCatExe, "应用程序", "exe", "msi", "com", "scr")
-	add(zipCatExe, "应用程序扩展", "dll", "sys", "ocx")
-	add(zipCatFile, "字体", "ttf", "otf", "woff", "woff2", "ttc")
+	add(zipCatImage, "图片", "Image", "jpg", "jpeg", "png", "gif", "bmp", "webp", "tif", "tiff", "ico", "svg", "heic", "heif", "avif", "jxl", "psd", "raw", "cr2", "nef", "arw", "dng")
+	add(zipCatCode, "源代码", "Source", "go", "js", "ts", "tsx", "jsx", "py", "c", "h", "cpp", "hpp", "cs", "java", "kt", "rs", "rb", "php", "swift", "lua", "sh", "ps1", "bat", "cmd", "sql", "vue", "css", "scss", "less")
+	add(zipCatCode, "网页", "Webpage", "html", "htm", "xhtml")
+	add(zipCatCode, "配置文件", "Config", "json", "yaml", "yml", "toml", "ini", "xml", "conf", "cfg", "env", "mod", "sum", "lock")
+	add(zipCatAudio, "音频", "Audio", "mp3", "flac", "wav", "aac", "ogg", "m4a", "wma", "opus", "ape")
+	add(zipCatVideo, "视频", "Video", "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "rmvb")
+	add(zipCatArchive, "压缩文件", "Archive", "zip", "7z", "rar", "tar", "gz", "tgz", "bz2", "tbz", "tbz2", "xz", "txz", "zst", "tzst", "lz4", "cab", "iso", "001", "jar", "apk")
+	add(zipCatDoc, "文本文档", "Text", "txt", "log", "md", "rtf", "csv")
+	add(zipCatDoc, "PDF 文档", "PDF Doc", "pdf")
+	add(zipCatDoc, "Word 文档", "Word Doc", "doc", "docx", "odt", "wps")
+	add(zipCatDoc, "Excel 表格", "Excel Sheet", "xls", "xlsx", "ods", "et")
+	add(zipCatDoc, "演示文稿", "Slides", "ppt", "pptx", "odp", "dps")
+	add(zipCatDoc, "电子书", "eBook", "epub", "mobi", "azw3")
+	add(zipCatExe, "应用程序", "Application", "exe", "msi", "com", "scr")
+	add(zipCatExe, "应用程序扩展", "Extension", "dll", "sys", "ocx")
+	add(zipCatFile, "字体", "Font", "ttf", "otf", "woff", "woff2", "ttc")
 }
 
 func clampInt(v, lo, hi int) int {
@@ -82,16 +87,16 @@ func zipCategory(name string, dir bool) zipFileCategory {
 // zipTypeLabel returns the Explorer-like type column text.
 func zipTypeLabel(name string, dir bool) string {
 	if dir {
-		return "文件夹"
+		return i18n.S("文件夹", "Folder")
 	}
 	ext := zipExt(name)
 	if ext == "" {
-		return "文件"
+		return i18n.S("文件", "File")
 	}
 	if l, ok := zipExtLabel[ext]; ok {
-		return strings.ToUpper(ext) + " " + l
+		return strings.ToUpper(ext) + " " + i18n.S(l.zh, l.en)
 	}
-	return strings.ToUpper(ext) + " 文件"
+	return i18n.F("%s 文件", "%s File", strings.ToUpper(ext))
 }
 
 // zipSize formats a byte count with binary units the way Bandizip shows them.
@@ -177,10 +182,28 @@ func zipOverwriteMode(s string) archive.OverwriteMode {
 }
 
 var zipOverwriteKeys = []string{"ask", "overwrite", "skip", "rename", "newer"}
-var zipOverwriteLabels = []string{"询问", "覆盖", "跳过", "自动重命名", "仅更新较新"}
+
+func zipOverwriteLabels() []string {
+	return []string{
+		i18n.S("询问", "Ask"),
+		i18n.S("覆盖", "Overwrite"),
+		i18n.S("跳过", "Skip"),
+		i18n.S("自动重命名", "Auto Rename"),
+		i18n.S("仅更新较新", "Newer Only"),
+	}
+}
 
 var zipLevelValues = []int{0, 1, 3, 6, 9}
-var zipLevelLabels = []string{"仅存储", "最快", "较快", "标准", "最高"}
+
+func zipLevelLabels() []string {
+	return []string{
+		i18n.S("仅存储", "Store"),
+		i18n.S("最快", "Fastest"),
+		i18n.S("较快", "Fast"),
+		i18n.S("标准", "Normal"),
+		i18n.S("最高", "Maximum"),
+	}
+}
 
 func zipLevelIndex(level int) int {
 	best := 3
@@ -196,20 +219,35 @@ func zipLevelIndex(level int) int {
 }
 
 var zipEncodingOptions = []string{"auto", "UTF-8", "GBK", "BIG5", "SHIFT_JIS", "CP437"}
-var zipEncodingLabels = []string{"自动检测", "UTF-8", "GBK（简体中文）", "BIG5（繁体中文）", "Shift-JIS（日文）", "CP437（DOS）"}
+var zipEncodingPairs = []zipLabelPair{
+	{"自动检测", "Auto-Detect"},
+	{"UTF-8", "UTF-8"},
+	{"GBK（简体中文）", "GBK (Simplified Chinese)"},
+	{"BIG5（繁体中文）", "BIG5 (Traditional Chinese)"},
+	{"Shift-JIS（日文）", "Shift-JIS (Japanese)"},
+	{"CP437（DOS）", "CP437 (DOS)"},
+}
+
+func zipEncodingLabels() []string {
+	out := make([]string, len(zipEncodingPairs))
+	for i, p := range zipEncodingPairs {
+		out[i] = i18n.S(p.zh, p.en)
+	}
+	return out
+}
 
 func zipEncodingLabel(code string) string {
 	for i, c := range zipEncodingOptions {
 		if strings.EqualFold(c, code) {
-			return zipEncodingLabels[i]
+			return i18n.S(zipEncodingPairs[i].zh, zipEncodingPairs[i].en)
 		}
 	}
-	return zipEncodingLabels[0]
+	return i18n.S(zipEncodingPairs[0].zh, zipEncodingPairs[0].en)
 }
 
 func zipEncodingCode(label string) string {
-	for i, l := range zipEncodingLabels {
-		if l == label {
+	for i, p := range zipEncodingPairs {
+		if label == p.zh || label == p.en || strings.EqualFold(label, zipEncodingOptions[i]) {
 			return zipEncodingOptions[i]
 		}
 	}
@@ -279,7 +317,7 @@ func zipDefaultTarget(sources []string, f archive.Format) string {
 	}
 	name = strings.Trim(name, `\/:. `)
 	if name == "" {
-		name = "新建压缩文件"
+		name = i18n.S("新建压缩文件", "New Archive")
 	}
 	return archive.UniquePath(filepath.Join(dir, name+f.Extension()))
 }

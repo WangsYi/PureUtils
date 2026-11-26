@@ -3,6 +3,7 @@ package host
 import (
 	_ "embed"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -15,6 +16,7 @@ import (
 	"pureutils/pkg/purekit/clipboard"
 	"pureutils/pkg/purekit/config"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	"pureutils/pkg/purekit/platform"
 	"pureutils/pkg/purekit/storage"
 )
@@ -99,6 +101,12 @@ func NewApp(opts Options) (*App, error) {
 	}
 
 	hc := cfgMgr.Host()
+	if !opts.Headless {
+		lang := i18n.SetPreference(hc.Appearance.Language)
+		mygo.App.SetLocale(i18n.MyGoLocale(lang))
+	} else if normPref := i18n.NormalizePref(hc.Appearance.Language); normPref != i18n.PrefAuto {
+		i18n.SetPreference(normPref)
+	}
 	clipSvc := opts.Clipboard
 	if clipSvc == nil && !opts.Headless {
 		mgr, err := clipboard.NewWin32Manager(clipboard.ManagerOptions{
@@ -242,6 +250,16 @@ func (a *App) SaveHostConfig(cfg config.HostConfig) error {
 		return err
 	}
 	hc := a.cfgMgr.Host()
+	prevLang := i18n.Current()
+	langChanged := false
+	if !a.headless {
+		nextLang := i18n.SetPreference(hc.Appearance.Language)
+		langChanged = nextLang != prevLang
+		mygo.App.SetLocale(i18n.MyGoLocale(nextLang))
+	} else if normPref := i18n.NormalizePref(hc.Appearance.Language); normPref != i18n.PrefAuto {
+		nextLang := i18n.SetPreference(normPref)
+		langChanged = nextLang != prevLang
+	}
 	if a.clip != nil {
 		a.clip.SetTimings(
 			time.Duration(hc.Advanced.DebounceMs)*time.Millisecond,
@@ -251,8 +269,10 @@ func (a *App) SaveHostConfig(cfg config.HostConfig) error {
 	modulesChanged, modErr := a.applyPluginModules(hc)
 	if !a.headless {
 		mygo.Theme.SetSource(mygo.ThemeSource(hc.ThemeSource()))
-		a.ReloadHotkeys()
-		a.applyStartupSetting()
+		if !isIsolatedTestInstance() {
+			a.ReloadHotkeys()
+			a.applyStartupSetting()
+		}
 		if a.ShouldStayInTray() && a.tray == nil {
 			a.createTray()
 		} else if !a.ShouldStayInTray() && !a.HasOpenWindows() {
@@ -261,6 +281,17 @@ func (a *App) SaveHostConfig(cfg config.HostConfig) error {
 		}
 	} else if modulesChanged {
 		a.ReloadHotkeys()
+	}
+	if langChanged && a.settingsView != nil && !a.settingsView.closed && !a.settingsView.saving {
+		if a.headless {
+			a.settingsView.refreshForLanguageChange()
+		} else {
+			mygo.RunOnMain(func() {
+				if a.settingsView != nil && !a.settingsView.closed {
+					a.settingsView.refreshForLanguageChange()
+				}
+			})
+		}
 	}
 	a.RebuildTray()
 	if a.log != nil {
@@ -391,7 +422,7 @@ func (a *App) applyPluginModules(hc config.HostConfig) (bool, error) {
 		}
 		if err := p.Init(a); err != nil {
 			if firstErr == nil {
-				firstErr = fmt.Errorf("启用组件 %s 失败: %w", f.ID, err)
+				firstErr = fmt.Errorf("%s", i18n.F("启用组件 %s 失败: %w", "Failed to enable module %s: %w", f.ID, err))
 			}
 			if a.log != nil {
 				a.log.Errorf("热启用组件 %s Init 失败: %v", f.ID, err)
@@ -413,7 +444,7 @@ func (a *App) applyPluginModules(hc config.HostConfig) (bool, error) {
 		if a.started.Load() {
 			if err := p.Start(); err != nil {
 				if firstErr == nil {
-					firstErr = fmt.Errorf("启动组件 %s 失败: %w", p.ID(), err)
+					firstErr = fmt.Errorf("%s", i18n.F("启动组件 %s 失败: %w", "Failed to start module %s: %w", p.ID(), err))
 				}
 				if a.log != nil {
 					a.log.Errorf("热启用组件 %s Start 失败: %v", p.ID(), err)
@@ -643,14 +674,18 @@ func (a *App) Start(args []string) {
 
 	req := core.ParseArgs(args)
 	if !a.headless {
-		a.registerHotkeys()
+		if !isIsolatedTestInstance() {
+			a.registerHotkeys()
+		}
 		if a.ShouldStayInTray() || req.Background {
 			a.createTray()
 		}
-		a.applyStartupSetting()
-		if a.updater != nil {
-			go a.updater.CleanupOldDownloads()
-			a.startUpdateScheduler()
+		if !isIsolatedTestInstance() {
+			a.applyStartupSetting()
+			if a.updater != nil {
+				go a.updater.CleanupOldDownloads()
+				a.startUpdateScheduler()
+			}
 		}
 	}
 
@@ -730,7 +765,10 @@ func (a *App) routeLaunch(req core.LaunchRequest) bool {
 		a.log.Warnf("命令 %s 所属插件未启用或未编译", req.Command)
 	}
 	if !a.headless {
-		a.Notify("功能组件未启用", fmt.Sprintf("命令 %s 对应的组件当前未启用，可在「设置 → 高级」中开启。", req.Command))
+		a.Notify(
+			i18n.S("功能组件未启用", "Module Disabled"),
+			i18n.F("命令 %s 对应的组件当前未启用，可在「设置 → 高级」中开启。", "The module for command %s is currently disabled. Enable it in Settings → Advanced.", req.Command),
+		)
 	}
 	return true
 }
@@ -799,6 +837,10 @@ func (a *App) dispatch(cmd core.Command, paths []string) {
 	}
 }
 
+func isIsolatedTestInstance() bool {
+	return strings.TrimSpace(os.Getenv("PUREUTILS_INSTANCE_ID")) != ""
+}
+
 func (a *App) applyStartupSetting() {
 	hc := a.HostConfig()
 	args := ""
@@ -840,7 +882,7 @@ func (a *App) CancelUpdateDownload() {
 // InstallUpdate launches the downloaded installer and exits cleanly.
 func (a *App) InstallUpdate() error {
 	if a.updater == nil {
-		return fmt.Errorf("更新器未初始化")
+		return fmt.Errorf("%s", i18n.S("更新器未初始化", "Updater is not initialized"))
 	}
 	return a.updater.InstallAndRestart()
 }

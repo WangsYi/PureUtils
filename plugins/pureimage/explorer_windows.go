@@ -17,6 +17,8 @@ import (
 	"github.com/egoist/mygo/ui"
 	ole "github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 const (
@@ -373,7 +375,7 @@ func (m *spaceHookManager) showWindow() {
 		}
 		x, y := spacePreviewPosition(w, h)
 		win := mygo.NewWindow(mygo.WindowOptions{
-			Title:        "PureImage 预览",
+			Title:        i18n.S("PureImage 预览", "PureImage Preview"),
 			Width:        w,
 			Height:       h,
 			X:            x,

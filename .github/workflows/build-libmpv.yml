@@ -3,6 +3,9 @@ name: Build Tier 1 libmpv-2.dll (Windows x64)
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-libmpv:
     name: Cross-compile Tier 1 trimmed libmpv-2.dll
@@ -53,3 +56,16 @@ jobs:
             dist/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish libmpv-tier1 release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view libmpv-tier1 >/dev/null 2>&1; then
+            gh release upload libmpv-tier1 dist/libmpv-2-tier1-x64.7z dist/SHA256SUMS.txt --clobber
+          else
+            gh release create libmpv-tier1 dist/libmpv-2-tier1-x64.7z dist/SHA256SUMS.txt \
+              --prerelease --latest=false \
+              --title "Tier 1 Trimmed libmpv-2.dll (Build Asset)" \
+              --notes "Dependency asset consumed by GitHub Actions release workflow. Marked prerelease so in-app auto-updater ignores it."
+          fi

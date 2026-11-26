@@ -3,11 +3,26 @@ name: CI
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_call:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v') }}
+
+env:
+  GOTOOLCHAIN: auto
+  CGO_ENABLED: "0"
+  GOSUMDB: sum.golang.org
+
 jobs:
-  verify-windows:
-    name: Windows Vet, Test & Build
+  static-audit:
+    name: Static Vet, Architecture & i18n Audit
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -17,12 +32,42 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: true
 
-      - name: Run go vet
+      - name: Run go vet (full, core-only, and e2e tags)
         shell: pwsh
-        run: go vet -buildvcs=false -unsafeptr=false ./...
+        run: |
+          go vet -buildvcs=false -unsafeptr=false ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go vet -buildvcs=false -unsafeptr=false -tags nofreeimage ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go vet -buildvcs=false -unsafeptr=false -tags e2e ./e2e/...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Run full test suite
+      - name: Run architecture, dependency, i18n, and installer audits
+        shell: pwsh
+        run: |
+          go test -buildvcs=false -count=1 -v ./internal/host -run '^(TestArchitectureImportBoundaries|TestI18nAudit)$'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go test -buildvcs=false -count=1 -v ./pkg/purekit -run '^TestPurekitDependencyBoundaries$'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go test -buildvcs=false -count=1 -v ./plugins/purezip/zipshell -run '^TestInstallerScriptCoversZipComponentAndExtensions$'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  unit-and-build:
+    name: Unit Tests & Modular Build Matrix
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run full unit test suite (default runner locale)
         shell: pwsh
         run: .\build.ps1 test
 
@@ -30,8 +75,127 @@ jobs:
         shell: pwsh
         run: .\build.ps1 test -CoreOnly
 
-      - name: Build release binaries
+      - name: Verify explicit zh-CN environment detection tests
         shell: pwsh
         run: |
-          .\build.ps1 build
-          .\build.ps1 build -CoreOnly
+          $env:PUREUTILS_LANG = 'zh-CN'
+          go test -buildvcs=false -count=1 ./pkg/purekit/i18n ./internal/host
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build full, core-only, and per-plugin excluded binaries
+        shell: pwsh
+        run: |
+          .\build.ps1 build -Version "1.2.0-ci"
+          .\build.ps1 build -CoreOnly -Version "1.2.0-ci"
+          foreach ($plugin in @('pureshot', 'pureclip', 'pureimage', 'purevideo', 'purezip')) {
+            Write-Host "Building without $plugin..."
+            .\build.ps1 build -Exclude $plugin -Version "1.2.0-ci"
+          }
+
+  ui-tests:
+    name: UI, Bilingual Layout & Screenshot Verification
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run UI layout, live switch, and interaction suites
+        shell: pwsh
+        run: .\build.ps1 ui -ShotDir artifacts\ui-screenshots
+
+      - name: Write screenshot summary
+        if: always()
+        shell: pwsh
+        run: |
+          $enDir = 'artifacts\ui-screenshots\en'
+          $zhDir = 'artifacts\ui-screenshots\zh'
+          $enFiles = if (Test-Path $enDir) { @(Get-ChildItem -LiteralPath $enDir -Filter '*.png' -File | Sort-Object Name) } else { @() }
+          $zhFiles = if (Test-Path $zhDir) { @(Get-ChildItem -LiteralPath $zhDir -Filter '*.png' -File | Sort-Object Name) } else { @() }
+          $summary = @(
+            "### UI Screenshot Verification Summary",
+            "",
+            "| Locale | Count | Directory |",
+            "| --- | ---: | --- |",
+            "| en-US | $($enFiles.Count) | ``$enDir`` |",
+            "| zh-CN | $($zhFiles.Count) | ``$zhDir`` |",
+            "",
+            "<details><summary>Generated PNG files ($($enFiles.Count + $zhFiles.Count) total)</summary>",
+            ""
+          )
+          foreach ($f in $enFiles) { $summary += "- en/$($f.Name)" }
+          foreach ($f in $zhFiles) { $summary += "- zh/$($f.Name)" }
+          $summary += @("", "</details>")
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+      - name: Upload UI screenshot artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-screenshots
+          path: artifacts/ui-screenshots
+          retention-days: 14
+          if-no-files-found: error
+
+  e2e-tests:
+    name: End-to-End (Headless & Real Binary) Tests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run headless & compiled-binary E2E suites
+        shell: pwsh
+        run: |
+          $env:PUREUTILS_E2E_LOG_DIR = Join-Path $PWD 'artifacts\e2e-logs'
+          .\build.ps1 e2e -Version "1.2.0-ci"
+
+      - name: Upload E2E diagnostic logs on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-diagnostic-logs
+          path: artifacts/e2e-logs
+          retention-days: 7
+          if-no-files-found: ignore
+
+  coverage:
+    name: Coverage Report (Unit + UI + E2E)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Collect merged unit, UI, and E2E coverage
+        shell: pwsh
+        run: .\build.ps1 coverage -CovDir artifacts\coverage -MinCoverage 50 -Version "1.2.0-ci"
+
+      - name: Upload coverage report artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            artifacts/coverage/summary.md
+            artifacts/coverage/unit.out
+            artifacts/coverage/e2e.out
+            artifacts/coverage/combined.out
+          retention-days: 14
+          if-no-files-found: error

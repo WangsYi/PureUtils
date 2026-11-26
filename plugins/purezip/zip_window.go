@@ -17,6 +17,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"pureutils/pkg/purekit"
+	"pureutils/pkg/purekit/i18n"
 	pureui "pureutils/pkg/purekit/ui"
 	"pureutils/plugins/purezip/archive"
 )
@@ -510,7 +511,7 @@ func (v *zipView) requestPassword(wrong bool, retry func(pw string)) {
 	v.pwInput = ""
 	v.pwErr = ""
 	if wrong {
-		v.pwErr = "密码错误，请重新输入。"
+		v.pwErr = i18n.S("密码错误，请重新输入。", "Wrong password, please try again.")
 	}
 	v.pwRetry = retry
 }
@@ -530,7 +531,7 @@ func (v *zipView) extractTemp(es []archive.Entry) ([]string, error) {
 	v.arcMu.Lock()
 	defer v.arcMu.Unlock()
 	if v.arc == nil || len(es) == 0 {
-		return nil, errors.New("压缩文件未打开")
+		return nil, errors.New(i18n.S("压缩文件未打开", "Archive is not open"))
 	}
 	base, err := v.tempBaseDir()
 	if err != nil {
@@ -584,7 +585,7 @@ func (v *zipView) extractDirTemp(dir string) ([]string, error) {
 	v.arcMu.Lock()
 	defer v.arcMu.Unlock()
 	if v.arc == nil {
-		return nil, errors.New("压缩文件未打开")
+		return nil, errors.New(i18n.S("压缩文件未打开", "Archive is not open"))
 	}
 	base, err := v.tempBaseDir()
 	if err != nil {
@@ -623,7 +624,7 @@ func (v *zipView) extractDirTemp(dir string) ([]string, error) {
 		return []string{rootDir}, nil
 	}
 	if !v.validDir(dir) {
-		return nil, fmt.Errorf("文件夹不存在: %s", dir)
+		return nil, errors.New(i18n.F("文件夹不存在: %s", "Folder does not exist: %s", dir))
 	}
 	if _, err := v.arc.Extract(context.Background(), archive.ExtractOptions{
 		Dest: tmpDir, Paths: []string{dir}, BaseDir: zipParent(dir),
@@ -643,7 +644,7 @@ func (v *zipView) openEntry(e archive.Entry) {
 		v.navigate(e.Path)
 		return
 	}
-	v.status = "正在提取 " + e.Name + "…"
+	v.status = i18n.F("正在提取 %s…", "Extracting %s…", e.Name)
 	pw := v.password
 	zipAsync(v.plugin, func() ([]string, error) { return v.extractTemp([]archive.Entry{e}) }, func(paths []string, err error) {
 		v.status = ""
@@ -656,7 +657,7 @@ func (v *zipView) openEntry(e archive.Entry) {
 			return
 		}
 		if err != nil {
-			v.status = "打开失败：" + zipErrText(err)
+			v.status = i18n.S("打开失败：", "Open failed: ") + zipErrText(err)
 			v.invalidate()
 			return
 		}
@@ -671,7 +672,7 @@ func (v *zipView) openEntry(e archive.Entry) {
 		case zipCategory(p, false) == zipCatImage && v.plugin.Config().ImagePreview && v.plugin.host != nil && v.plugin.host.Bus().Has(purekit.CapImagePreview):
 			if err := purekit.CallImagePreviewPath(context.Background(), v.plugin.host.Bus(), p); err != nil && !v.plugin.headless() {
 				if err2 := mygo.Shell.OpenPath(p); err2 != nil {
-					v.status = "打开失败：" + err2.Error()
+					v.status = i18n.S("打开失败：", "Open failed: ") + err2.Error()
 				}
 			}
 		default:
@@ -679,7 +680,7 @@ func (v *zipView) openEntry(e archive.Entry) {
 				return
 			}
 			if err := mygo.Shell.OpenPath(p); err != nil {
-				v.status = "打开失败：" + err.Error()
+				v.status = i18n.S("打开失败：", "Open failed: ") + err.Error()
 			}
 		}
 	})
@@ -696,7 +697,7 @@ func (v *zipView) dragData(row int) transfer.Data {
 		total += v.entrySize(e)
 	}
 	if len(es) == 0 || total > 1<<30 {
-		v.status = "选中内容较大，请使用“解压”"
+		v.status = i18n.S("选中内容较大，请使用“解压”", "Selection is large; use Extract instead")
 		return transfer.New()
 	}
 	paths, err := v.extractTemp(es)
@@ -704,13 +705,13 @@ func (v *zipView) dragData(row int) transfer.Data {
 		if errors.Is(err, archive.ErrPasswordRequired) || errors.Is(err, archive.ErrWrongPassword) {
 			v.requestPassword(v.password != "", func(next string) { v.password = next })
 		} else {
-			v.status = "拖出失败：" + zipErrText(err)
+			v.status = i18n.S("拖出失败：", "Drag out failed: ") + zipErrText(err)
 		}
 		return transfer.New()
 	}
 	data, err := transfer.FileData(paths...)
 	if err != nil {
-		v.status = "拖出失败：" + err.Error()
+		v.status = i18n.S("拖出失败：", "Drag out failed: ") + err.Error()
 		return transfer.New()
 	}
 	return data
@@ -726,7 +727,7 @@ func (v *zipView) dragDirData(dir string) transfer.Data {
 		total = v.info.TotalSize
 	}
 	if total > 1<<30 {
-		v.status = "文件夹内容较大，请使用“解压”"
+		v.status = i18n.S("文件夹内容较大，请使用“解压”", "Folder is large; use Extract instead")
 		return transfer.New()
 	}
 	paths, err := v.extractDirTemp(dir)
@@ -734,20 +735,20 @@ func (v *zipView) dragDirData(dir string) transfer.Data {
 		if errors.Is(err, archive.ErrPasswordRequired) || errors.Is(err, archive.ErrWrongPassword) {
 			v.requestPassword(v.password != "", func(next string) { v.password = next })
 		} else {
-			v.status = "拖出失败：" + zipErrText(err)
+			v.status = i18n.S("拖出失败：", "Drag out failed: ") + zipErrText(err)
 		}
 		return transfer.New()
 	}
 	data, err := transfer.FileData(paths...)
 	if err != nil {
-		v.status = "拖出失败：" + err.Error()
+		v.status = i18n.S("拖出失败：", "Drag out failed: ") + err.Error()
 		return transfer.New()
 	}
 	return data
 }
 
 func (v *zipView) openDialog() {
-	v.plugin.pickFiles(v.win, "打开压缩文件", false, false, archiveFilters(), func(paths []string) {
+	v.plugin.pickFiles(v.win, i18n.S("打开压缩文件", "Open Archive"), false, false, archiveFilters(), func(paths []string) {
 		v.load(paths[0], "")
 	})
 }
@@ -779,21 +780,21 @@ func (v *zipView) quickExtract(mode zipExtractMode) {
 }
 
 // runEdit closes the archive, rewrites it through a job and reloads it.
-func (v *zipView) runEdit(verb string, work func(j *zipJob, opt archive.CreateOptions) error) {
+func (v *zipView) runEdit(op string, work func(j *zipJob, opt archive.CreateOptions) error) {
 	if !v.editable() {
-		v.status = "该格式不支持修改"
+		v.status = i18n.S("该格式不支持修改", "This format does not support editing")
 		v.invalidate()
 		return
 	}
 	path, pw, cwd := v.path, v.password, v.cwd
 	v.closeArchive()
 	v.busy = true
-	v.status = "正在" + verb + "…"
-	v.plugin.startArchiveEdit(verb, path, work, pw, func(err error) {
+	v.status = zipJobActiveTitle(op)
+	v.plugin.startArchiveEdit(op, path, work, pw, func(err error) {
 		v.busy = false
 		v.status = ""
 		if err != nil && !errors.Is(err, archive.ErrCanceled) {
-			v.status = verb + "失败：" + zipErrText(err)
+			v.status = zipJobFailedTitle(op) + i18n.S("：", ": ") + zipErrText(err)
 		}
 		v.restoreCwd = cwd
 		v.load(path, pw)
@@ -807,7 +808,7 @@ func (v *zipView) addSources(sources []string) {
 	}
 	into := v.cwd
 	path := v.path
-	v.runEdit("添加", func(j *zipJob, opt archive.CreateOptions) error {
+	v.runEdit("add", func(j *zipJob, opt archive.CreateOptions) error {
 		return archive.AddFiles(j.ctx, path, sources, into, opt)
 	})
 }
@@ -820,7 +821,7 @@ func (v *zipView) deleteSelected() {
 	paths := entryPaths(es)
 	path := v.path
 	v.chosen.Clear()
-	v.runEdit("删除", func(j *zipJob, opt archive.CreateOptions) error {
+	v.runEdit("delete", func(j *zipJob, opt archive.CreateOptions) error {
 		return archive.DeleteEntries(j.ctx, path, paths, opt)
 	})
 }
@@ -839,7 +840,7 @@ func (v *zipView) startRename(e archive.Entry) {
 func (v *zipView) commitRename() bool {
 	name := strings.TrimSpace(v.renameInput)
 	if name == "" || strings.ContainsAny(name, `/\`) {
-		v.renameErr = "名称不能为空且不能包含 / 或 \\"
+		v.renameErr = i18n.S("名称不能为空且不能包含 / 或 \\", "Name cannot be empty or contain / or \\")
 		return false
 	}
 	if name == zipBase(v.renamePath) {
@@ -849,7 +850,7 @@ func (v *zipView) commitRename() bool {
 	oldPath := v.renamePath
 	path := v.path
 	v.renameOpen = false
-	v.runEdit("重命名", func(j *zipJob, opt archive.CreateOptions) error {
+	v.runEdit("rename", func(j *zipJob, opt archive.CreateOptions) error {
 		return archive.RenameEntry(j.ctx, path, oldPath, name, opt)
 	})
 	return true
@@ -891,14 +892,14 @@ func (v *zipView) view(c *ui.Context) {
 		case v.loading:
 			ui.Column(c).Grow(1).Center().Gap(10).Children(func() {
 				ui.Spinner(c)
-				ui.Text(c, "正在读取 "+filepath.Base(v.path)+"…").FontSize(12).TextColor(pal.TextMuted)
+				ui.Text(c, i18n.F("正在读取 %s…", "Loading %s…", filepath.Base(v.path))).FontSize(12).TextColor(pal.TextMuted)
 			})
 		case v.errText != "" && v.arc == nil:
 			ui.Column(c).Grow(1).Children(func() {
-				pureui.EmptyState(c, pureui.IconAlertCircle, "无法打开压缩文件", v.errText+"\n"+v.path, pal, func() {
+				pureui.EmptyState(c, pureui.IconAlertCircle, i18n.S("无法打开压缩文件", "Unable to open archive"), v.errText+"\n"+v.path, pal, func() {
 					ui.Row(c).Gap(8).Children(func() {
-						ui.Button(c, "重试").OnClick(func() { v.load(v.path, v.password) })
-						ui.PrimaryButton(c, "打开其他文件").OnClick(v.openDialog)
+						ui.Button(c, i18n.S("重试", "Retry")).OnClick(func() { v.load(v.path, v.password) })
+						ui.PrimaryButton(c, i18n.S("打开其他文件", "Open Another File")).OnClick(v.openDialog)
 					})
 				})
 			})
@@ -950,7 +951,7 @@ func (v *zipView) view(c *ui.Context) {
 }
 
 func (v *zipView) toolButton(c *ui.Context, pal pureui.Palette, icon *ui.SVG, label, tip string, disabled bool, onClick func()) ui.Element {
-	b := ui.ButtonBase(c).Padding(5, 10).Radius(8).Label(label).Disabled(disabled).Tooltip(tip)
+	b := ui.ButtonBase(c).Padding(5, 8).Radius(8).Label(label).Disabled(disabled).Tooltip(tip)
 	fg := pal.TextSecondary
 	iconFg := pal.Accent
 	switch {
@@ -978,48 +979,48 @@ func (v *zipView) toolButton(c *ui.Context, pal pureui.Palette, icon *ui.SVG, la
 func (v *zipView) toolbar(c *ui.Context, pal pureui.Palette) {
 	hasArc := v.arc != nil && !v.busy
 	ui.Row(c).Padding(6, 10).Gap(2).AlignItems(ui.Center).Background(pal.SidebarBg).Children(func() {
-		v.toolButton(c, pal, iconFolderOpen, "打开", "打开压缩文件 (Ctrl+O)", false, v.openDialog)
-		v.toolButton(c, pal, iconCompress, "新建", "新建压缩文件 (Ctrl+N)", false, func() { v.plugin.ShowCompressDialog(nil, "") })
+		v.toolButton(c, pal, iconFolderOpen, i18n.S("打开", "Open"), i18n.S("打开压缩文件 (Ctrl+O)", "Open Archive (Ctrl+O)"), false, v.openDialog)
+		v.toolButton(c, pal, iconCompress, i18n.S("新建", "New"), i18n.S("新建压缩文件 (Ctrl+N)", "New Archive (Ctrl+N)"), false, func() { v.plugin.ShowCompressDialog(nil, "") })
 		ui.Box(c).Width(1).Height(34).Margin(0, 6).Background(pal.Border)
-		v.toolButton(c, pal, iconExtract, "解压", "解压到… (Ctrl+E)", !hasArc, func() { v.extractDialog(-1) })
-		qb := ui.ButtonBase(c).Size(18, 44).Radius(6).Label("解压选项").Disabled(!hasArc).Tooltip("快速解压").Center()
+		v.toolButton(c, pal, iconExtract, i18n.S("解压", "Extract"), i18n.S("解压到… (Ctrl+E)", "Extract To… (Ctrl+E)"), !hasArc, func() { v.extractDialog(-1) })
+		qb := ui.ButtonBase(c).Size(18, 44).Radius(6).Label(i18n.S("解压选项", "Extract Options")).Disabled(!hasArc).Tooltip(i18n.S("快速解压", "Quick Extract")).Center()
 		if qb.Hovered() && hasArc {
 			qb.Background(pal.CardHover)
 		}
 		qb.Children(func() { ui.Icon(c, iconChevronDown).Size(12, 12).TextColor(pal.TextMuted) })
 		qb.Menu(func(m *ui.Menu) {
-			if m.Item("解压到当前文件夹").Chosen() {
+			if m.Item(i18n.S("解压到当前文件夹", "Extract Here")).Chosen() {
 				v.quickExtract(zipExtractHere)
 			}
-			if m.Item("智能解压（自动判断是否新建文件夹）").Chosen() {
+			if m.Item(i18n.S("智能解压（自动判断是否新建文件夹）", "Smart Extract")).Chosen() {
 				v.quickExtract(zipExtractSmart)
 			}
-			if v.path != "" && m.Item("解压到 \""+archive.BaseName(v.path)+"\\\"").Chosen() {
+			if v.path != "" && m.Item(i18n.F(`解压到 "%s\"`, `Extract to "%s\"`, archive.BaseName(v.path))).Chosen() {
 				v.quickExtract(zipExtractFolder)
 			}
 			m.Separator()
-			if m.Item("解压到…").Chosen() {
+			if m.Item(i18n.S("解压到…", "Extract To…")).Chosen() {
 				v.extractDialog(-1)
 			}
 		})
-		add := v.toolButton(c, pal, iconFilePlus, "添加", "添加文件或文件夹到压缩包", !v.editable(), nil)
+		add := v.toolButton(c, pal, iconFilePlus, i18n.S("添加", "Add"), i18n.S("添加文件或文件夹到压缩包", "Add files or folders to archive"), !v.editable(), nil)
 		add.Menu(func(m *ui.Menu) {
-			if m.Item("添加文件…").Chosen() {
-				v.plugin.pickFiles(v.win, "添加文件到压缩包", false, true, nil, v.addSources)
+			if m.Item(i18n.S("添加文件…", "Add Files…")).Chosen() {
+				v.plugin.pickFiles(v.win, i18n.S("添加文件到压缩包", "Add Files to Archive"), false, true, nil, v.addSources)
 			}
-			if m.Item("添加文件夹…").Chosen() {
-				v.plugin.pickFiles(v.win, "添加文件夹到压缩包", true, true, nil, v.addSources)
+			if m.Item(i18n.S("添加文件夹…", "Add Folder…")).Chosen() {
+				v.plugin.pickFiles(v.win, i18n.S("添加文件夹到压缩包", "Add Folder to Archive"), true, true, nil, v.addSources)
 			}
 		})
-		v.toolButton(c, pal, pureui.IconTrash, "删除", "删除选中项 (Del)", !v.editable() || len(v.selectedEntries()) == 0, func() { v.confirmDel = true })
-		v.toolButton(c, pal, iconShieldCheck, "测试", "测试压缩文件完整性", !hasArc, func() { v.plugin.startTestArchive(v.path, v.password) })
-		v.toolButton(c, pal, iconInfo, "信息", "压缩文件信息", !hasArc, func() { v.infoOpen = true })
+		v.toolButton(c, pal, pureui.IconTrash, i18n.S("删除", "Delete"), i18n.S("删除选中项 (Del)", "Delete selected items (Del)"), !v.editable() || len(v.selectedEntries()) == 0, func() { v.confirmDel = true })
+		v.toolButton(c, pal, iconShieldCheck, i18n.S("测试", "Test"), i18n.S("测试压缩文件完整性", "Test archive integrity"), !hasArc, func() { v.plugin.startTestArchive(v.path, v.password) })
+		v.toolButton(c, pal, iconInfo, i18n.S("信息", "Info"), i18n.S("压缩文件信息", "Archive properties"), !hasArc, func() { v.infoOpen = true })
 		ui.Box(c).Grow(1)
 		if v.arc != nil {
-			ui.SearchField(c, &v.query).Bind(&v.searchHandle).Width(220).Placeholder("在压缩包中搜索").Label("搜索压缩包").
-		Background(pal.ControlBg).Border(0, ui.Transparent).FocusRing(false)
+			ui.SearchField(c, &v.query).Bind(&v.searchHandle).Width(190).Placeholder(i18n.S("在压缩包中搜索", "Search archive")).Label(i18n.S("搜索压缩包", "Search archive")).
+				Background(pal.ControlBg).Border(0, ui.Transparent).FocusRing(false)
 		}
-		if pureui.IconButton(c, pureui.IconSettings, "PureZip 设置", "打开 PureZip 设置", false, false, pal).Clicked() {
+		if pureui.IconButton(c, pureui.IconSettings, i18n.S("PureZip 设置", "PureZip Settings"), i18n.S("打开 PureZip 设置", "Open PureZip Settings"), false, false, pal).Clicked() {
 			if v.plugin.host != nil { v.plugin.host.OpenSettings(PluginID) }
 		}
 	})
@@ -1028,13 +1029,13 @@ func (v *zipView) toolbar(c *ui.Context, pal pureui.Palette) {
 func (v *zipView) pathBar(c *ui.Context, pal pureui.Palette) {
 	ui.Row(c).Padding(6, 12).Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Row(c).Gap(2).AlignItems(ui.Center).Children(func() {
-			if pureui.IconButton(c, iconArrowLeft, "后退", "后退 (Alt+←)", false, false, pal).Disabled(!v.canGoBack()).Clicked() {
+			if pureui.IconButton(c, iconArrowLeft, i18n.S("后退", "Back"), i18n.S("后退 (Alt+←)", "Back (Alt+←)"), false, false, pal).Disabled(!v.canGoBack()).Clicked() {
 				v.goBack()
 			}
-			if pureui.IconButton(c, iconArrowRight, "前进", "前进 (Alt+→)", false, false, pal).Disabled(!v.canGoForward()).Clicked() {
+			if pureui.IconButton(c, iconArrowRight, i18n.S("前进", "Forward"), i18n.S("前进 (Alt+→)", "Forward (Alt+→)"), false, false, pal).Disabled(!v.canGoForward()).Clicked() {
 				v.goForward()
 			}
-			if pureui.IconButton(c, iconArrowUp, "上一级", "返回上一级 (Backspace / Alt+↑)", false, false, pal).Disabled(v.cwd == "").Clicked() {
+			if pureui.IconButton(c, iconArrowUp, i18n.S("上一级", "Up"), i18n.S("返回上一级 (Backspace / Alt+↑)", "Up one level (Backspace / Alt+↑)"), false, false, pal).Disabled(v.cwd == "").Clicked() {
 				v.goUp()
 			}
 		})
@@ -1045,7 +1046,7 @@ func (v *zipView) pathBar(c *ui.Context, pal pureui.Palette) {
 		v.crumb = len(items) - 1
 		ui.Row(c).Grow(1).MinWidth(0).Padding(5, 10).Radius(8).Background(pal.ControlBg).AlignItems(ui.Center).Gap(6).Children(func() {
 			ui.Icon(c, iconArchive).Size(14, 14).TextColor(ui.Hex("#F97316"))
-			if ui.Breadcrumbs(c, items, &v.crumb).Label("压缩包路径").Grow(1).Changed() {
+			if ui.Breadcrumbs(c, items, &v.crumb).Label(i18n.S("压缩包路径", "Archive path")).Grow(1).Changed() {
 				v.navigate(strings.Join(items[1:v.crumb+1], "/"))
 			}
 		})
@@ -1054,11 +1055,11 @@ func (v *zipView) pathBar(c *ui.Context, pal pureui.Palette) {
 			if curEnc == "" {
 				curEnc = "auto"
 			}
-			encText := "编码"
+			encText := i18n.S("编码", "Encoding")
 			if v.info.Encoding != "" {
 				encText = v.info.Encoding
 			}
-			eb := ui.ButtonBase(c).Padding(4, 10).Radius(8).Label("文件名编码").Tooltip("切换 ZIP 文件名编码（解决中文/日文乱码）").
+			eb := ui.ButtonBase(c).Padding(4, 10).Radius(8).Label(i18n.S("文件名编码", "Filename Encoding")).Tooltip(i18n.S("切换 ZIP 文件名编码（解决中文/日文乱码）", "Switch ZIP filename encoding (fix garbled names)")).
 				Background(pal.ControlBg)
 			if eb.Hovered() {
 				eb.Background(pal.CardHover)
@@ -1070,8 +1071,9 @@ func (v *zipView) pathBar(c *ui.Context, pal pureui.Palette) {
 				})
 			})
 			eb.Menu(func(m *ui.Menu) {
+				encLabels := zipEncodingLabels()
 				for i, opt := range zipEncodingOptions {
-					if m.Item(zipEncodingLabels[i]).Checked(strings.EqualFold(curEnc, opt)).Chosen() {
+					if m.Item(encLabels[i]).Checked(strings.EqualFold(curEnc, opt)).Chosen() {
 						v.encoding = opt
 						v.restoreCwd = v.cwd
 						v.load(v.path, v.password)
@@ -1080,7 +1082,7 @@ func (v *zipView) pathBar(c *ui.Context, pal pureui.Palette) {
 			})
 		}
 		if v.info.Encrypted || v.password != "" {
-			pureui.PillBadge(c, "已加密", pal.Warning, pal.WarningSoft)
+			pureui.PillBadge(c, i18n.S("已加密", "Encrypted"), pal.Warning, pal.WarningSoft)
 		}
 		pureui.PillBadge(c, v.info.Format.Label(), pal.Accent, pal.AccentSoft)
 	})
@@ -1127,17 +1129,17 @@ func (v *zipView) treeMenu(m *ui.Menu, dir string) {
 	if v.arc == nil {
 		return
 	}
-	if m.Item("打开").Chosen() {
+	if m.Item(i18n.S("打开", "Open")).Chosen() {
 		v.navigate(dir)
 	}
-	if m.Item("解压到…").Chosen() {
+	if m.Item(i18n.S("解压到…", "Extract To…")).Chosen() {
 		if dir == "" {
 			v.plugin.ShowExtractDialog([]string{v.path}, nil, "", v.password)
 		} else {
 			v.plugin.ShowExtractDialog([]string{v.path}, []string{dir}, zipParent(dir), v.password)
 		}
 	}
-	if m.Item("解压到同名文件夹").Chosen() {
+	if m.Item(i18n.S("解压到同名文件夹", "Extract to Subfolder")).Chosen() {
 		if dir == "" {
 			v.quickExtract(zipExtractFolder)
 		} else {
@@ -1151,13 +1153,15 @@ func (v *zipView) treeMenu(m *ui.Menu, dir string) {
 	}
 }
 
-var zipColumns = []ui.TableColumn{
-	{Title: "名称", ID: "name", Sortable: true, MinWidth: 180},
-	{Title: "大小", ID: "size", Width: 92, Align: ui.End, Sortable: true},
-	{Title: "压缩后", ID: "packed", Width: 92, Align: ui.End, Sortable: true},
-	{Title: "类型", ID: "type", Width: 128, Sortable: true},
-	{Title: "修改时间", ID: "modified", Width: 136, Sortable: true},
-	{Title: "CRC32", ID: "crc", Width: 84},
+func zipColumns() []ui.TableColumn {
+	return []ui.TableColumn{
+		{Title: i18n.S("名称", "Name"), ID: "name", Sortable: true, MinWidth: 180},
+		{Title: i18n.S("大小", "Size"), ID: "size", Width: 92, Align: ui.End, Sortable: true},
+		{Title: i18n.S("压缩后", "Packed"), ID: "packed", Width: 92, Align: ui.End, Sortable: true},
+		{Title: i18n.S("类型", "Type"), ID: "type", Width: 128, Sortable: true},
+		{Title: i18n.S("修改时间", "Modified"), ID: "modified", Width: 136, Sortable: true},
+		{Title: "CRC32", ID: "crc", Width: 84},
+	}
 }
 
 func (v *zipView) tablePane(c *ui.Context, pal pureui.Palette, over bool) {
@@ -1196,7 +1200,7 @@ func (v *zipView) tablePane(c *ui.Context, pal pureui.Palette, over bool) {
 	}
 	box.Children(func() {
 		totalRows := v.tableRowCount()
-		tbl := ui.Table(c, &v.list, zipColumns, totalRows, func(row, col int) {
+		tbl := ui.Table(c, &v.list, zipColumns(), totalRows, func(row, col int) {
 			if v.isParentRow(row) {
 				switch col {
 				case 0:
@@ -1205,7 +1209,7 @@ func (v *zipView) tablePane(c *ui.Context, pal pureui.Palette, over bool) {
 						ui.Text(c, "..").FontWeight(600).SingleLine()
 					})
 				case 3:
-					ui.Text(c, "上级文件夹").SingleLine().TextColor(pal.TextMuted)
+					ui.Text(c, i18n.S("上级文件夹", "Parent Folder")).SingleLine().TextColor(pal.TextMuted)
 				}
 				return
 			}
@@ -1259,7 +1263,7 @@ func (v *zipView) tablePane(c *ui.Context, pal pureui.Palette, over bool) {
 				v.clickTableRow(row, c.Modifiers())
 				v.list.Focus(c)
 			}
-		}).Grow(1).Label("压缩包内容")
+		}).Grow(1).Label(i18n.S("压缩包内容", "Archive Contents"))
 		v.chosen.Remove(zipParentRowKey)
 		if tbl.Submitted() && v.current >= 0 && v.current < totalRows {
 			v.openRow(v.current)
@@ -1281,9 +1285,9 @@ func (v *zipView) tablePane(c *ui.Context, pal pureui.Palette, over bool) {
 		}
 		if len(v.rows) == 0 && (searching || !v.hasParentRow()) {
 			ui.Column(c).Absolute().Top(40).Left(0).Right(0).AlignItems(ui.Center).Children(func() {
-				msg := "此文件夹为空"
+				msg := i18n.S("此文件夹为空", "This folder is empty")
 				if searching {
-					msg = "没有匹配“" + v.query + "”的文件"
+					msg = i18n.F("没有匹配“%s”的文件", `No files match "%s"`, v.query)
 				}
 				ui.Text(c, msg).FontSize(12).TextColor(pal.TextMuted)
 			})
@@ -1305,13 +1309,13 @@ func (v *zipView) rowMenu(m *ui.Menu, row int) {
 	if len(es) == 0 {
 		return
 	}
-	if len(es) == 1 && m.Item("打开").Chosen() {
+	if len(es) == 1 && m.Item(i18n.S("打开", "Open")).Chosen() {
 		v.openEntry(es[0])
 	}
-	if m.Item("解压到…").Chosen() {
+	if m.Item(i18n.S("解压到…", "Extract To…")).Chosen() {
 		v.extractDialog(row)
 	}
-	if m.Item("解压到压缩文件所在位置").Chosen() {
+	if m.Item(i18n.S("解压到压缩文件所在位置", "Extract Here")).Chosen() {
 		s := v.plugin.Config()
 		baseDir := v.cwd
 		if strings.TrimSpace(v.query) != "" && len(es) > 0 {
@@ -1322,17 +1326,17 @@ func (v *zipView) rowMenu(m *ui.Menu, row int) {
 			Overwrite: zipOverwriteMode(s.OverwriteMode), OpenFolder: s.OpenFolderAfterExtract})
 	}
 	m.Separator()
-	if m.Item("重命名").Disabled(!v.editable() || len(es) != 1).Chosen() {
+	if m.Item(i18n.S("重命名", "Rename")).Disabled(!v.editable() || len(es) != 1).Chosen() {
 		v.startRename(es[0])
 	}
-	if m.Item("删除").Disabled(!v.editable()).Chosen() {
+	if m.Item(i18n.S("删除", "Delete")).Disabled(!v.editable()).Chosen() {
 		v.chosen.Clear()
 		for _, e := range es {
 			v.chosen.Add(e.Path)
 		}
 		v.confirmDel = true
 	}
-	if m.Item("复制文件名").Chosen() {
+	if m.Item(i18n.S("复制文件名", "Copy Name")).Chosen() {
 		names := make([]string, len(es))
 		for i, e := range es {
 			names[i] = e.Name
@@ -1349,23 +1353,23 @@ func (v *zipView) statusBar(c *ui.Context, pal pureui.Palette) {
 			left = v.status
 		case v.arc != nil:
 			n := len(v.rows)
-			left = fmt.Sprintf("%d 个项目", n)
+			left = i18n.F("%d 个项目", "%d items", n)
 			if sel := v.selectedEntries(); len(sel) > 0 {
 				var total int64
 				for _, e := range sel {
 					total += v.entrySize(e)
 				}
-				left += fmt.Sprintf(" · 已选择 %d 个（%s）", len(sel), zipSize(total))
+				left += i18n.F(" · 已选择 %d 个（%s）", " · %d selected (%s)", len(sel), zipSize(total))
 			}
 		case v.path == "":
-			left = "拖放压缩文件以打开，拖放其他文件以压缩"
+			left = i18n.S("拖放压缩文件以打开，拖放其他文件以压缩", "Drop an archive to open, or other files to compress")
 		}
 		ui.Text(c, left).FontSize(11).SingleLine().Grow(1).MinWidth(0).TextColor(pal.TextMuted)
 		if v.arc != nil {
 			info := v.info
-			txt := fmt.Sprintf("文件 %d · 文件夹 %d · 原始 %s", info.Files, info.Dirs, zipSize(info.TotalSize))
+			txt := i18n.F("文件 %d · 文件夹 %d · 原始 %s", "%d files · %d folders · %s", info.Files, info.Dirs, zipSize(info.TotalSize))
 			if info.TotalPacked >= 0 {
-				txt += fmt.Sprintf(" · 压缩后 %s（%s）", zipSize(info.TotalPacked), zipRatio(info.TotalPacked, info.TotalSize))
+				txt += i18n.F(" · 压缩后 %s（%s）", " · Packed %s (%s)", zipSize(info.TotalPacked), zipRatio(info.TotalPacked, info.TotalSize))
 			}
 			ui.Text(c, txt).FontSize(11).SingleLine().TextColor(pal.TextMuted).Shrink(0)
 		}
@@ -1383,18 +1387,18 @@ func (v *zipView) startPage(c *ui.Context, pal pureui.Palette, over bool) {
 				Shadow(0, 6, 18, 0, ui.RGBA(234, 88, 12, 0.30)).Children(func() {
 				ui.Icon(c, iconArchive).Size(28, 28).TextColor(ui.Hex("#FFFFFF"))
 			})
-			ui.Text(c, "拖放压缩文件到这里打开，或拖放文件 / 文件夹进行压缩").FontSize(14).FontWeight(600).TextColor(pal.Text)
-			ui.Text(c, "支持 ZIP · 7Z · RAR · TAR · GZ · BZ2 · XZ · ZST 等格式，ZIP / 7Z 支持 AES-256 加密").FontSize(11.5).TextColor(pal.TextMuted)
+			ui.Text(c, i18n.S("拖放压缩文件到这里打开，或拖放文件 / 文件夹进行压缩", "Drop archives here to open, or files/folders to compress")).FontSize(14).FontWeight(600).TextColor(pal.Text)
+			ui.Text(c, i18n.S("支持 ZIP · 7Z · RAR · TAR · GZ · BZ2 · XZ · ZST 等格式，ZIP / 7Z 支持 AES-256 加密", "Supports ZIP, 7Z, RAR, TAR, GZ, BZ2, XZ, ZST and more · AES-256 encryption for ZIP / 7Z")).FontSize(11.5).TextColor(pal.TextMuted)
 			ui.Row(c).Gap(10).Margin(6, 0, 0, 0).Children(func() {
-				ui.PrimaryButton(c, "打开压缩文件").OnClick(v.openDialog)
-				ui.Button(c, "新建压缩文件").OnClick(func() { v.plugin.ShowCompressDialog(nil, "") })
+				ui.PrimaryButton(c, i18n.S("打开压缩文件", "Open Archive")).OnClick(v.openDialog)
+				ui.Button(c, i18n.S("新建压缩文件", "New Archive")).OnClick(func() { v.plugin.ShowCompressDialog(nil, "") })
 			})
 		})
 		recent := v.plugin.Config().RecentArchives
 		ui.Column(c).Gap(6).Grow(1).Children(func() {
-			ui.Text(c, "最近打开").FontSize(13).FontWeight(600).TextColor(pal.Text)
+			ui.Text(c, i18n.S("最近打开", "Recent Archives")).FontSize(13).FontWeight(600).TextColor(pal.Text)
 			if len(recent) == 0 {
-				ui.Text(c, "暂无记录").FontSize(11.5).TextColor(pal.TextMuted)
+				ui.Text(c, i18n.S("暂无记录", "No recent archives")).FontSize(11.5).TextColor(pal.TextMuted)
 				return
 			}
 			ui.Scroll(c).Grow(1).Children(func() {
@@ -1428,13 +1432,13 @@ func (v *zipView) modals(c *ui.Context, pal pureui.Palette) {
 					ui.Icon(c, iconLock).Size(17, 17).TextColor(pal.Warning)
 				})
 				ui.Column(c).Gap(2).Children(func() {
-					ui.Text(c, "需要密码").FontSize(14).FontWeight(650).TextColor(pal.Text)
+					ui.Text(c, i18n.S("需要密码", "Password Required")).FontSize(14).FontWeight(650).TextColor(pal.Text)
 					ui.Text(c, filepath.Base(v.path)).FontSize(11).SingleLine().TextColor(pal.TextMuted)
 				})
 			})
 			submit := func() {
 				if v.pwInput == "" {
-					v.pwErr = "请输入密码。"
+					v.pwErr = i18n.S("请输入密码。", "Please enter a password.")
 					return
 				}
 				pw, retry := v.pwInput, v.pwRetry
@@ -1445,7 +1449,7 @@ func (v *zipView) modals(c *ui.Context, pal pureui.Palette) {
 				}
 			}
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-				in := ui.TextInput(c, &v.pwInput).Grow(1).Placeholder("输入密码").Label("压缩包密码").AutoFocus()
+				in := ui.TextInput(c, &v.pwInput).Grow(1).Placeholder(i18n.S("输入密码", "Enter password")).Label(i18n.S("压缩包密码", "Archive password")).AutoFocus()
 				if !v.pwShow {
 					in.Password()
 				}
@@ -1456,7 +1460,7 @@ func (v *zipView) modals(c *ui.Context, pal pureui.Palette) {
 				if v.pwShow {
 					icon = iconEyeOff
 				}
-				if pureui.IconButton(c, icon, "显示密码", "显示/隐藏密码", v.pwShow, false, pal).Clicked() {
+				if pureui.IconButton(c, icon, i18n.S("显示密码", "Show Password"), i18n.S("显示/隐藏密码", "Show / hide password"), v.pwShow, false, pal).Clicked() {
 					v.pwShow = !v.pwShow
 				}
 			})
@@ -1464,25 +1468,25 @@ func (v *zipView) modals(c *ui.Context, pal pureui.Palette) {
 				ui.Text(c, v.pwErr).FontSize(11.5).TextColor(pal.Danger)
 			}
 			ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
-				ui.Button(c, "取消").OnClick(func() { v.pwPrompt = false; v.pwRetry = nil })
-				ui.PrimaryButton(c, "确定").OnClick(submit)
+				ui.Button(c, i18n.S("取消", "Cancel")).OnClick(func() { v.pwPrompt = false; v.pwRetry = nil })
+				ui.PrimaryButton(c, i18n.S("确定", "OK")).OnClick(submit)
 			})
 		})
 	})
 
 	if v.confirmDel {
 		n := len(v.selectedEntries())
-		if res := ui.AlertDialog(c, &v.confirmDel, fmt.Sprintf("从压缩包中删除 %d 个项目？", n),
-			"删除后会重写压缩文件，此操作无法撤销。", "取消", "删除"); res == 1 {
+		if res := ui.AlertDialog(c, &v.confirmDel, i18n.F("从压缩包中删除 %d 个项目？", "Delete %d items from archive?", n),
+			i18n.S("删除后会重写压缩文件，此操作无法撤销。", "Deleting items rewrites the archive and cannot be undone."), i18n.S("取消", "Cancel"), i18n.S("删除", "Delete")); res == 1 {
 			v.deleteSelected()
 		}
 	}
 
 	ui.Modal(c, &v.renameOpen, func() {
 		ui.Column(c).Width(360).Gap(10).Children(func() {
-			ui.Text(c, "重命名").FontSize(14).FontWeight(650).TextColor(pal.Text)
+			ui.Text(c, i18n.S("重命名", "Rename")).FontSize(14).FontWeight(650).TextColor(pal.Text)
 			ui.Text(c, v.renamePath).FontSize(11).SingleLine().TextColor(pal.TextMuted)
-			in := ui.TextInput(c, &v.renameInput).Placeholder("新名称").Label("新名称").AutoFocus()
+			in := ui.TextInput(c, &v.renameInput).Placeholder(i18n.S("新名称", "New name")).Label(i18n.S("新名称", "New name")).AutoFocus()
 			if in.Submitted() {
 				v.commitRename()
 			}
@@ -1490,15 +1494,15 @@ func (v *zipView) modals(c *ui.Context, pal pureui.Palette) {
 				ui.Text(c, v.renameErr).FontSize(11.5).TextColor(pal.Danger)
 			}
 			ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
-				ui.Button(c, "取消").OnClick(func() { v.renameOpen = false })
-				ui.PrimaryButton(c, "确定").OnClick(func() { v.commitRename() })
+				ui.Button(c, i18n.S("取消", "Cancel")).OnClick(func() { v.renameOpen = false })
+				ui.PrimaryButton(c, i18n.S("确定", "OK")).OnClick(func() { v.commitRename() })
 			})
 		})
 	})
 
 	ui.Modal(c, &v.infoOpen, func() {
 		info := v.info
-		ui.Column(c).Width(400).Gap(10).Children(func() {
+		ui.Column(c).Width(420).Gap(10).Children(func() {
 			ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 				if bm := v.plugin.zipIconBitmap(); bm != nil {
 					ui.Image(c, bm).Size(36, 36)
@@ -1511,43 +1515,43 @@ func (v *zipView) modals(c *ui.Context, pal pureui.Palette) {
 			ui.Column(c).Gap(6).Padding(10, 12).Radius(10).Background(pal.CardBg).Children(func() {
 				row := func(k, val string) {
 					ui.Row(c).Gap(12).Children(func() {
-						ui.Text(c, k).FontSize(12).Width(86).TextColor(pal.TextMuted)
+						ui.Text(c, k).FontSize(12).Width(110).TextColor(pal.TextMuted)
 						ui.Text(c, val).FontSize(12).Grow(1).TextColor(pal.Text).Selectable()
 					})
 				}
 				yes := func(b bool) string {
 					if b {
-						return "是"
+						return i18n.S("是", "Yes")
 					}
-					return "否"
+					return i18n.S("否", "No")
 				}
-				row("格式", info.Format.Label())
-				row("文件大小", zipSize(info.FileSize))
-				row("内容", fmt.Sprintf("%d 个文件，%d 个文件夹", info.Files, info.Dirs))
-				row("原始大小", zipSize(info.TotalSize))
+				row(i18n.S("格式", "Format"), info.Format.Label())
+				row(i18n.S("文件大小", "File Size"), zipSize(info.FileSize))
+				row(i18n.S("内容", "Contents"), i18n.F("%d 个文件，%d 个文件夹", "%d files, %d folders", info.Files, info.Dirs))
+				row(i18n.S("原始大小", "Uncompressed"), zipSize(info.TotalSize))
 				if info.TotalPacked >= 0 {
-					row("压缩后", fmt.Sprintf("%s（压缩率 %s）", zipSize(info.TotalPacked), zipRatio(info.TotalPacked, info.TotalSize)))
+					row(i18n.S("压缩后", "Compressed"), i18n.F("%s（压缩率 %s）", "%s (ratio %s)", zipSize(info.TotalPacked), zipRatio(info.TotalPacked, info.TotalSize)))
 				}
-				row("加密", yes(info.Encrypted))
+				row(i18n.S("加密", "Encrypted"), yes(info.Encrypted))
 				if info.HeaderEncrypted {
-					row("文件名加密", "是")
+					row(i18n.S("文件名加密", "Encrypted Names"), i18n.S("是", "Yes"))
 				}
-				row("固实压缩", yes(info.Solid))
+				row(i18n.S("固实压缩", "Solid"), yes(info.Solid))
 				if info.MultiVolume {
-					row("分卷", "是")
+					row(i18n.S("分卷", "Multi-Volume"), i18n.S("是", "Yes"))
 				}
 				if info.Encoding != "" {
-					row("文件名编码", info.Encoding)
+					row(i18n.S("文件名编码", "Name Encoding"), info.Encoding)
 				}
 				if info.Comment != "" {
-					row("注释", info.Comment)
+					row(i18n.S("注释", "Comment"), info.Comment)
 				}
 			})
 			ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
 				if !v.plugin.headless() && v.path != "" {
-					ui.Button(c, "在资源管理器中显示").OnClick(func() { mygo.Shell.ShowItemInFolder(v.path) })
+					ui.Button(c, i18n.S("在资源管理器中显示", "Reveal in Explorer")).OnClick(func() { mygo.Shell.ShowItemInFolder(v.path) })
 				}
-				ui.PrimaryButton(c, "关闭").OnClick(func() { v.infoOpen = false })
+				ui.PrimaryButton(c, i18n.S("关闭", "Close")).OnClick(func() { v.infoOpen = false })
 			})
 		})
 	})

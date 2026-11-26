@@ -14,6 +14,7 @@ import (
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/config"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	pureui "pureutils/pkg/purekit/ui"
 )
 
@@ -43,14 +44,14 @@ func (p *Plugin) Info() purekit.PluginInfo {
 	return purekit.PluginInfo{
 		ID:          PluginID,
 		Name:        "PureVideo",
-		Description: "内置 libmpv 全能视频浏览（支持硬解 HEVC / MKV / FLV / 外挂字幕）",
+		Description: i18n.S("内置 libmpv 全能视频浏览（支持硬解 HEVC / MKV / FLV / 外挂字幕）", "Built-in libmpv video player (HW decode, HEVC / MKV / FLV / subtitles)"),
 		Version:     core.AppVersion,
 		ModuleID:    core.ModuleVideo,
 		IconPNG:     videoIconPNG,
 		Capabilities: []purekit.CapabilityDescriptor{
 			{
 				Name:        purekit.CapVideoPreview,
-				Description: "打开本地视频并声明支持的视频格式",
+				Description: i18n.S("打开本地视频并声明支持的视频格式", "Open local videos and advertise supported video formats"),
 			},
 		},
 	}
@@ -241,8 +242,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "purevideo.open",
 			PluginID: PluginID,
-			Title:    "打开 PureVideo 极速视频",
-			Subtitle: "秒开本地视频（内置 libmpv 硬件解码，支持 21 种视频格式）",
+			Title:    i18n.S("打开 PureVideo 极速视频", "Open PureVideo Player"),
+			Subtitle: i18n.S("秒开本地视频（内置 libmpv 硬件解码，支持 21 种视频格式）", "Play local videos with built-in libmpv hardware decoding (21 formats)"),
 			Keywords: []string{"video", "player", "mp4", "mkv", "mov", "webm", "avi", "视频", "播放", "purevideo"},
 			Command:  core.CmdOpenVideo,
 			Shortcut: openShortcut,
@@ -269,7 +270,7 @@ type videoMatcher struct {
 }
 
 func (m videoMatcher) ID() string    { return "purevideo.matcher" }
-func (m videoMatcher) Title() string { return "PureVideo 视频匹配" }
+func (m videoMatcher) Title() string { return i18n.S("PureVideo 视频匹配", "PureVideo Video Matcher") }
 
 func (m videoMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 	var results []purekit.MatchResult
@@ -288,7 +289,7 @@ func (m videoMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 		results = append(results, purekit.MatchResult{
 			FeatureID: "purevideo.open",
 			PluginID:  PluginID,
-			Title:     "用 PureVideo 播放 " + filepath.Base(path),
+			Title:     i18n.S("用 PureVideo 播放 ", "Play with PureVideo: ") + filepath.Base(path),
 			Subtitle:  path,
 			Score:     score,
 			Badge:     "PureVideo",
@@ -320,8 +321,8 @@ func (m videoMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 func (p *Plugin) SettingsTab() *purekit.SettingsTab {
 	return &purekit.SettingsTab{
 		ID:       PluginID,
-		Title:    "PureVideo · 视频",
-		Subtitle: "libmpv 解码内核状态、播放体验与视频文件关联",
+		Title:    i18n.S("PureVideo · 视频", "PureVideo · Video"),
+		Subtitle: i18n.S("libmpv 解码内核状态、播放体验与视频文件关联", "libmpv decoder status, playback experience, and file associations"),
 		Icon:     pureui.IconFilm,
 		Order:    35,
 		NewView: func(host purekit.Host) purekit.SettingsTabView {
@@ -338,7 +339,7 @@ func (p *Plugin) Hotkeys() []purekit.HotkeySpec {
 		{
 			ID:             "purevideo.open",
 			Command:        core.CmdOpenVideo,
-			Label:          "打开 PureVideo 视频",
+			Label:          i18n.S("打开 PureVideo 视频", "Open PureVideo Player"),
 			DefaultGesture: "",
 			CurrentGesture: func() string {
 				if p.host == nil {
@@ -369,7 +370,7 @@ func (p *Plugin) TrayItems() []purekit.TrayItemSpec {
 			ID:          "purevideo.open",
 			Section:     purekit.TraySectionPrimary,
 			Kind:        purekit.TrayItemAction,
-			Label:       "打开 PureVideo 视频",
+			Label:       i18n.S("打开 PureVideo 视频", "Open PureVideo Player"),
 			Accelerator: accel,
 			Command:     core.CmdOpenVideo,
 			OnClick:     func() { p.Open("") },

@@ -39,6 +39,7 @@
 
 - **`Alt+Space` 全局快捷启动器**：毫秒级呼出并自动捕获前景 Windows 资源管理器选中文件与当前剪贴板内容，上下文直达「智能解压 / 用 PureImage 查看 / 贴到桌面」，并支持跨插件功能与 PureClip 历史即时搜索（`Ctrl+1–9` 快捷执行）。
 - **设置页实时热启停 & `Win+` 底层接管**：支持在统一设置中按模块运行时启用/停用插件并动态刷新托盘、热键、启动器与 Bus 能力代次；可选底层键盘钩子（`WH_KEYBOARD_LL`）接管 `Win+...` 组合键并抑制开始菜单弹出。
+- **全套中英双语国际化（实时切换）**：支持简体中文（`zh-CN`）、英文（`en-US`）与系统语言自动识别（`Auto`），覆盖托盘菜单、启动器、设置中心与全部五大插件界面，保存后无需重启立即生效。
 - **跨插件零耦合协作**：通过 `pkg/purekit` Capability Bus（`clipboard.history` / `image.preview` / `image.pin`）与来源感知剪贴板总线按需联动，任意禁用或裁剪组件均自动优雅降级。
 
 ---
@@ -64,7 +65,7 @@
 
 ## 下载与安装
 
-- 从 [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases) 下载模块化安装程序 `PureUtils-1.1.0-setup.exe`（已内置裁剪版 `libmpv-2.dll`）。
+- 从 [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases) 下载模块化安装程序 `PureUtils-1.2.0-setup.exe`（已内置裁剪版 `libmpv-2.dll`）。
 - 基于 Inno Setup 的安装包采用单用户目录安装（无需管理员权限），可自由勾选 **完整套件 / PureShot+PureClip / 仅 PureImage / 仅 PureVideo / 仅 PureZip** 以及 `turbojpeg.dll` 加速、右键菜单和文件关联；卸载或取消勾选时自动清理对应注册表与快捷方式。
 
 ---
@@ -83,9 +84,12 @@
 # 按插件名精确编译裁剪（支持 pureshot, pureclip, pureimage, purevideo, purezip）
 .\build.ps1 build -Exclude purezip,pureimage
 
-# 运行全部测试（含 AST 架构依赖边界测试与无头 UI 测试）
+# 运行全部测试（含 AST 架构/i18n 审计、无头 UI 与 UI/E2E/覆盖率门禁）
 .\build.ps1 test
 .\build.ps1 test -CoreOnly
+.\build.ps1 ui
+.\build.ps1 e2e
+.\build.ps1 coverage -MinCoverage 50
 
 # 直接运行并呼出指定模块
 .\build.ps1 run -AppArgs --launcher

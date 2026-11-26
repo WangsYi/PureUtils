@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 )
 
 const (
@@ -33,9 +34,10 @@ type HotkeyConfig struct {
 	Plugins         map[string]string `json:"plugins,omitempty"`
 }
 
-// AppearanceConfig holds host-wide theme and preview layout preferences.
+// AppearanceConfig holds host-wide theme, language, and preview layout preferences.
 type AppearanceConfig struct {
 	Theme         string  `json:"theme"`
+	Language      string  `json:"language,omitempty"` // "auto" | "zh-CN" | "en-US"
 	PreviewHeight float64 `json:"previewHeight"`
 }
 
@@ -89,6 +91,7 @@ func DefaultHostConfig() HostConfig {
 		},
 		Appearance: AppearanceConfig{
 			Theme:         "system",
+			Language:      i18n.PrefAuto,
 			PreviewHeight: 96,
 		},
 		Advanced: AdvancedConfig{
@@ -151,6 +154,7 @@ func (h *HostConfig) Normalize() {
 	if h.Appearance.Theme == "" {
 		h.Appearance.Theme = d.Appearance.Theme
 	}
+	h.Appearance.Language = i18n.NormalizePref(h.Appearance.Language)
 	if h.Appearance.PreviewHeight < 32 {
 		h.Appearance.PreviewHeight = 32
 	}

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 // Perf aggregates operation timings. It is enabled by PUREUTILS_TRACE=1 (or legacy YNM3000_TRACE / SHOTCLIP_TRACE=1);
@@ -106,8 +108,15 @@ func (p *Perf) Report() string {
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].stat.Total > rows[j].stat.Total })
 	var b strings.Builder
-	b.WriteString("性能打点（按总耗时排序）\n")
-	b.WriteString(fmt.Sprintf("%-32s %8s %10s %10s %10s %8s\n", "操作", "次数", "总耗时", "平均", "最大", "超阈值"))
+	b.WriteString(i18n.S("性能打点（按总耗时排序）\n", "Performance trace (sorted by total duration)\n"))
+	b.WriteString(fmt.Sprintf("%-32s %8s %10s %10s %10s %8s\n",
+		i18n.S("操作", "Operation"),
+		i18n.S("次数", "Count"),
+		i18n.S("总耗时", "Total"),
+		i18n.S("平均", "Avg"),
+		i18n.S("最大", "Max"),
+		i18n.S("超阈值", "Over"),
+	))
 	for _, r := range rows {
 		avg := time.Duration(0)
 		if r.stat.Count > 0 {

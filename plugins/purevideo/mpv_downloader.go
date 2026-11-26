@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/bodgit/sevenzip"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 const (
@@ -40,27 +42,48 @@ type DownloadSourceInfo struct {
 
 // DownloadSources lists download sources in preferred display order.
 var DownloadSources = []DownloadSourceInfo{
-	{SourceAuto, "自动优选（推荐）", "按顺序尝试国内 GitHub 镜像、SourceForge 与 GitHub 官方源"},
-	{SourceGHProxy, "GitHub 加速 (gh-proxy.org)", "国内代理加速 GitHub Release"},
-	{SourceGHFast, "GitHub 加速 (ghfast.top)", "备用国内 GitHub Release 镜像"},
-	{SourceSourceForge, "SourceForge 官方镜像", "直连 SourceForge 全球 CDN"},
-	{SourceGitHub, "GitHub 官方直连", "直连 github.com/shinchiro/mpv-winbuild-cmake"},
+	{SourceAuto, "Auto (Recommended)", "Tries mirror proxies, SourceForge, and GitHub in order"},
+	{SourceGHProxy, "GitHub Mirror (gh-proxy.org)", "Mirror proxy for GitHub Releases"},
+	{SourceGHFast, "GitHub Mirror (ghfast.top)", "Fallback mirror proxy for GitHub Releases"},
+	{SourceSourceForge, "SourceForge Official Mirror", "Direct SourceForge global CDN"},
+	{SourceGitHub, "GitHub Direct", "Direct connection to github.com/shinchiro/mpv-winbuild-cmake"},
 }
 
-// DownloadSourceLabel returns the Chinese UI label for source id.
-func DownloadSourceLabel(id string) string {
-	for _, s := range DownloadSources {
-		if s.ID == id {
-			return s.Label
-		}
+func downloadSourcePair(id string) (zh, en string) {
+	switch id {
+	case SourceGHProxy:
+		return "GitHub 加速 (gh-proxy.org)", "GitHub Mirror (gh-proxy.org)"
+	case SourceGHFast:
+		return "GitHub 加速 (ghfast.top)", "GitHub Mirror (ghfast.top)"
+	case SourceSourceForge:
+		return "SourceForge 官方镜像", "SourceForge Official Mirror"
+	case SourceGitHub:
+		return "GitHub 官方直连", "GitHub Direct"
+	default:
+		return "自动优选（推荐）", "Auto (Recommended)"
 	}
-	return DownloadSources[0].Label
 }
 
-// DownloadSourceIDFromLabel resolves source id from UI label.
+// DownloadSourceLabel returns the localized UI label for source id.
+func DownloadSourceLabel(id string) string {
+	zh, en := downloadSourcePair(id)
+	return i18n.S(zh, en)
+}
+
+// DownloadSourceLabels returns localized UI labels in DownloadSources order.
+func DownloadSourceLabels() []string {
+	out := make([]string, len(DownloadSources))
+	for i, s := range DownloadSources {
+		out[i] = DownloadSourceLabel(s.ID)
+	}
+	return out
+}
+
+// DownloadSourceIDFromLabel resolves source id from a localized UI label.
 func DownloadSourceIDFromLabel(label string) string {
 	for _, s := range DownloadSources {
-		if s.Label == label {
+		zh, en := downloadSourcePair(s.ID)
+		if label == s.Label || label == zh || label == en {
 			return s.ID
 		}
 	}
@@ -183,7 +206,7 @@ func (m *MPVManager) StartDownload(source, customURL string) {
 		Active:      true,
 		SourceID:    source,
 		SourceLabel: DownloadSourceLabel(source),
-		Stage:       "正在解析最新版本…",
+		Stage:       i18n.S("正在解析最新版本…", "Resolving latest release…"),
 	}
 	cb := m.onChange
 	m.mu.Unlock()
@@ -198,16 +221,16 @@ func (m *MPVManager) StartDownload(source, customURL string) {
 		m.progress.Active = false
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				m.progress.Err = "已取消下载"
-				m.progress.Stage = "下载已取消"
+				m.progress.Err = i18n.S("已取消下载", "Download canceled")
+				m.progress.Stage = i18n.S("下载已取消", "Download canceled")
 			} else {
 				m.progress.Err = err.Error()
-				m.progress.Stage = "下载失败"
+				m.progress.Stage = i18n.S("下载失败", "Download failed")
 			}
 			m.progress.Completed = false
 		} else {
 			m.progress.Err = ""
-			m.progress.Stage = "libmpv 已就绪"
+			m.progress.Stage = i18n.S("libmpv 已就绪", "libmpv ready")
 			m.progress.Completed = true
 		}
 		cb := m.onChange
@@ -231,16 +254,16 @@ func (m *MPVManager) CancelDownload() {
 // Download synchronously downloads, extracts, validates, and installs libmpv-2.dll.
 func (m *MPVManager) Download(ctx context.Context, source, customURL string) error {
 	if strings.TrimSpace(m.pluginDir) == "" {
-		return fmt.Errorf("未配置插件数据目录")
+		return errors.New(i18n.S("未配置插件数据目录", "Plugin data directory is not configured"))
 	}
 	if err := os.MkdirAll(m.pluginDir, 0o755); err != nil {
-		return fmt.Errorf("创建目录失败: %w", err)
+		return fmt.Errorf("%s: %w", i18n.S("创建目录失败", "Failed to create directory"), err)
 	}
 
 	rel := m.resolveLatestRelease(ctx)
 	candidates := buildMirrorCandidates(source, customURL, rel, m.mirrorPrefixes)
 	if len(candidates) == 0 {
-		return fmt.Errorf("未找到可用的下载源")
+		return errors.New(i18n.S("未找到可用的下载源", "No available download sources"))
 	}
 
 	tmpDir, err := os.MkdirTemp(m.pluginDir, "mpv-dl-*")
@@ -257,7 +280,7 @@ func (m *MPVManager) Download(ctx context.Context, source, customURL string) err
 		m.updateProgress(func(p *DownloadProgress) {
 			p.SourceID = cand.SourceID
 			p.SourceLabel = cand.Label
-			p.Stage = "正在连接 " + cand.Label + "…"
+			p.Stage = i18n.F("正在连接 %s…", "Connecting to %s…", cand.Label)
 			p.DoneBytes = 0
 			p.TotalBytes = 0
 		})
@@ -277,10 +300,10 @@ func (m *MPVManager) Download(ctx context.Context, source, customURL string) err
 			continue
 		}
 		m.updateProgress(func(p *DownloadProgress) {
-			p.Stage = "正在解压并校验 libmpv-2.dll…"
+			p.Stage = i18n.S("正在解压并校验 libmpv-2.dll…", "Extracting and verifying libmpv-2.dll…")
 		})
 		if err := m.installPackage(archivePath); err != nil {
-			lastErr = fmt.Errorf("%s 校验失败: %w", cand.Label, err)
+			lastErr = fmt.Errorf("%s: %w", i18n.F("%s 校验失败", "%s verification failed", cand.Label), err)
 			continue
 		}
 		return nil
@@ -288,7 +311,7 @@ func (m *MPVManager) Download(ctx context.Context, source, customURL string) err
 	if lastErr != nil {
 		return lastErr
 	}
-	return fmt.Errorf("所有下载源均失败")
+	return errors.New(i18n.S("所有下载源均失败", "All download sources failed"))
 }
 
 func (m *MPVManager) resolveLatestRelease(ctx context.Context) releaseRef {
@@ -401,7 +424,7 @@ func buildMirrorCandidates(source, customURL string, rel releaseRef, prefixOverr
 		}
 		out = append(out, mirrorCandidate{
 			SourceID: "custom",
-			Label:    "自定义下载源",
+			Label:    i18n.S("自定义下载源", "Custom Download Source"),
 			URL:      resolved,
 		})
 	}
@@ -451,7 +474,7 @@ func (m *MPVManager) downloadFile(ctx context.Context, cand mirrorCandidate, dst
 	}
 	total := resp.ContentLength
 	m.updateProgress(func(p *DownloadProgress) {
-		p.Stage = "正在下载 " + cand.Label
+		p.Stage = i18n.F("正在下载 %s", "Downloading %s", cand.Label)
 		p.TotalBytes = total
 		p.DoneBytes = 0
 	})
@@ -495,7 +518,7 @@ func (m *MPVManager) downloadFile(ctx context.Context, cand mirrorCandidate, dst
 // ImportLocal imports libmpv-2.dll from a user-supplied .dll, .zip, or .7z file.
 func (m *MPVManager) ImportLocal(srcPath string) error {
 	if strings.TrimSpace(m.pluginDir) == "" {
-		return fmt.Errorf("未配置插件数据目录")
+		return errors.New(i18n.S("未配置插件数据目录", "Plugin data directory is not configured"))
 	}
 	if err := os.MkdirAll(m.pluginDir, 0o755); err != nil {
 		return err
@@ -525,7 +548,7 @@ func (m *MPVManager) installPackage(pkgPath string) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("不支持的文件格式（需为 libmpv-2.dll、.7z 或 .zip）")
+		return errors.New(i18n.S("不支持的文件格式（需为 libmpv-2.dll、.7z 或 .zip）", "Unsupported file format (expected libmpv-2.dll, .7z, or .zip)"))
 	}
 
 	if err := validatePEHeader(tmpDLL); err != nil {
@@ -540,7 +563,7 @@ func (m *MPVManager) installPackage(pkgPath string) error {
 	target := m.ManagedDLLPath()
 	_ = os.Remove(target)
 	if err := os.Rename(tmpDLL, target); err != nil {
-		return fmt.Errorf("替换 %s 失败（请先关闭正在播放的视频窗口）: %w", filepath.Base(target), err)
+		return fmt.Errorf("%s: %w", i18n.F("替换 %s 失败（请先关闭正在播放的视频窗口）", "Failed to replace %s (close active player windows first)", filepath.Base(target)), err)
 	}
 	return nil
 }
@@ -552,7 +575,7 @@ func (m *MPVManager) Remove() error {
 		return nil
 	}
 	if err := os.Remove(target); err != nil {
-		return fmt.Errorf("删除 %s 失败（请先关闭正在播放的视频窗口）: %w", filepath.Base(target), err)
+		return fmt.Errorf("%s: %w", i18n.F("删除 %s 失败（请先关闭正在播放的视频窗口）", "Failed to remove %s (close active player windows first)", filepath.Base(target)), err)
 	}
 	return nil
 }
@@ -586,7 +609,7 @@ func detectPackageKind(path string) (string, error) {
 	case ".dll":
 		return "pe", nil
 	default:
-		return "", fmt.Errorf("文件内容不是有效的 .dll / .zip / .7z 安装包")
+		return "", errors.New(i18n.S("文件内容不是有效的 .dll / .zip / .7z 安装包", "File is not a valid .dll, .zip, or .7z package"))
 	}
 }
 
@@ -599,7 +622,7 @@ func validatePEHeader(path string) error {
 	var buf [64]byte
 	n, err := io.ReadFull(f, buf[:])
 	if err != nil || n < 64 || buf[0] != 'M' || buf[1] != 'Z' {
-		return fmt.Errorf("提取的文件不是有效的 Windows DLL")
+		return errors.New(i18n.S("提取的文件不是有效的 Windows DLL", "Extracted file is not a valid Windows DLL"))
 	}
 	return nil
 }
@@ -648,7 +671,7 @@ func extractDLLFromZip(srcZip, dstDLL string) error {
 		}
 		return closeErr
 	}
-	return fmt.Errorf("ZIP 压缩包中未找到 libmpv-2.dll")
+	return errors.New(i18n.S("ZIP 压缩包中未找到 libmpv-2.dll", "libmpv-2.dll was not found in the ZIP archive"))
 }
 
 func extractDLLFrom7z(src7z, dstDLL string) error {
@@ -678,5 +701,5 @@ func extractDLLFrom7z(src7z, dstDLL string) error {
 		}
 		return closeErr
 	}
-	return fmt.Errorf("7Z 压缩包中未找到 libmpv-2.dll")
+	return errors.New(i18n.S("7Z 压缩包中未找到 libmpv-2.dll", "libmpv-2.dll was not found in the 7Z archive"))
 }

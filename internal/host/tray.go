@@ -1,13 +1,13 @@
 package host
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/egoist/mygo"
 
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	"pureutils/pkg/purekit/platform"
 )
 
@@ -15,10 +15,14 @@ func (a *App) createTray() {
 	if a.headless || a.tray != nil {
 		return
 	}
+	trayID := mygo.App.Name()
+	if trayID == "" {
+		trayID = "PureUtils"
+	}
 	tray, err := mygo.NewTray(mygo.TrayOptions{
-		ID:      "PureUtils",
+		ID:      trayID,
 		Icon:    iconPNG,
-		ToolTip: "PureUtils",
+		ToolTip: trayID,
 		Menu:    a.buildTrayMenu(),
 	})
 	if err != nil {
@@ -37,7 +41,7 @@ func (a *App) buildTrayMenu() *mygo.Menu {
 
 	if hc := a.HostConfig(); hc.Launcher.Enabled {
 		primary = append(primary, &mygo.MenuItem{
-			Label:       "快捷启动器",
+			Label:       i18n.S("快捷启动器", "Quick Launcher"),
 			Accelerator: hc.Launcher.Shortcut,
 			Click:       func(*mygo.MenuItem, *mygo.Window) { a.ExecuteCommand(core.CmdOpenLauncher) },
 		})
@@ -69,7 +73,7 @@ func (a *App) buildTrayMenu() *mygo.Menu {
 	}
 
 	updateItem := &mygo.MenuItem{
-		Label: "检查更新",
+		Label: i18n.S("检查更新", "Check for Updates"),
 		Click: func(*mygo.MenuItem, *mygo.Window) { a.ExecuteCommand(core.CmdCheckUpdate) },
 	}
 	if a.updater != nil {
@@ -79,14 +83,14 @@ func (a *App) buildTrayMenu() *mygo.Menu {
 		case UpdateReady:
 			if snap.Release != nil && snap.Release.TagName != "" {
 				updateItem = &mygo.MenuItem{
-					Label: "安装更新 " + snap.Release.TagName,
+					Label: i18n.F("安装更新 %s", "Install Update %s", snap.Release.TagName),
 					Click: openAdv,
 				}
 			}
 		case UpdateAvailable:
 			if snap.Release != nil && snap.Release.TagName != "" {
 				updateItem = &mygo.MenuItem{
-					Label: "发现新版本 " + snap.Release.TagName,
+					Label: i18n.F("发现新版本 %s", "Update Available: %s", snap.Release.TagName),
 					Click: openAdv,
 				}
 			}
@@ -98,11 +102,11 @@ func (a *App) buildTrayMenu() *mygo.Menu {
 	appendGroup([]*mygo.MenuItem{
 		updateItem,
 		{
-			Label: "设置",
+			Label: i18n.S("设置", "Settings"),
 			Click: func(*mygo.MenuItem, *mygo.Window) { a.ExecuteCommand(core.CmdShowSettings) },
 		},
 		{
-			Label: "退出 PureUtils",
+			Label: i18n.S("退出 PureUtils", "Quit PureUtils"),
 			Click: func(*mygo.MenuItem, *mygo.Window) { a.ExecuteCommand(core.CmdExit) },
 		},
 	})
@@ -169,9 +173,9 @@ func (a *App) updateTrayStatus() {
 	for _, p := range plugins {
 		for _, spec := range p.TrayItems() {
 			if spec.ID == "pureclip.monitoring" {
-				status := "剪贴板监控中"
+				status := i18n.S("剪贴板监控中", "Clipboard Monitoring Active")
 				if !spec.Checked {
-					status = "剪贴板监控已暂停"
+					status = i18n.S("剪贴板监控已暂停", "Clipboard Monitoring Paused")
 				}
 				a.tray.SetToolTip("PureUtils — " + status)
 				return
@@ -245,7 +249,7 @@ func (a *App) registerHotkeys() {
 			return
 		}
 		if g.Modifiers == core.ModWin && g.Key == "L" {
-			recordErr(spec, "Win+L 是系统锁屏，不能占用")
+			recordErr(spec, i18n.S("Win+L 是系统锁屏，不能占用", "Win+L is reserved by Windows Lock Screen"))
 			if a.log != nil {
 				a.log.Warnf("热键 %s=%s 不可占用: 系统锁屏", spec.ID, g)
 			}
@@ -280,13 +284,13 @@ func (a *App) registerHotkeys() {
 						}
 						return
 					}
-					recordErr(spec, "系统已占用该 Win 组合键，请在下方开启「接管系统 Win 组合键」开关")
+					recordErr(spec, i18n.S("系统已占用该 Win 组合键，请在下方开启「接管系统 Win 组合键」开关", "This Win shortcut is reserved by Windows; enable \"Take over system Win hotkeys\" below"))
 					if a.log != nil {
 						a.log.Warnf("注册热键 %s=%s 失败（未开启 Win 接管）: %v", spec.ID, g, err)
 					}
 					return
 				}
-				recordErr(spec, fmt.Sprintf("%v（可能已被系统或其他程序占用）", err))
+				recordErr(spec, i18n.F("%v（可能已被系统或其他程序占用）", "%v (may already be in use by Windows or another app)", err))
 				if a.log != nil {
 					a.log.Warnf("注册热键 %s=%s 失败: %v", spec.ID, g, err)
 				}
@@ -301,7 +305,7 @@ func (a *App) registerHotkeys() {
 		registerSpec(purekit.HotkeySpec{
 			ID:             "host.launcher",
 			Command:        core.CmdOpenLauncher,
-			Label:          "快捷启动器",
+			Label:          i18n.S("快捷启动器", "Quick Launcher"),
 			DefaultGesture: "Alt+Space",
 			CurrentGesture: func() string { return shortcut },
 			Callback:       a.ToggleLauncher,
@@ -320,7 +324,7 @@ func (a *App) registerHotkeys() {
 		}
 		if err := a.winTakeover.SetBindings(takeoverBindings); err != nil {
 			for _, b := range takeoverBindings {
-				msg := fmt.Sprintf("Win 钩子接管失败: %v", err)
+				msg := i18n.F("Win 钩子接管失败: %v", "Win key hook failed: %v", err)
 				nextErrByID[b.ID] = msg
 				delete(nextTakeover, b.ID)
 				if cmd := cmdByID[b.ID]; cmd != "" {

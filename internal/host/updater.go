@@ -18,6 +18,7 @@ import (
 
 	"pureutils/pkg/purekit/config"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 )
 
 // UpdateStatus describes the lifecycle state of PureUtils self-update.
@@ -52,30 +53,47 @@ type UpdateSourceInfo struct {
 
 // UpdateDownloadSources lists selectable update download mirrors in UI display order.
 var UpdateDownloadSources = []UpdateSourceInfo{
-	{UpdateSourceAuto, "自动优选（推荐）", "按顺序尝试国内 GitHub 镜像与官方源"},
-	{UpdateSourceGHProxy, "GitHub 加速 (gh-proxy.org)", "国内代理加速 GitHub Release"},
-	{UpdateSourceGHFast, "GitHub 加速 (ghfast.top)", "备用国内 GitHub Release 镜像"},
-	{UpdateSourceGitHub, "GitHub 官方直连", "直连 github.com/WangsYi/PureUtils"},
+	{UpdateSourceAuto, "Auto (Recommended)", "Try mirrors and official GitHub in order"},
+	{UpdateSourceGHProxy, "GitHub Mirror (gh-proxy.org)", "Proxy mirror for GitHub Releases"},
+	{UpdateSourceGHFast, "GitHub Mirror (ghfast.top)", "Backup proxy mirror for GitHub Releases"},
+	{UpdateSourceGitHub, "GitHub Official", "Direct connection to github.com/WangsYi/PureUtils"},
 }
 
-// UpdateSourceLabel returns the Chinese UI label for an update source ID.
+// UpdateSourceLabel returns the localized UI label for an update source ID.
 func UpdateSourceLabel(id string) string {
-	for _, s := range UpdateDownloadSources {
-		if s.ID == id {
-			return s.Label
-		}
+	switch id {
+	case UpdateSourceGHProxy:
+		return i18n.S("GitHub 加速 (gh-proxy.org)", "GitHub Mirror (gh-proxy.org)")
+	case UpdateSourceGHFast:
+		return i18n.S("GitHub 加速 (ghfast.top)", "GitHub Mirror (ghfast.top)")
+	case UpdateSourceGitHub:
+		return i18n.S("GitHub 官方直连", "GitHub Official")
+	default:
+		return i18n.S("自动优选（推荐）", "Auto (Recommended)")
 	}
-	return UpdateDownloadSources[0].Label
 }
 
-// UpdateSourceIDFromLabel resolves an update source ID from its UI label.
-func UpdateSourceIDFromLabel(label string) string {
-	for _, s := range UpdateDownloadSources {
-		if s.Label == label {
-			return s.ID
-		}
+// UpdateDownloadSourceLabels returns localized UI labels for all update download sources in order.
+func UpdateDownloadSourceLabels() []string {
+	out := make([]string, len(UpdateDownloadSources))
+	for i, s := range UpdateDownloadSources {
+		out[i] = UpdateSourceLabel(s.ID)
 	}
-	return UpdateSourceAuto
+	return out
+}
+
+// UpdateSourceIDFromLabel resolves an update source ID from any localized UI label.
+func UpdateSourceIDFromLabel(label string) string {
+	switch label {
+	case "GitHub 加速 (gh-proxy.org)", "GitHub Mirror (gh-proxy.org)":
+		return UpdateSourceGHProxy
+	case "GitHub 加速 (ghfast.top)", "GitHub Mirror (ghfast.top)":
+		return UpdateSourceGHFast
+	case "GitHub 官方直连", "GitHub Official":
+		return UpdateSourceGitHub
+	default:
+		return UpdateSourceAuto
+	}
 }
 
 // ReleaseInfo captures the resolved target GitHub release and its selected asset.
@@ -368,13 +386,13 @@ func (u *Updater) Check(ctx context.Context, cfg config.UpdateConfig, manual boo
 	if u.snap.Status == UpdateDownloading || u.snap.Status == UpdateInstalling {
 		snap := u.Snapshot()
 		u.mu.Unlock()
-		return snap, fmt.Errorf("当前正在下载或安装更新")
+		return snap, fmt.Errorf("%s", i18n.S("当前正在下载或安装更新", "An update download or installation is already in progress"))
 	}
 	u.lastCfg = cfg
 	u.snap.Status = UpdateChecking
 	u.snap.Err = ""
 	u.snap.Background = !manual
-	u.snap.Stage = "正在检查新版本…"
+	u.snap.Stage = i18n.S("正在检查新版本…", "Checking for updates…")
 	u.mu.Unlock()
 	u.emitChange()
 
@@ -391,7 +409,7 @@ func (u *Updater) Check(ctx context.Context, cfg config.UpdateConfig, manual boo
 			u.snap.Err = ""
 		} else {
 			u.snap.Status = UpdateError
-			u.snap.Stage = "检查更新失败"
+			u.snap.Stage = i18n.S("检查更新失败", "Failed to check for updates")
 			u.snap.Err = err.Error()
 		}
 		u.mu.Unlock()
@@ -410,7 +428,7 @@ func (u *Updater) Check(ctx context.Context, cfg config.UpdateConfig, manual boo
 
 	if !core.IsNewerVersion(u.currentVersion, rel.TagName) {
 		u.snap.Status = UpdateUpToDate
-		u.snap.Stage = "当前已是最新版本 " + u.currentVersion
+		u.snap.Stage = i18n.S("当前已是最新版本 ", "Already up to date: ") + u.currentVersion
 		u.snap.DownloadedPath = ""
 		u.mu.Unlock()
 		u.emitChange()
@@ -421,7 +439,7 @@ func (u *Updater) Check(ctx context.Context, cfg config.UpdateConfig, manual boo
 	if cached, ok := u.existingValidDownloadLocked(rel); ok {
 		u.snap.Status = UpdateReady
 		u.snap.DownloadedPath = cached
-		u.snap.Stage = fmt.Sprintf("新版本 %s 已下载就绪", rel.TagName)
+		u.snap.Stage = i18n.F("新版本 %s 已下载就绪", "Version %s is ready to install", rel.TagName)
 		shouldNotify := !manual && rel.TagName != cfg.SkippedVersion && u.state.ReadyVersion != rel.TagName
 		if shouldNotify {
 			u.state.ReadyVersion = rel.TagName
@@ -430,14 +448,17 @@ func (u *Updater) Check(ctx context.Context, cfg config.UpdateConfig, manual boo
 		u.mu.Unlock()
 		u.emitChange()
 		if shouldNotify && u.onNotify != nil {
-			u.onNotify("PureUtils "+rel.TagName+" 已下载就绪", "可在「设置 → 高级」或托盘菜单中立即安装并重启。")
+			u.onNotify(
+				i18n.F("PureUtils %s 已下载就绪", "PureUtils %s Ready to Install", rel.TagName),
+				i18n.S("可在「设置 → 高级」或托盘菜单中立即安装并重启。", "Install and restart from Settings → Advanced or the system tray menu."),
+			)
 		}
 		return u.Snapshot(), nil
 	}
 
 	u.snap.Status = UpdateAvailable
 	u.snap.DownloadedPath = ""
-	u.snap.Stage = fmt.Sprintf("发现新版本 %s", rel.TagName)
+	u.snap.Stage = i18n.F("发现新版本 %s", "Update available: %s", rel.TagName)
 	shouldAutoDL := !manual && cfg.AutoDownload && rel.TagName != cfg.SkippedVersion && rel.AssetURL != ""
 	shouldNotifyAvail := !manual && !shouldAutoDL && rel.TagName != cfg.SkippedVersion && u.state.NotifiedVersion != rel.TagName
 	if shouldNotifyAvail {
@@ -450,7 +471,10 @@ func (u *Updater) Check(ctx context.Context, cfg config.UpdateConfig, manual boo
 	if shouldAutoDL {
 		u.StartDownload(cfg.DownloadSource)
 	} else if shouldNotifyAvail && u.onNotify != nil {
-		u.onNotify("PureUtils 发现新版本 "+rel.TagName, "可在「设置 → 高级」中查看更新说明并一键下载安装。")
+		u.onNotify(
+			i18n.F("PureUtils 发现新版本 %s", "PureUtils Update Available: %s", rel.TagName),
+			i18n.S("可在「设置 → 高级」中查看更新说明并一键下载安装。", "View release notes and download from Settings → Advanced."),
+		)
 	}
 	return u.Snapshot(), nil
 }
@@ -488,25 +512,25 @@ func (u *Updater) fetchLatestViaAPI(ctx context.Context) (ReleaseInfo, error) {
 
 	resp, err := u.httpClient.Do(req)
 	if err != nil {
-		return ReleaseInfo{}, fmt.Errorf("连接 GitHub API 失败: %w", err)
+		return ReleaseInfo{}, fmt.Errorf("%s: %w", i18n.S("连接 GitHub API 失败", "Failed to connect to GitHub API"), err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return ReleaseInfo{}, fmt.Errorf("GitHub API 返回状态 %d", resp.StatusCode)
+		return ReleaseInfo{}, fmt.Errorf("%s", i18n.F("GitHub API 返回状态 %d", "GitHub API returned status %d", resp.StatusCode))
 	}
 	var payload githubReleasePayload
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 2<<20)).Decode(&payload); err != nil {
-		return ReleaseInfo{}, fmt.Errorf("解析版本信息失败: %w", err)
+		return ReleaseInfo{}, fmt.Errorf("%s: %w", i18n.S("解析版本信息失败", "Failed to parse release info"), err)
 	}
 	tag := strings.TrimSpace(payload.TagName)
 	if tag == "" {
-		return ReleaseInfo{}, fmt.Errorf("版本响应缺少 tag_name")
+		return ReleaseInfo{}, fmt.Errorf("%s", i18n.S("版本响应缺少 tag_name", "Release response missing tag_name"))
 	}
 
 	asset, ok := selectReleaseAsset(payload.Assets, tag, u.resolvedExePath())
 	if !ok {
-		return ReleaseInfo{}, fmt.Errorf("新版本 %s 未提供可用的 Windows 安装包或可执行文件", tag)
+		return ReleaseInfo{}, fmt.Errorf("%s", i18n.F("新版本 %s 未提供可用的 Windows 安装包或可执行文件", "Release %s has no Windows installer or executable", tag))
 	}
 	sha := parseSHA256Digest(asset.Digest)
 	if sha == "" {
@@ -578,7 +602,7 @@ func (u *Updater) fetchLatestViaRedirect(ctx context.Context, source string) (Re
 			}
 		}
 		if tag == "" {
-			lastErr = fmt.Errorf("未从 %s 解析出最新版本号 (HTTP %d)", cand.Label, resp.StatusCode)
+			lastErr = fmt.Errorf("%s", i18n.F("未从 %s 解析出最新版本号 (HTTP %d)", "Could not parse latest version from %s (HTTP %d)", cand.Label, resp.StatusCode))
 			continue
 		}
 		short := core.ShortVersion(tag)
@@ -596,7 +620,7 @@ func (u *Updater) fetchLatestViaRedirect(ctx context.Context, source string) (Re
 		}, nil
 	}
 	if lastErr == nil {
-		lastErr = fmt.Errorf("检查更新失败")
+		lastErr = fmt.Errorf("%s", i18n.S("检查更新失败", "Failed to check for updates"))
 	}
 	return ReleaseInfo{}, lastErr
 }
@@ -691,7 +715,7 @@ func (u *Updater) fetchChecksumForAsset(ctx context.Context, urlStr, assetName s
 			return hash, nil
 		}
 	}
-	return "", fmt.Errorf("未找到 %s 校验值", assetName)
+	return "", fmt.Errorf("%s", i18n.F("未找到 %s 校验值", "Checksum not found for %s", assetName))
 }
 
 func buildUpdateMirrorCandidates(source, targetURL string, prefixes map[string]string) []updateMirrorCandidate {
@@ -786,12 +810,12 @@ func (u *Updater) Download(ctx context.Context, source string) error {
 	u.mu.Lock()
 	if u.snap.Release == nil || strings.TrimSpace(u.snap.Release.AssetURL) == "" {
 		u.mu.Unlock()
-		return fmt.Errorf("未发现可下载的新版本")
+		return fmt.Errorf("%s", i18n.S("未发现可下载的新版本", "No downloadable update found"))
 	}
 	rel := *u.snap.Release
 	if strings.TrimSpace(u.dataDir) == "" {
 		u.mu.Unlock()
-		return fmt.Errorf("未配置更新缓存目录")
+		return fmt.Errorf("%s", i18n.S("未配置更新缓存目录", "Update cache directory is not configured"))
 	}
 	if err := os.MkdirAll(u.dataDir, 0o755); err != nil {
 		u.mu.Unlock()
@@ -804,13 +828,13 @@ func (u *Updater) Download(ctx context.Context, source string) error {
 	u.snap.TotalBytes = rel.AssetSize
 	u.snap.SourceID = source
 	u.snap.SourceLabel = UpdateSourceLabel(source)
-	u.snap.Stage = "准备下载 " + rel.AssetName + "…"
+	u.snap.Stage = i18n.F("准备下载 %s…", "Preparing to download %s…", rel.AssetName)
 	u.mu.Unlock()
 	u.emitChange()
 
 	candidates := buildUpdateMirrorCandidates(source, rel.AssetURL, u.mirrorPrefixes)
 	if len(candidates) == 0 {
-		return fmt.Errorf("未找到可用的更新下载源")
+		return fmt.Errorf("%s", i18n.S("未找到可用的更新下载源", "No update download source available"))
 	}
 
 	targetPath := filepath.Join(u.dataDir, rel.AssetName)
@@ -826,7 +850,7 @@ func (u *Updater) Download(ctx context.Context, source string) error {
 		u.mu.Lock()
 		u.snap.SourceID = cand.SourceID
 		u.snap.SourceLabel = cand.Label
-		u.snap.Stage = "正在连接 " + cand.Label + "…"
+		u.snap.Stage = i18n.F("正在连接 %s…", "Connecting to %s…", cand.Label)
 		u.snap.DoneBytes = 0
 		u.snap.TotalBytes = rel.AssetSize
 		u.mu.Unlock()
@@ -847,7 +871,7 @@ func (u *Updater) Download(ctx context.Context, source string) error {
 		}
 		_ = os.Remove(targetPath)
 		if err := os.Rename(partPath, targetPath); err != nil {
-			lastErr = fmt.Errorf("写入安装包失败: %w", err)
+			lastErr = fmt.Errorf("%s: %w", i18n.S("写入安装包失败", "Failed to save installer"), err)
 			continue
 		}
 
@@ -856,7 +880,7 @@ func (u *Updater) Download(ctx context.Context, source string) error {
 		u.snap.Status = UpdateReady
 		u.snap.DownloadedPath = targetPath
 		u.snap.Err = ""
-		u.snap.Stage = fmt.Sprintf("新版本 %s 已下载就绪", rel.TagName)
+		u.snap.Stage = i18n.F("新版本 %s 已下载就绪", "Version %s is ready to install", rel.TagName)
 		shouldNotify := bg && u.state.ReadyVersion != rel.TagName
 		if shouldNotify {
 			u.state.ReadyVersion = rel.TagName
@@ -865,7 +889,10 @@ func (u *Updater) Download(ctx context.Context, source string) error {
 		u.mu.Unlock()
 		u.emitChange()
 		if shouldNotify && u.onNotify != nil {
-			u.onNotify("PureUtils "+rel.TagName+" 已下载就绪", "可在「设置 → 高级」或托盘菜单中立即安装并重启。")
+			u.onNotify(
+				i18n.F("PureUtils %s 已下载就绪", "PureUtils %s Ready to Install", rel.TagName),
+				i18n.S("可在「设置 → 高级」或托盘菜单中立即安装并重启。", "Install and restart from Settings → Advanced or the system tray menu."),
+			)
 		}
 		return nil
 	}
@@ -878,16 +905,16 @@ func (u *Updater) Download(ctx context.Context, source string) error {
 		} else {
 			u.snap.Status = UpdateIdle
 		}
-		u.snap.Stage = "已取消下载"
+		u.snap.Stage = i18n.S("已取消下载", "Download canceled")
 		u.snap.Err = ""
 		lastErr = context.Canceled
 	} else {
 		u.snap.Status = UpdateError
-		u.snap.Stage = "下载更新失败"
+		u.snap.Stage = i18n.S("下载更新失败", "Update download failed")
 		if lastErr != nil {
 			u.snap.Err = lastErr.Error()
 		} else {
-			u.snap.Err = "全部下载源均不可用"
+			u.snap.Err = i18n.S("全部下载源均不可用", "All download sources failed")
 			lastErr = errors.New(u.snap.Err)
 		}
 	}
@@ -908,12 +935,12 @@ func (u *Updater) downloadOneCandidate(ctx context.Context, cand updateMirrorCan
 
 	resp, err := u.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("%s 请求失败: %w", cand.Label, err)
+		return fmt.Errorf("%s: %w", i18n.F("%s 请求失败", "%s request failed", cand.Label), err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%s 返回 HTTP %d", cand.Label, resp.StatusCode)
+		return fmt.Errorf("%s", i18n.F("%s 返回 HTTP %d", "%s returned HTTP %d", cand.Label, resp.StatusCode))
 	}
 	total := resp.ContentLength
 	if total <= 0 {
@@ -928,7 +955,7 @@ func (u *Updater) downloadOneCandidate(ctx context.Context, cand updateMirrorCan
 
 	u.mu.Lock()
 	u.snap.TotalBytes = total
-	u.snap.Stage = "正在从 " + cand.Label + " 下载…"
+	u.snap.Stage = i18n.F("正在从 %s 下载…", "Downloading from %s…", cand.Label)
 	u.mu.Unlock()
 	u.emitChange()
 
@@ -970,7 +997,7 @@ func (u *Updater) verifyDownloadedFile(path, expectedSHA string) error {
 		return err
 	}
 	if info.Size() < u.minAssetBytes {
-		return fmt.Errorf("安装包体积异常（%d 字节）", info.Size())
+		return fmt.Errorf("%s", i18n.F("安装包体积异常（%d 字节）", "Installer file is too small (%d bytes)", info.Size()))
 	}
 	f, err := os.Open(path)
 	if err != nil {
@@ -980,10 +1007,10 @@ func (u *Updater) verifyDownloadedFile(path, expectedSHA string) error {
 
 	var head [2]byte
 	if _, err := io.ReadFull(f, head[:]); err != nil {
-		return fmt.Errorf("读取安装包头部失败: %w", err)
+		return fmt.Errorf("%s: %w", i18n.S("读取安装包头部失败", "Failed to read installer header"), err)
 	}
 	if head[0] != 'M' || head[1] != 'Z' {
-		return fmt.Errorf("下载内容不是有效的 Windows 可执行安装包")
+		return fmt.Errorf("%s", i18n.S("下载内容不是有效的 Windows 可执行安装包", "Downloaded file is not a valid Windows executable"))
 	}
 
 	if expectedSHA == "" {
@@ -998,7 +1025,7 @@ func (u *Updater) verifyDownloadedFile(path, expectedSHA string) error {
 	}
 	got := hex.EncodeToString(h.Sum(nil))
 	if !strings.EqualFold(got, expectedSHA) {
-		return fmt.Errorf("SHA-256 校验不匹配（期望 %s，实际 %s）", expectedSHA[:12], got[:12])
+		return fmt.Errorf("%s", i18n.F("SHA-256 校验不匹配（期望 %s，实际 %s）", "SHA-256 mismatch (expected %s, got %s)", expectedSHA[:12], got[:12]))
 	}
 	return nil
 }
@@ -1009,7 +1036,7 @@ func (u *Updater) InstallAndRestart() error {
 	u.mu.Lock()
 	if u.snap.Status != UpdateReady || strings.TrimSpace(u.snap.DownloadedPath) == "" {
 		u.mu.Unlock()
-		return fmt.Errorf("当前没有已就绪的更新安装包")
+		return fmt.Errorf("%s", i18n.S("当前没有已就绪的更新安装包", "No downloaded update is ready to install"))
 	}
 	pkgPath := u.snap.DownloadedPath
 	var expectedSHA string
@@ -1022,7 +1049,7 @@ func (u *Updater) InstallAndRestart() error {
 		u.mu.Lock()
 		u.snap.Status = UpdateError
 		u.snap.Err = err.Error()
-		u.snap.Stage = "安装包校验失败"
+		u.snap.Stage = i18n.S("安装包校验失败", "Installer verification failed")
 		u.mu.Unlock()
 		u.emitChange()
 		return err
@@ -1030,15 +1057,15 @@ func (u *Updater) InstallAndRestart() error {
 
 	u.mu.Lock()
 	u.snap.Status = UpdateInstalling
-	u.snap.Stage = "正在启动安装程序并退出…"
+	u.snap.Stage = i18n.S("正在启动安装程序并退出…", "Launching installer and exiting…")
 	u.mu.Unlock()
 	u.emitChange()
 
 	if err := u.launchInstallerFn(pkgPath, u.resolvedExePath()); err != nil {
 		u.mu.Lock()
 		u.snap.Status = UpdateError
-		u.snap.Err = "启动安装程序失败: " + err.Error()
-		u.snap.Stage = "安装启动失败"
+		u.snap.Err = i18n.S("启动安装程序失败: ", "Failed to launch installer: ") + err.Error()
+		u.snap.Stage = i18n.S("安装启动失败", "Failed to start installer")
 		u.mu.Unlock()
 		u.emitChange()
 		return err

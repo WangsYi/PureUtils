@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 )
 
 // Tool is one of the capture annotation tools.
@@ -27,27 +28,27 @@ const (
 // Tools is the toolbar order.
 var Tools = []Tool{ToolRect, ToolEllipse, ToolLine, ToolArrow, ToolPen, ToolHighlight, ToolText, ToolMosaic, ToolBadge}
 
-// ToolLabel returns the Chinese label shown in the capture toolbar.
+// ToolLabel returns the localized label shown in the capture toolbar.
 func ToolLabel(t Tool) string {
 	switch t {
 	case ToolRect:
-		return "矩形"
+		return i18n.S("矩形", "Rectangle")
 	case ToolEllipse:
-		return "椭圆"
+		return i18n.S("椭圆", "Ellipse")
 	case ToolLine:
-		return "直线"
+		return i18n.S("直线", "Line")
 	case ToolArrow:
-		return "箭头"
+		return i18n.S("箭头", "Arrow")
 	case ToolPen:
-		return "画笔"
+		return i18n.S("画笔", "Pen")
 	case ToolHighlight:
-		return "高亮"
+		return i18n.S("高亮", "Highlighter")
 	case ToolText:
-		return "文字"
+		return i18n.S("文字", "Text")
 	case ToolMosaic:
-		return "马赛克"
+		return i18n.S("马赛克", "Mosaic")
 	case ToolBadge:
-		return "序号"
+		return i18n.S("序号", "Step")
 	}
 	return string(t)
 }

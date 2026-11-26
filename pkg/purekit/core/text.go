@@ -1,12 +1,13 @@
 package core
 
 import (
-	"fmt"
 	"html"
 	"os"
 	"strconv"
 	"strings"
 	"unicode"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 const previewChars = 120
@@ -22,12 +23,12 @@ func PreviewOf(c *ClipboardContent) string {
 		raw = FilesSummary(c.Files)
 	case KindImage:
 		if len(c.ImagePNG) < 1024 {
-			raw = "[图片]"
+			raw = i18n.S("[图片]", "[Image]")
 		} else {
-			raw = fmt.Sprintf("[图片 %d KB]", len(c.ImagePNG)/1024)
+			raw = i18n.F("[图片 %d KB]", "[Image %d KB]", len(c.ImagePNG)/1024)
 		}
 		if text := FirstLine(c.Text); text != "" {
-			raw = "[图片] " + text
+			raw = i18n.S("[图片]", "[Image]") + " " + text
 		}
 	case KindRichText:
 		raw = FirstLine(StripHTML(c.HTML))
@@ -43,7 +44,7 @@ func PreviewOf(c *ClipboardContent) string {
 		raw = string(r[:previewChars]) + "…"
 	}
 	if raw == "" {
-		return "（空内容）"
+		return i18n.S("（空内容）", "(Empty)")
 	}
 	return raw
 }
@@ -79,7 +80,7 @@ func BodyOf(c *ClipboardContent, maxChars int) (string, bool) {
 // directory so two same-named files in different folders look different.
 func FilesSummary(files []string) string {
 	if len(files) == 0 {
-		return "（空文件列表）"
+		return i18n.S("（空文件列表）", "(Empty file list)")
 	}
 	names := make([]string, 0, len(files))
 	for _, p := range files {
@@ -97,10 +98,10 @@ func FilesSummary(files []string) string {
 		if len(names) > 4 {
 			head += ", …"
 		}
-		head += fmt.Sprintf("（%d 个）", len(names))
+		head += i18n.F("（%d 个）", " (%d items)", len(names))
 	}
 	if dir := CommonDirectory(files); dir != "" {
-		return head + " — 位于 " + dir
+		return head + i18n.S(" — 位于 ", " — in ") + dir
 	}
 	return head
 }

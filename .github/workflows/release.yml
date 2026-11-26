@@ -1,0 +1,308 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (X.Y.Z, without leading v)"
+        required: true
+        type: string
+      notes:
+        description: "Optional extra release highlights (Markdown)"
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GOTOOLCHAIN: auto
+  CGO_ENABLED: "0"
+  GOSUMDB: sum.golang.org
+
+jobs:
+  ci:
+    name: Verify CI Gates Before Release
+    uses: ./.github/workflows/ci.yml
+
+  package-and-release:
+    name: Package Installer, Publish Release & Update Docs
+    needs: [ci]
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Resolve release version and tag
+        id: meta
+        shell: pwsh
+        run: |
+          $raw = '${{ github.event.inputs.version }}'
+          if ('${{ github.event_name }}' -eq 'push') {
+            $raw = '${{ github.ref_name }}'
+          }
+          $ver = $raw.Trim() -replace '^[vV]+', ''
+          if ($ver -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Invalid release version '$raw'; expected X.Y.Z or vX.Y.Z"
+          }
+          $tag = "v$ver"
+          Write-Host "Resolved release version=$ver tag=$tag"
+          "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Sync version metadata and rebuild Windows PE resources
+        shell: pwsh
+        run: |
+          .\scripts\sync-release-meta.ps1 -Version '${{ steps.meta.outputs.version }}'
+          go run -buildvcs=false ./tools/genicon
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Download and verify Tier 1 libmpv-2.dll
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path 'libs\mpv' | Out-Null
+          gh release download libmpv-tier1 `
+            --dir 'libs\mpv' `
+            --pattern 'libmpv-2-tier1-x64.7z' `
+            --pattern 'SHA256SUMS.txt' `
+            --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $sums = Get-Content -LiteralPath 'libs\mpv\SHA256SUMS.txt' -Encoding UTF8
+          function Assert-Sha256([string]$FilePath, [string]$AssetName) {
+            $line = $sums | Where-Object { $_ -match ("^([0-9a-fA-F]{64})\s+" + [regex]::Escape($AssetName) + "$") } | Select-Object -First 1
+            if (-not $line) { throw "Missing checksum for $AssetName in libs\mpv\SHA256SUMS.txt" }
+            $line -match '^([0-9a-fA-F]{64})\s+' | Out-Null
+            $expected = $Matches[1].ToLowerInvariant()
+            $actual = (Get-FileHash -LiteralPath $FilePath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -ne $expected) {
+              throw "SHA-256 mismatch for $AssetName`: expected $expected, got $actual"
+            }
+            Write-Host "Verified $AssetName SHA-256: $actual"
+          }
+
+          Assert-Sha256 'libs\mpv\libmpv-2-tier1-x64.7z' 'libmpv-2-tier1-x64.7z'
+
+          $sevenZip = (Get-Command 7z -ErrorAction SilentlyContinue | Select-Object -First 1).Source
+          if (-not $sevenZip -and (Test-Path 'C:\Program Files\7-Zip\7z.exe')) {
+            $sevenZip = 'C:\Program Files\7-Zip\7z.exe'
+          }
+          if (-not $sevenZip) { throw '7z.exe not found on runner' }
+
+          & $sevenZip e -y 'libs\mpv\libmpv-2-tier1-x64.7z' '-olibs\mpv' 'libmpv-2.dll'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          Assert-Sha256 'libs\mpv\libmpv-2.dll' 'libmpv-2.dll'
+
+      - name: Ensure Inno Setup (ISCC.exe) is installed
+        shell: pwsh
+        run: |
+          $found = @($env:INNO_SETUP_ISCC, 'C:\Program Files (x86)\Inno Setup 7\ISCC.exe', 'C:\Program Files\Inno Setup 7\ISCC.exe', 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe', 'C:\Program Files\Inno Setup 6\ISCC.exe') |
+            Where-Object { $_ -and (Test-Path -LiteralPath $_) } |
+            Select-Object -First 1
+          if (-not $found) {
+            $cmd = Get-Command iscc -ErrorAction SilentlyContinue
+            if ($cmd) { $found = $cmd.Source }
+          }
+          if (-not $found) {
+            Write-Host 'Installing Inno Setup via Chocolatey...'
+            choco install innosetup -y --no-progress
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            Write-Host "Found ISCC at $found"
+          }
+
+      - name: Pack modular installer and write SHA256SUMS.txt
+        id: pack
+        shell: pwsh
+        run: |
+          $ver = '${{ steps.meta.outputs.version }}'
+          .\build.ps1 pack -Version $ver
+          $installer = "artifacts\installer\PureUtils-$ver-setup.exe"
+          if (-not (Test-Path -LiteralPath $installer)) {
+            throw "Installer not found at $installer"
+          }
+          $fi = Get-Item -LiteralPath $installer
+          $bytes = $fi.Length
+          $mb = ('{0:F1}' -f ($bytes / 1MB))
+          $sha = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sumPath = 'artifacts\installer\SHA256SUMS.txt'
+          [System.IO.File]::WriteAllText((Resolve-Path 'artifacts\installer').Path + '\SHA256SUMS.txt', "$sha  PureUtils-$ver-setup.exe`n", [System.Text.UTF8Encoding]::new($false))
+
+          "bytes=$bytes" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "mb=$mb" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "sha256=$sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "bytes_fmt=$($bytes.ToString('N0'))" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "Packed $installer ($mb MB, $bytes bytes, sha256=$sha)"
+
+      - name: Refresh showcase screenshots and sync docs/index.html size
+        shell: pwsh
+        run: |
+          $prevShots = $env:PUREUTILS_GEN_SHOTS
+          try {
+            $env:PUREUTILS_GEN_SHOTS = '1'
+            go test -buildvcs=false -count=1 -v ./internal/host -run '^TestGenerateHostScreenshots$'
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally {
+            if ($null -eq $prevShots) { Remove-Item Env:PUREUTILS_GEN_SHOTS -ErrorAction SilentlyContinue } else { $env:PUREUTILS_GEN_SHOTS = $prevShots }
+          }
+          .\scripts\sync-release-meta.ps1 -Version '${{ steps.meta.outputs.version }}' -InstallerSizeMB '${{ steps.pack.outputs.mb }}'
+
+      - name: Generate Release Notes and publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CUSTOM_NOTES: ${{ github.event.inputs.notes }}
+        shell: pwsh
+        run: |
+          $ver = '${{ steps.meta.outputs.version }}'
+          $tag = '${{ steps.meta.outputs.tag }}'
+          $mb = '${{ steps.pack.outputs.mb }}'
+          $bytesFmt = '${{ steps.pack.outputs.bytes_fmt }}'
+          $sha = '${{ steps.pack.outputs.sha256 }}'
+
+          $prevTag = (& git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | Where-Object { $_ -ne $tag } | Select-Object -First 1)
+          $commits = if ($prevTag) {
+            @(git log "$prevTag..HEAD" --pretty=format:'- %s (`%h`)' --no-merges | Where-Object { $_ -and $_ -notmatch '\[skip ci\]' })
+          } else {
+            @(git log -n 15 --pretty=format:'- %s (`%h`)' --no-merges)
+          }
+
+          $lines = New-Object System.Collections.Generic.List[string]
+          $lines.Add("## PureUtils $tag")
+          $lines.Add("")
+          if (-not [string]::IsNullOrWhiteSpace($env:CUSTOM_NOTES)) {
+            $lines.Add($env:CUSTOM_NOTES.Trim())
+            $lines.Add("")
+          }
+          if ($commits.Count -gt 0) {
+            $lines.Add("### 更新日志 / Changelog")
+            $lines.Add("")
+            foreach ($c in $commits) { $lines.Add($c) }
+            $lines.Add("")
+          }
+          $lines.Add("### 安装包信息 / Installer")
+          $lines.Add("")
+          $lines.Add("| 文件 / File | 大小 / Size | SHA-256 |")
+          $lines.Add("|---|---|---|")
+          $lines.Add("| ``PureUtils-$ver-setup.exe`` | $mb MB ($bytesFmt bytes) | ``$sha`` |")
+          $lines.Add("| ``SHA256SUMS.txt`` | — | Checksum manifest |")
+          $lines.Add("")
+          $lines.Add("---")
+          $lines.Add("")
+          $lines.Add("> Built, tested, packaged, and verified automatically via GitHub Actions Release workflow.")
+
+          $notesPath = Join-Path $env:RUNNER_TEMP "release-notes-$tag.md"
+          [System.IO.File]::WriteAllText($notesPath, ($lines -join "`n"), [System.Text.UTF8Encoding]::new($false))
+
+          $installer = "artifacts\installer\PureUtils-$ver-setup.exe"
+          $sums = "artifacts\installer\SHA256SUMS.txt"
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $installer $sums --clobber
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            gh release edit $tag --title "PureUtils $tag" --notes-file $notesPath --latest
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            gh release create $tag $installer $sums --title "PureUtils $tag" --notes-file $notesPath --latest
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Sync version metadata, docs, and screenshots back to main
+        shell: pwsh
+        run: |
+          $tag = '${{ steps.meta.outputs.tag }}'
+          $tracked = @(
+            'pkg/purekit/core/version.go',
+            'installer/pureutils.iss',
+            'build.ps1',
+            '.github/workflows/ci.yml',
+            'tools/genicon/main.go',
+            'rsrc_windows_amd64.syso',
+            'README.md',
+            'README.en.md',
+            'docs/index.html',
+            'docs/screenshots/settings.png',
+            'docs/screenshots/launcher.png'
+          )
+          $stageDir = Join-Path $env:RUNNER_TEMP 'pureutils-sync-stage'
+          if (Test-Path -LiteralPath $stageDir) { Remove-Item -Recurse -Force $stageDir }
+          New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
+
+          foreach ($rel in $tracked) {
+            if (Test-Path -LiteralPath $rel) {
+              $dst = Join-Path $stageDir $rel
+              New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dst) | Out-Null
+              Copy-Item -Force $rel $dst
+            }
+          }
+
+          git checkout -- .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git fetch origin main
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git checkout -B main origin/main
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          foreach ($rel in $tracked) {
+            $src = Join-Path $stageDir $rel
+            if (Test-Path -LiteralPath $src) {
+              New-Item -ItemType Directory -Force -Path (Split-Path -Parent $rel) | Out-Null
+              Copy-Item -Force $src $rel
+            }
+          }
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- $tracked
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "chore(release): sync docs and metadata for $tag [skip ci]"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            git push origin main
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            Write-Host "No metadata or docs changes to commit back to main for $tag."
+          }
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy-pages:
+    name: Deploy Updated Showcase Site to Pages
+    needs: [package-and-release]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

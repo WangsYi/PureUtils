@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 )
 
 func TestRoundTripPluginAndHostSections(t *testing.T) {
@@ -16,6 +17,7 @@ func TestRoundTripPluginAndHostSections(t *testing.T) {
 
 	host := mgr.Host()
 	host.Appearance.Theme = "dark"
+	host.Appearance.Language = "en-US"
 	host.Launcher.Shortcut = "Ctrl+Space"
 	host.Hotkeys.Launcher = "Ctrl+Space"
 	host.Hotkeys.Plugins = map[string]string{"demo": "Ctrl+Alt+D"}
@@ -60,7 +62,7 @@ func TestRoundTripPluginAndHostSections(t *testing.T) {
 	if reloaded.Host().SchemaVersion != CurrentSchemaVersion {
 		t.Fatalf("SchemaVersion = %d, want %d", reloaded.Host().SchemaVersion, CurrentSchemaVersion)
 	}
-	if reloaded.Host().Launcher.Shortcut != "Ctrl+Space" || reloaded.Host().Appearance.Theme != "dark" {
+	if reloaded.Host().Launcher.Shortcut != "Ctrl+Space" || reloaded.Host().Appearance.Theme != "dark" || reloaded.Host().Appearance.Language != i18n.PrefEN {
 		t.Fatalf("Host mismatch: %+v", reloaded.Host())
 	}
 	if reloaded.Host().Hotkeys.Plugins["demo"] != "Ctrl+Alt+D" {

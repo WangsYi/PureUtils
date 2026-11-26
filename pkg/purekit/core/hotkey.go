@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 // Modifiers is a bit set of shortcut modifiers.
@@ -53,7 +55,7 @@ func (g Gesture) String() string {
 func ParseGesture(text string) (Gesture, error) {
 	text = strings.TrimSpace(text)
 	if text == "" {
-		return Gesture{}, fmt.Errorf("快捷键为空")
+		return Gesture{}, fmt.Errorf("%s", i18n.S("快捷键为空", "Shortcut cannot be empty"))
 	}
 	var mods Modifiers
 	var key string
@@ -74,16 +76,16 @@ func ParseGesture(text string) (Gesture, error) {
 		default:
 			normalized := NormalizeKey(token)
 			if _, ok := VirtualKey(normalized); !ok {
-				return Gesture{}, fmt.Errorf("不支持的按键「%s」", token)
+				return Gesture{}, fmt.Errorf("%s", i18n.F("不支持的按键「%s」", `Unsupported key "%s"`, token))
 			}
 			if key != "" {
-				return Gesture{}, fmt.Errorf("快捷键只能有一个主键")
+				return Gesture{}, fmt.Errorf("%s", i18n.S("快捷键只能有一个主键", "Shortcut may only have one main key"))
 			}
 			key = normalized
 		}
 	}
 	if key == "" {
-		return Gesture{}, fmt.Errorf("快捷键缺少主键")
+		return Gesture{}, fmt.Errorf("%s", i18n.S("快捷键缺少主键", "Shortcut is missing a main key"))
 	}
 	return Gesture{Modifiers: mods, Key: key}, nil
 }
@@ -275,23 +277,23 @@ func IsModifierKey(vk uint16) bool {
 // HotkeyCapture validates a recorded gesture.
 func HotkeyCapture(mods Modifiers, key string) (Gesture, error) {
 	if key == "" {
-		return Gesture{}, fmt.Errorf("请先按住修饰键（Ctrl / Alt / Shift / Win），再按一个主键")
+		return Gesture{}, fmt.Errorf("%s", i18n.S("请先按住修饰键（Ctrl / Alt / Shift / Win），再按一个主键", "Hold a modifier (Ctrl / Alt / Shift / Win) then press a key"))
 	}
 	key = NormalizeKey(key)
 	if _, ok := VirtualKey(key); !ok {
-		return Gesture{}, fmt.Errorf("不支持的按键「%s」", key)
+		return Gesture{}, fmt.Errorf("%s", i18n.F("不支持的按键「%s」", `Unsupported key "%s"`, key))
 	}
 	if mods == ModWin && key == "L" {
-		return Gesture{}, fmt.Errorf("Win+L 是系统锁屏，不能占用")
+		return Gesture{}, fmt.Errorf("%s", i18n.S("Win+L 是系统锁屏，不能占用", "Win+L is reserved by Windows Lock Screen"))
 	}
 	if mods == ModAlt && key == "TAB" {
-		return Gesture{}, fmt.Errorf("Alt+Tab 是系统切换窗口，不能占用")
+		return Gesture{}, fmt.Errorf("%s", i18n.S("Alt+Tab 是系统切换窗口，不能占用", "Alt+Tab is reserved by Windows task switcher"))
 	}
 	if mods == ModAlt && key == "F4" {
-		return Gesture{}, fmt.Errorf("Alt+F4 会关掉当前窗口，建议换个组合")
+		return Gesture{}, fmt.Errorf("%s", i18n.S("Alt+F4 会关掉当前窗口，建议换个组合", "Alt+F4 closes the active window; please choose another shortcut"))
 	}
 	if mods == ModNone && !AllowsWithoutModifier(key) {
-		return Gesture{}, fmt.Errorf("「%s」不能单独作热键，至少配一个修饰键（F1–F24、PrtSc 除外）", key)
+		return Gesture{}, fmt.Errorf("%s", i18n.F("「%s」不能单独作热键，至少配一个修饰键（F1–F24、PrtSc 除外）", `"%s" requires a modifier key (except F1–F24 and PrtSc)`, key))
 	}
 	return Gesture{Modifiers: mods, Key: key}, nil
 }

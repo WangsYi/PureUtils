@@ -11,6 +11,7 @@ import (
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/config"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	"pureutils/pkg/purekit/platform"
 	pureui "pureutils/pkg/purekit/ui"
 )
@@ -47,17 +48,19 @@ type settingsView struct {
 	modOrig     core.ModuleConfig
 	modDraft    core.ModuleConfig
 	themeIdx    int
+	langIdx     int
 	launcherMax float64
 
 	hotkeys []hotkeyEntry
 
-	updateSourceLabel string
 	updateIntervalIdx int
 
-	recorder     *platform.HotkeyRecorder
-	recordingID  string
-	recordingErr string
-	status       string
+	recorder         *platform.HotkeyRecorder
+	recordingID      string
+	recordingErr     string
+	status           string
+	statusIsRecorded bool
+	saving           bool
 }
 
 // ShowSettings opens or focuses the unified Settings window, optionally navigating to tabID.
@@ -82,7 +85,7 @@ func (a *App) ShowSettings(tabID string) {
 	}
 
 	win := mygo.NewWindow(mygo.WindowOptions{
-		Title:     "PureUtils 设置",
+		Title:     i18n.S("PureUtils 设置", "PureUtils Settings"),
 		Width:     860,
 		Height:    640,
 		MinWidth:  720,
@@ -137,7 +140,7 @@ func (h *settingsView) buildSections() {
 			spec: purekit.HotkeySpec{
 				ID:             "host.launcher",
 				Command:        core.CmdOpenLauncher,
-				Label:          "快捷启动器",
+				Label:          i18n.S("快捷启动器", "Quick Launcher"),
 				DefaultGesture: "Alt+Space",
 				CurrentGesture: func() string {
 					return h.app.HostConfig().Launcher.Shortcut
@@ -173,9 +176,9 @@ func (h *settingsView) buildSections() {
 	secs := []settingsSection{
 		{
 			id:    "general",
-			label: "常规",
-			title: "常规与外观",
-			sub:   "主题外观与全局快捷键",
+			label: i18n.S("常规", "General"),
+			title: i18n.S("常规与外观", "General & Appearance"),
+			sub:   i18n.S("主题外观、界面语言与全局快捷键", "Theme, language, and global hotkeys"),
 			icon:  pureui.IconSliders,
 		},
 	}
@@ -193,9 +196,9 @@ func (h *settingsView) buildSections() {
 	}
 	secs = append(secs, settingsSection{
 		id:    "advanced",
-		label: "高级",
-		title: "高级与维护",
-		sub:   "自动更新、开机自启、日志诊断与已安装模块",
+		label: i18n.S("高级", "Advanced"),
+		title: i18n.S("高级与维护", "Advanced & Updates"),
+		sub:   i18n.S("自动更新、开机自启、日志诊断与已安装模块", "Updates, startup, logs, and installed modules"),
 		icon:  pureui.IconWrench,
 	})
 	h.sections = secs
@@ -223,8 +226,8 @@ func (h *settingsView) loadFromHost() {
 	h.modOrig = active
 	h.modDraft = active
 	h.themeIdx = themeIndex(hc.Appearance.Theme)
+	h.langIdx = langIndex(hc.Appearance.Language)
 	h.launcherMax = float64(hc.Launcher.MaxResults)
-	h.updateSourceLabel = UpdateSourceLabel(hc.Update.DownloadSource)
 	h.updateIntervalIdx = updateIntervalIndex(hc.Update.CheckIntervalHours)
 	for i := range h.hotkeys {
 		var cur string
@@ -234,6 +237,20 @@ func (h *settingsView) loadFromHost() {
 		h.hotkeys[i].orig = cur
 		h.hotkeys[i].draft = cur
 	}
+}
+
+func (h *settingsView) refreshForLanguageChange() {
+	if h.closed {
+		return
+	}
+	prevSection := h.section
+	h.buildSections()
+	h.selectSection(prevSection)
+	h.loadFromHost()
+	if h.win != nil {
+		h.win.SetTitle(i18n.S("PureUtils 设置", "PureUtils Settings"))
+	}
+	h.invalidate()
 }
 
 func (h *settingsView) selectSection(id string) {
@@ -269,7 +286,7 @@ func (h *settingsView) view(c *ui.Context) {
 }
 
 func (h *settingsView) sidebar(c *ui.Context, pal pureui.Palette) {
-	ui.Column(c).Width(208).FillHeight().Background(pal.SidebarBg).Children(func() {
+	ui.Column(c).Width(216).FillHeight().Background(pal.SidebarBg).Children(func() {
 		ui.Row(c).Padding(18, 16, 12, 16).Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Box(c).Size(30, 30).Radius(8).Gradient(pal.Accent, pal.AccentEnd, 135).
 				InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.25)).Center().Children(func() {
@@ -280,12 +297,12 @@ func (h *settingsView) sidebar(c *ui.Context, pal pureui.Palette) {
 					ui.Text(c, "PureUtils").FontSize(14).FontWeight(700).TextColor(pal.Text)
 					pureui.PillBadge(c, core.ShortVersion(core.AppVersion), pal.Accent, pal.AccentSoft)
 				})
-				ui.Text(c, "系统设置").FontSize(11).TextColor(pal.TextMuted)
+				ui.Text(c, i18n.S("系统设置", "Settings")).FontSize(11).TextColor(pal.TextMuted)
 			})
 		})
 
 		sb := ui.Sidebar(c, &h.section, func() {
-			ui.SidebarSection(c, "设置分类", nil, func() {
+			ui.SidebarSection(c, i18n.S("设置分类", "Sections"), nil, func() {
 				for _, sec := range h.sections {
 					ui.SidebarItem(c, sec.id, sec.icon, sec.label)
 				}
@@ -311,14 +328,14 @@ func (h *settingsView) renderSidebarStatus(c *ui.Context, pal pureui.Palette) {
 		for _, item := range p.TrayItems() {
 			if item.ID == "pureclip.monitoring" {
 				dot := pal.Success
-				monText := "剪贴板监听中"
+				monText := i18n.S("剪贴板监听中", "Clipboard Monitoring Active")
 				if !item.Checked {
 					dot = pal.Warning
-					monText = "剪贴板监听已暂停"
+					monText = i18n.S("剪贴板监听已暂停", "Clipboard Monitoring Paused")
 				}
 				ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 					ui.Box(c).Size(7, 7).Radius(3.5).Background(dot)
-					ui.Text(c, monText).FontSize(11).FontWeight(500).TextColor(pal.TextSecondary)
+					ui.Text(c, monText).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.TextSecondary)
 				})
 				return
 			}
@@ -328,7 +345,7 @@ func (h *settingsView) renderSidebarStatus(c *ui.Context, pal pureui.Palette) {
 	for _, p := range plugins {
 		names = append(names, p.Info().Name)
 	}
-	summary := "无启用插件"
+	summary := i18n.S("无启用插件", "No active plugins")
 	if len(names) > 0 {
 		summary = strings.Join(names, " · ")
 	}
@@ -370,31 +387,31 @@ func (h *settingsView) bottomSaveBar(c *ui.Context, pal pureui.Palette) {
 	dirty := h.isDirty()
 	ui.Box(c).Height(1).FillWidth().Background(pal.Border)
 	ui.Row(c).Padding(10, 20).Gap(8).AlignItems(ui.Center).Background(pal.SidebarBg).Children(func() {
-		ui.Row(c).Grow(1).Gap(6).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).Grow(1).MinWidth(0).Gap(6).AlignItems(ui.Center).Children(func() {
 			switch {
 			case h.recordingID != "":
 				if h.recordingErr != "" {
-					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Danger)
-					ui.Text(c, h.recordingErr).FontSize(11).FontWeight(500).TextColor(pal.Danger)
+					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Danger).Shrink(0)
+					ui.Text(c, h.recordingErr).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Danger)
 				} else {
-					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Accent)
-					ui.Text(c, "录制中…请按下组合键（按 Esc 取消）").FontSize(11).FontWeight(500).TextColor(pal.Accent)
+					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Accent).Shrink(0)
+					ui.Text(c, i18n.S("录制中…请按下组合键（按 Esc 取消）", "Recording… press a key combination (Esc to cancel)")).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Accent)
 				}
 			case dirty:
-				if strings.HasPrefix(h.status, "已录制:") {
-					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Accent)
-					ui.Text(c, h.status).FontSize(11).FontWeight(500).TextColor(pal.Accent)
+				if h.statusIsRecorded && h.status != "" {
+					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Accent).Shrink(0)
+					ui.Text(c, h.status).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Accent)
 				} else {
-					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Warning)
-					ui.Text(c, "有未保存的更改").FontSize(11).FontWeight(500).TextColor(pal.Warning)
+					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Warning).Shrink(0)
+					ui.Text(c, i18n.S("有未保存的更改", "Unsaved changes")).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Warning)
 				}
 			case h.status != "":
-				ui.Text(c, h.status).FontSize(11).TextColor(pal.TextMuted)
+				ui.Text(c, h.status).FontSize(11).SingleLine().TextColor(pal.TextMuted)
 			default:
-				ui.Text(c, "配置保存后立即生效").FontSize(11).TextColor(pal.TextMuted)
+				ui.Text(c, i18n.S("配置保存后立即生效", "Changes take effect immediately after saving")).FontSize(11).SingleLine().TextColor(pal.TextMuted)
 			}
 		})
-		ui.Button(c, "放弃更改").Disabled(!dirty).OnClick(func() {
+		ui.Button(c, i18n.S("放弃更改", "Discard")).Disabled(!dirty).Shrink(0).OnClick(func() {
 			h.stopRecorder()
 			h.loadFromHost()
 			for i := range h.sections {
@@ -402,28 +419,37 @@ func (h *settingsView) bottomSaveBar(c *ui.Context, pal pureui.Palette) {
 					h.sections[i].pluginView = h.sections[i].tab.NewView(h.app)
 				}
 			}
-			h.status = "已放弃未保存的更改"
+			h.statusIsRecorded = false
+			h.status = i18n.S("已放弃未保存的更改", "Unsaved changes discarded")
 			h.invalidate()
 		}).Border(0, ui.Transparent)
-		ui.Button(c, "关闭").OnClick(func() { h.close() }).Border(0, ui.Transparent)
-		ui.PrimaryButton(c, "保存").OnClick(func() { h.save(c) })
+		ui.Button(c, i18n.S("关闭", "Close")).Shrink(0).OnClick(func() { h.close() }).Border(0, ui.Transparent)
+		ui.PrimaryButton(c, i18n.S("保存", "Save")).Shrink(0).OnClick(func() { h.save(c) })
 	})
 }
 
 func (h *settingsView) general(c *ui.Context, pal pureui.Palette) {
-	pureui.SettingCard(c, "外观与显示", "调整应用全局色彩主题（浅色、深色或跟随 Windows）", pal, func() {
-		pureui.SettingRow(c, "主题模式", "支持跟随 Windows 深浅色或手动指定", pal, func() {
-			seg := ui.Segmented(c, &h.themeIdx, "跟随系统", "浅色", "深色").Label("主题")
+	pureui.SettingCard(c, i18n.S("外观与显示", "Appearance & Display"), i18n.S("调整应用全局色彩主题与界面显示语言", "Configure global color theme and display language"), pal, func() {
+		pureui.SettingRow(c, i18n.S("主题模式", "Theme"), i18n.S("支持跟随 Windows 深浅色或手动指定", "Follow Windows light/dark mode or choose manually"), pal, func() {
+			seg := ui.Segmented(c, &h.themeIdx, i18n.S("跟随系统", "System"), i18n.S("浅色", "Light"), i18n.S("深色", "Dark")).Label(i18n.S("主题", "Theme"))
 			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
 				h.hostDraft.Appearance.Theme = themeKeyFromIndex(h.themeIdx)
 			}
 		})
+		ui.Divider(c)
+		pureui.SettingRow(c, i18n.S("界面语言", "Language"), i18n.S("跟随系统自动切换或手动指定中英文（保存后立即生效）", "Follow OS language or choose Chinese / English"), pal, func() {
+			seg := ui.Segmented(c, &h.langIdx, i18n.S("跟随系统", "Auto"), "简体中文", "English").Label(i18n.S("界面语言", "Language"))
+			seg.Border(0, ui.Transparent)
+			if seg.Changed() {
+				h.hostDraft.Appearance.Language = langPrefFromIndex(h.langIdx)
+			}
+		})
 	})
 
-	pureui.SettingCard(c, "全局热键", "触发冲突或无效热键会在对应行下方显示原因，保存后立即生效", pal, func() {
+	pureui.SettingCard(c, i18n.S("全局热键", "Global Hotkeys"), i18n.S("触发冲突或无效热键会在对应行下方显示原因，保存后立即生效", "Conflicts or invalid shortcuts appear below each row and take effect on Save"), pal, func() {
 		if len(h.hotkeys) == 0 {
-			ui.Text(c, "当前没有启用提供全局热键的功能插件").FontSize(12).TextColor(pal.TextMuted)
+			ui.Text(c, i18n.S("当前没有启用提供全局热键的功能插件", "No enabled modules provide global hotkeys")).FontSize(12).TextColor(pal.TextMuted)
 			return
 		}
 		for i := range h.hotkeys {
@@ -433,18 +459,18 @@ func (h *settingsView) general(c *ui.Context, pal pureui.Palette) {
 			h.hotkeyRow(c, i, pal)
 		}
 		ui.Divider(c)
-		pureui.SettingRow(c, "接管系统 Win 组合键", "当 Win+V、Win+Shift+S、Win+Space 等被系统占用时，自动通过底层键盘钩子接管并屏蔽开始菜单（不支持 Win+L）", pal, func() {
-			ui.Switch(c, &h.hostDraft.Hotkeys.TakeoverWinKeys).Label("开关：接管系统 Win 组合键")
+		pureui.SettingRow(c, i18n.S("接管系统 Win 组合键", "Take Over System Win Hotkeys"), i18n.S("当 Win+V、Win+Shift+S、Win+Space 等被系统占用时，自动通过底层键盘钩子接管并屏蔽开始菜单（不支持 Win+L）", "Intercept reserved Win shortcuts like Win+V or Win+Shift+S via low-level hook (Win+L excluded)"), pal, func() {
+			ui.Switch(c, &h.hostDraft.Hotkeys.TakeoverWinKeys).Label(i18n.S("开关：接管系统 Win 组合键", "Toggle: Take over system Win hotkeys"))
 		})
 	})
 
-	pureui.SettingCard(c, "快捷启动器", "按下全局热键（默认 Alt+Space）快速搜索插件能力并自动识别当前剪贴板或资源管理器选中项", pal, func() {
-		pureui.SettingRow(c, "启用快捷启动器", "注册启动器全局快捷键并在系统托盘显示入口", pal, func() {
-			ui.Switch(c, &h.hostDraft.Launcher.Enabled).Label("开关：启用快捷启动器")
+	pureui.SettingCard(c, i18n.S("快捷启动器", "Quick Launcher"), i18n.S("按下全局热键（默认 Alt+Space）快速搜索插件能力并自动识别当前剪贴板或资源管理器选中项", "Search all plugin actions, clipboard history, and Explorer selections (default Alt+Space)"), pal, func() {
+		pureui.SettingRow(c, i18n.S("启用快捷启动器", "Enable Quick Launcher"), i18n.S("注册启动器全局快捷键并在系统托盘显示入口", "Register launcher hotkey and add entry to system tray"), pal, func() {
+			ui.Switch(c, &h.hostDraft.Launcher.Enabled).Label(i18n.S("开关：启用快捷启动器", "Toggle: Enable Quick Launcher"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "最多显示结果数", "控制启动器列表单次展示的最大匹配条数（4–30）", pal, func() {
-			if ui.NumberInput(c, &h.launcherMax, 4, 30, 1).Label("数值：启动器最大结果数").Changed() {
+		pureui.SettingRow(c, i18n.S("最多显示结果数", "Max Results"), i18n.S("控制启动器列表单次展示的最大匹配条数（4–30）", "Maximum number of results displayed in the launcher (4–30)"), pal, func() {
+			if ui.NumberInput(c, &h.launcherMax, 4, 30, 1).Label(i18n.S("数值：启动器最大结果数", "Number: Launcher max results")).Changed() {
 				h.hostDraft.Launcher.MaxResults = int(h.launcherMax)
 			}
 		})
@@ -459,23 +485,23 @@ func (h *settingsView) hotkeyRow(c *ui.Context, idx int, pal pureui.Palette) {
 
 	ui.Column(c).Gap(4).Children(func() {
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Row(c).Grow(1).Gap(6).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, spec.Label).FontSize(13).FontWeight(500).TextColor(pal.Text)
+			ui.Column(c).Grow(1).MinWidth(0).Gap(1).Children(func() {
+				ui.Text(c, spec.Label).FontSize(13).FontWeight(500).SingleLine().TextColor(pal.Text)
 				if spec.DefaultGesture != "" {
-					ui.Text(c, "默认 "+spec.DefaultGesture).FontSize(10.5).TextColor(pal.TextMuted)
+					ui.Text(c, i18n.F("默认 %s", "Default: %s", spec.DefaultGesture)).FontSize(10.5).SingleLine().TextColor(pal.TextMuted)
 				}
 			})
-			ui.TextInput(c, &entry.draft).Width(168).Label("快捷键：" + spec.Label).Border(0, ui.Transparent).FocusRing(false)
+			ui.TextInput(c, &entry.draft).Width(148).Label(i18n.S("快捷键：", "Shortcut: ") + spec.Label).Border(0, ui.Transparent).FocusRing(false)
 
-			recBtn := ui.ButtonBase(c).Padding(5, 11).Radius(7).Gap(5).AlignItems(ui.Center).
-				Label("录制" + spec.Label).Tooltip("按下组合键录制热键")
+			recBtn := ui.ButtonBase(c).Padding(5, 11).Radius(7).Gap(5).AlignItems(ui.Center).Shrink(0).
+				Label(i18n.S("录制", "Record ") + spec.Label).Tooltip(i18n.S("按下组合键录制热键", "Press key combination to record"))
 			recBg := pal.ControlBg
 			recFg := pal.TextSecondary
-			recText := "录制"
+			recText := i18n.S("录制", "Record")
 			if recording {
 				recBg = pal.AccentSoft
 				recFg = pal.Accent
-				recText = "停止"
+				recText = i18n.S("停止", "Stop")
 			} else if recBtn.Pressed() {
 				recBg = pal.CardActive
 			} else if recBtn.Hovered() {
@@ -490,18 +516,19 @@ func (h *settingsView) hotkeyRow(c *ui.Context, idx int, pal pureui.Palette) {
 			recBtn.OnClick(func() {
 				if recording {
 					h.stopRecorder()
-					h.status = "已取消录制"
+					h.statusIsRecorded = false
+					h.status = i18n.S("已取消录制", "Recording canceled")
 					h.invalidate()
 				} else {
 					h.startRecording(spec.ID)
 				}
 			})
 
-			resetTooltip := "恢复默认热键 (" + spec.DefaultGesture + ")"
+			resetTooltip := i18n.F("恢复默认热键 (%s)", "Reset to default (%s)", spec.DefaultGesture)
 			if spec.DefaultGesture == "" {
-				resetTooltip = "清空热键"
+				resetTooltip = i18n.S("清空热键", "Clear shortcut")
 			}
-			pureui.IconButton(c, pureui.IconRotateCcw, "恢复默认"+spec.Label, resetTooltip, false, false, pal).
+			pureui.IconButton(c, pureui.IconRotateCcw, i18n.S("恢复默认", "Reset ")+spec.Label, resetTooltip, false, false, pal).
 				Disabled(entry.draft == spec.DefaultGesture).
 				OnClick(func() {
 					entry.draft = spec.DefaultGesture
@@ -525,7 +552,7 @@ func (h *settingsView) hotkeyError(idx int) string {
 		return err.Error()
 	}
 	if g.Modifiers == core.ModWin && g.Key == "L" {
-		return "Win+L 是系统锁屏，不能占用"
+		return i18n.S("Win+L 是系统锁屏，不能占用", "Win+L is reserved by Windows Lock Screen")
 	}
 	if msg := h.app.HotkeyErrorByID(entry.spec.ID); msg != "" {
 		return msg
@@ -539,28 +566,29 @@ func (h *settingsView) hotkeyError(idx int) string {
 func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 	h.renderUpdateCard(c, pal)
 
-	pureui.SettingCard(c, "系统与日志", "管理开机自启与诊断日志级别", pal, func() {
-		pureui.SettingRow(c, "开机自动启动", "登录 Windows 时在系统托盘后台自动启动 PureUtils", pal, func() {
-			ui.Switch(c, &h.hostDraft.Advanced.RunOnStartup).Label("开关：开机自动启动")
+	pureui.SettingCard(c, i18n.S("系统与日志", "System & Logs"), i18n.S("管理开机自启与诊断日志级别", "Manage startup launch and diagnostic logging"), pal, func() {
+		pureui.SettingRow(c, i18n.S("开机自动启动", "Launch on Startup"), i18n.S("登录 Windows 时在系统托盘后台自动启动 PureUtils", "Automatically start PureUtils in tray when signing in to Windows"), pal, func() {
+			ui.Switch(c, &h.hostDraft.Advanced.RunOnStartup).Label(i18n.S("开关：开机自动启动", "Toggle: Launch on Startup"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "记录详细日志", "写入更多调试上下文到每日日志文件以便排查问题", pal, func() {
-			ui.Switch(c, &h.hostDraft.Advanced.VerboseLogging).Label("开关：记录详细日志")
+		pureui.SettingRow(c, i18n.S("记录详细日志", "Verbose Logging"), i18n.S("写入更多调试上下文到每日日志文件以便排查问题", "Write detailed diagnostic context to daily log files"), pal, func() {
+			ui.Switch(c, &h.hostDraft.Advanced.VerboseLogging).Label(i18n.S("开关：记录详细日志", "Toggle: Verbose Logging"))
 		})
 	})
 
-	pureui.SettingCard(c, "存储与维护", "数据目录："+h.app.Paths().Home, pal, func() {
+	pureui.SettingCard(c, i18n.S("存储与维护", "Storage & Data"), i18n.S("数据目录：", "Data directory: ")+h.app.Paths().Home, pal, func() {
 		ui.Row(c).Gap(8).Wrap().Children(func() {
-			ui.Button(c, "打开数据目录").OnClick(func() {
+			ui.Button(c, i18n.S("打开数据目录", "Open Data Folder")).OnClick(func() {
 				if err := mygo.Shell.OpenPath(h.app.Paths().Home); err != nil {
-					h.status = "打开目录失败: " + err.Error()
+					h.statusIsRecorded = false
+					h.status = i18n.S("打开目录失败: ", "Failed to open folder: ") + err.Error()
 				}
 				h.invalidate()
 			}).Border(0, ui.Transparent)
 		})
 	})
 
-	pureui.SettingCard(c, "已安装模块", "可实时开启或关闭已安装的组件，保存后立即生效（无需重启）；精简构建未包含的组件无法开启", pal, func() {
+	pureui.SettingCard(c, i18n.S("已安装模块", "Installed Modules"), i18n.S("可实时开启或关闭已安装的组件，保存后立即生效（无需重启）；精简构建未包含的组件无法开启", "Enable or disable modules live without restarting; excluded modules in Core builds cannot be enabled"), pal, func() {
 		type builtinRow struct {
 			id        string
 			shortName string
@@ -571,11 +599,11 @@ func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 			draftPtr  *bool
 		}
 		builtins := []builtinRow{
-			{"pureshot", "PureShot", core.ModuleCapture, "PureShot（截图、标注与悬浮贴图）", "区域/整屏截图、9 种标注与置顶悬浮贴图", h.app.compiled.Capture, &h.modDraft.Capture},
-			{"pureclip", "PureClip", core.ModuleHistory, "PureClip（剪贴板历史）", "自动监听文本/富文本/图片/文件并持久化检索", h.app.compiled.History, &h.modDraft.History},
-			{"pureimage", "PureImage", core.ModuleViewer, "PureImage（看图与空格预览）", "支持 JPEG Turbo/HEIC/AVIF/JXL/RAW、动图与资源管理器空格预览", h.app.compiled.Viewer, &h.modDraft.Viewer},
-			{"purevideo", "PureVideo", core.ModuleVideo, "PureVideo（极速视频浏览）", "内置 libmpv 硬件解码，支持 21 种常见视频格式与外挂字幕", h.app.compiled.Video, &h.modDraft.Video},
-			{"purezip", "PureZip", core.ModuleZip, "PureZip（压缩与解压管理）", "浏览/智能解压/多线程压缩/加密/右键菜单与文件关联", h.app.compiled.Zip, &h.modDraft.Zip},
+			{"pureshot", "PureShot", core.ModuleCapture, i18n.S("PureShot（截图、标注与悬浮贴图）", "PureShot (Capture & Pins)"), i18n.S("区域/整屏截图、9 种标注与置顶悬浮贴图", "Region/full-screen capture, 9 annotations & always-on-top pins"), h.app.compiled.Capture, &h.modDraft.Capture},
+			{"pureclip", "PureClip", core.ModuleHistory, i18n.S("PureClip（剪贴板历史）", "PureClip (Clipboard History)"), i18n.S("自动监听文本/富文本/图片/文件并持久化检索", "Auto-capture text/rich text/images/files with instant search"), h.app.compiled.History, &h.modDraft.History},
+			{"pureimage", "PureImage", core.ModuleViewer, i18n.S("PureImage（看图与空格预览）", "PureImage (Image Viewer)"), i18n.S("支持 JPEG Turbo/HEIC/AVIF/JXL/RAW、动图与资源管理器空格预览", "JPEG Turbo/HEIC/AVIF/JXL/RAW, animations & Explorer space preview"), h.app.compiled.Viewer, &h.modDraft.Viewer},
+			{"purevideo", "PureVideo", core.ModuleVideo, i18n.S("PureVideo（极速视频浏览）", "PureVideo (Video Player)"), i18n.S("内置 libmpv 硬件解码，支持 21 种常见视频格式与外挂字幕", "Built-in libmpv hardware decoding for 21 formats & external subtitles"), h.app.compiled.Video, &h.modDraft.Video},
+			{"purezip", "PureZip", core.ModuleZip, i18n.S("PureZip（压缩与解压管理）", "PureZip (Archive Manager)"), i18n.S("浏览/智能解压/多线程压缩/加密/右键菜单与文件关联", "Browse, smart extract, multi-threaded compress, encrypt & shell integration"), h.app.compiled.Zip, &h.modDraft.Zip},
 		}
 		installed := h.app.InstalledModules()
 		seen := map[string]bool{}
@@ -588,17 +616,17 @@ func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 			pureui.SettingRow(c, b.title, b.desc, pal, func() {
 				switch {
 				case !b.compiled:
-					pureui.PillBadge(c, "精简构建未包含", pal.TextMuted, pal.Bg)
+					pureui.PillBadge(c, i18n.S("精简构建未包含", "Not in Core build"), pal.TextMuted, pal.Bg)
 				case h.app.custom:
 					if active {
-						pureui.PillBadge(c, "已启用", pal.Success, pal.SuccessSoft)
+						pureui.PillBadge(c, i18n.S("已启用", "Enabled"), pal.Success, pal.SuccessSoft)
 					} else {
-						pureui.PillBadge(c, "未启用", pal.TextMuted, pal.Bg)
+						pureui.PillBadge(c, i18n.S("未启用", "Disabled"), pal.TextMuted, pal.Bg)
 					}
 				case !installed.Enabled(b.mod):
-					pureui.PillBadge(c, "未安装", pal.TextMuted, pal.Bg)
+					pureui.PillBadge(c, i18n.S("未安装", "Not Installed"), pal.TextMuted, pal.Bg)
 				default:
-					ui.Switch(c, b.draftPtr).Label("开关：启用 " + b.shortName)
+					ui.Switch(c, b.draftPtr).Label(i18n.S("开关：启用 ", "Toggle: Enable ") + b.shortName)
 				}
 			})
 		}
@@ -609,7 +637,7 @@ func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 			}
 			ui.Divider(c)
 			pureui.SettingRow(c, info.Name, info.Description, pal, func() {
-				pureui.PillBadge(c, "已启用", pal.Success, pal.SuccessSoft)
+				pureui.PillBadge(c, i18n.S("已启用", "Enabled"), pal.Success, pal.SuccessSoft)
 			})
 		}
 	})
@@ -626,56 +654,56 @@ func (h *settingsView) renderUpdateCard(c *ui.Context, pal pureui.Palette) {
 		}
 	}
 
-	sub := fmt.Sprintf("当前版本 v%s（数据源 GitHub: %s/%s）", core.ShortVersion(snap.CurrentVersion), core.DefaultRepoOwner, core.DefaultRepoName)
+	sub := i18n.F("当前版本 v%s（数据源 GitHub: %s/%s）", "Current v%s (GitHub: %s/%s)", core.ShortVersion(snap.CurrentVersion), core.DefaultRepoOwner, core.DefaultRepoName)
 	if !snap.LastCheck.IsZero() {
-		sub += " · 上次检查 " + snap.LastCheck.Format("01-02 15:04")
+		sub += i18n.S(" · 上次检查 ", " · Last checked ") + snap.LastCheck.Format("01-02 15:04")
 	}
 
-	pureui.SettingCard(c, "软件更新", sub, pal, func() {
-		badgeLabel := "未检查"
+	pureui.SettingCard(c, i18n.S("软件更新", "Software Updates"), sub, pal, func() {
+		badgeLabel := i18n.S("未检查", "Not Checked")
 		badgeFg, badgeBg := pal.TextMuted, pal.Bg
-		statusTitle := "版本状态"
-		statusDesc := "点击「检查更新」获取最新正式版本与更新日志"
+		statusTitle := i18n.S("版本状态", "Version Status")
+		statusDesc := i18n.S("点击「检查更新」获取最新正式版本与更新日志", "Click Check for Updates to fetch the latest release and changelog")
 		switch snap.Status {
 		case UpdateChecking:
-			badgeLabel = "检查中…"
+			badgeLabel = i18n.S("检查中…", "Checking…")
 			badgeFg, badgeBg = pal.Accent, pal.AccentSoft
 			statusDesc = snap.Stage
 		case UpdateUpToDate:
-			badgeLabel = "已是最新"
+			badgeLabel = i18n.S("已是最新", "Up to Date")
 			badgeFg, badgeBg = pal.Success, pal.SuccessSoft
-			statusDesc = "当前已是最新版本 v" + core.ShortVersion(snap.CurrentVersion)
+			statusDesc = i18n.S("当前已是最新版本 v", "You are on the latest version v") + core.ShortVersion(snap.CurrentVersion)
 		case UpdateAvailable:
-			badgeLabel = "有新版本"
+			badgeLabel = i18n.S("有新版本", "Update Available")
 			badgeFg, badgeBg = pal.Accent, pal.AccentSoft
 			if snap.Release != nil {
-				statusTitle = "发现新版本 " + snap.Release.TagName
+				statusTitle = i18n.S("发现新版本 ", "New Version ") + snap.Release.TagName
 				if snap.Release.AssetSize > 0 {
-					statusDesc = fmt.Sprintf("安装包：%s（%.1f MB）", snap.Release.AssetName, float64(snap.Release.AssetSize)/(1024*1024))
+					statusDesc = i18n.F("安装包：%s（%.1f MB）", "Package: %s (%.1f MB)", snap.Release.AssetName, float64(snap.Release.AssetSize)/(1024*1024))
 				} else {
-					statusDesc = "安装包：" + snap.Release.AssetName
+					statusDesc = i18n.S("安装包：", "Package: ") + snap.Release.AssetName
 				}
 			}
 		case UpdateDownloading:
-			badgeLabel = "正在下载"
+			badgeLabel = i18n.S("正在下载", "Downloading")
 			badgeFg, badgeBg = pal.Accent, pal.AccentSoft
 			if snap.Release != nil {
-				statusTitle = "正在下载 " + snap.Release.TagName
+				statusTitle = i18n.S("正在下载 ", "Downloading ") + snap.Release.TagName
 			}
 			statusDesc = snap.Stage
 		case UpdateReady:
-			badgeLabel = "待安装"
+			badgeLabel = i18n.S("待安装", "Ready")
 			badgeFg, badgeBg = pal.Success, pal.SuccessSoft
 			if snap.Release != nil {
-				statusTitle = "新版本 " + snap.Release.TagName + " 已就绪"
+				statusTitle = i18n.F("新版本 %s 已就绪", "Version %s Ready", snap.Release.TagName)
 			}
-			statusDesc = "点击「立即安装并重启」将自动完成升级并重新启动"
+			statusDesc = i18n.S("点击「立即安装并重启」将自动完成升级并重新启动", "Click Install & Restart to upgrade automatically")
 		case UpdateInstalling:
-			badgeLabel = "正在安装…"
+			badgeLabel = i18n.S("正在安装…", "Installing…")
 			badgeFg, badgeBg = pal.Accent, pal.AccentSoft
 			statusDesc = snap.Stage
 		case UpdateError:
-			badgeLabel = "检查异常"
+			badgeLabel = i18n.S("检查异常", "Error")
 			badgeFg, badgeBg = pal.Danger, pal.DangerSoft
 			if snap.Err != "" {
 				statusDesc = snap.Err
@@ -706,15 +734,15 @@ func (h *settingsView) renderUpdateCard(c *ui.Context, pal pureui.Palette) {
 			}
 			ui.Column(c).Gap(6).FillWidth().Children(func() {
 				ui.Row(c).AlignItems(ui.Center).Gap(8).Children(func() {
-					ui.Text(c, snap.Stage).FontSize(11.5).FontWeight(500).TextColor(pal.Text).Grow(1)
+					ui.Text(c, snap.Stage).FontSize(11.5).FontWeight(500).TextColor(pal.Text).Grow(1).MinWidth(0)
 					if snap.TotalBytes > 0 {
 						ui.Text(c, fmt.Sprintf("%.1f MB / %.1f MB",
 							float64(snap.DoneBytes)/(1024*1024),
 							float64(snap.TotalBytes)/(1024*1024),
-						)).FontSize(11).TextColor(pal.TextSecondary)
+						)).FontSize(11).TextColor(pal.TextSecondary).Shrink(0)
 					} else if snap.DoneBytes > 0 {
 						ui.Text(c, fmt.Sprintf("%.1f MB", float64(snap.DoneBytes)/(1024*1024))).
-							FontSize(11).TextColor(pal.TextSecondary)
+							FontSize(11).TextColor(pal.TextSecondary).Shrink(0)
 					}
 				})
 				ui.Progress(c, pct).FillWidth().Height(6).Radius(3)
@@ -724,35 +752,37 @@ func (h *settingsView) renderUpdateCard(c *ui.Context, pal pureui.Palette) {
 		ui.Row(c).Gap(8).Wrap().Children(func() {
 			switch snap.Status {
 			case UpdateDownloading:
-				ui.Button(c, "取消下载").OnClick(func() {
+				ui.Button(c, i18n.S("取消下载", "Cancel Download")).OnClick(func() {
 					h.app.CancelUpdateDownload()
 				}).Border(0, ui.Transparent)
 			case UpdateReady:
-				ui.PrimaryButton(c, "立即安装并重启").OnClick(func() {
+				ui.PrimaryButton(c, i18n.S("立即安装并重启", "Install & Restart")).OnClick(func() {
 					if err := h.app.InstallUpdate(); err != nil {
-						h.status = "安装更新失败: " + err.Error()
+						h.statusIsRecorded = false
+						h.status = i18n.S("安装更新失败: ", "Failed to install update: ") + err.Error()
 						h.invalidate()
 					}
 				})
 				if snap.Release != nil && snap.Release.HTMLURL != "" {
 					urlStr := snap.Release.HTMLURL
-					ui.Button(c, "查看发布页").OnClick(func() {
+					ui.Button(c, i18n.S("查看发布页", "Release Notes")).OnClick(func() {
 						if !h.app.headless {
 							_ = mygo.Shell.OpenExternal(urlStr)
 						}
 					}).Border(0, ui.Transparent)
 				}
 			case UpdateAvailable:
-				ui.PrimaryButton(c, "下载更新").OnClick(func() {
+				ui.PrimaryButton(c, i18n.S("下载更新", "Download Update")).OnClick(func() {
 					h.app.DownloadUpdate()
 				})
 				if snap.Release != nil && snap.Release.TagName != "" {
 					tag := snap.Release.TagName
-					ui.Button(c, "忽略此版本").OnClick(func() {
+					ui.Button(c, i18n.S("忽略此版本", "Skip Version")).OnClick(func() {
+						h.statusIsRecorded = false
 						if err := h.app.SkipUpdateVersion(tag); err != nil {
-							h.status = "记录忽略版本失败: " + err.Error()
+							h.status = i18n.S("记录忽略版本失败: ", "Failed to skip version: ") + err.Error()
 						} else {
-							h.status = "已忽略后台提示：" + tag
+							h.status = i18n.S("已忽略后台提示：", "Skipped background prompt for ") + tag
 							h.hostOrig.Update.SkippedVersion = tag
 							h.hostDraft.Update.SkippedVersion = tag
 						}
@@ -761,46 +791,44 @@ func (h *settingsView) renderUpdateCard(c *ui.Context, pal pureui.Palette) {
 				}
 				if snap.Release != nil && snap.Release.HTMLURL != "" {
 					urlStr := snap.Release.HTMLURL
-					ui.Button(c, "查看发布页").OnClick(func() {
+					ui.Button(c, i18n.S("查看发布页", "Release Notes")).OnClick(func() {
 						if !h.app.headless {
 							_ = mygo.Shell.OpenExternal(urlStr)
 						}
 					}).Border(0, ui.Transparent)
 				}
-				ui.Button(c, "重新检查").OnClick(func() {
+				ui.Button(c, i18n.S("重新检查", "Recheck")).OnClick(func() {
 					h.app.CheckForUpdates(true)
 				}).Border(0, ui.Transparent)
 			default:
 				busy := snap.Status == UpdateChecking || snap.Status == UpdateInstalling
-				ui.PrimaryButton(c, "检查更新").Disabled(busy).OnClick(func() {
+				ui.PrimaryButton(c, i18n.S("检查更新", "Check for Updates")).Disabled(busy).OnClick(func() {
 					h.app.CheckForUpdates(true)
 				})
 			}
 		})
 
 		ui.Divider(c)
-		pureui.SettingRow(c, "自动检查更新", "定期在后台静默检查 GitHub Releases 新版本（仅在有新版本时提醒）", pal, func() {
-			ui.Switch(c, &h.hostDraft.Update.AutoCheck).Label("开关：自动检查更新")
+		pureui.SettingRow(c, i18n.S("自动检查更新", "Auto-Check Updates"), i18n.S("定期在后台静默检查 GitHub Releases 新版本（仅在有新版本时提醒）", "Silently check GitHub Releases on schedule and notify only when a new version appears"), pal, func() {
+			ui.Switch(c, &h.hostDraft.Update.AutoCheck).Label(i18n.S("开关：自动检查更新", "Toggle: Auto-Check Updates"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "发现新版本后自动下载", "在后台通过所选镜像提前下载并校验安装包，待您点击安装时一键升级", pal, func() {
-			ui.Switch(c, &h.hostDraft.Update.AutoDownload).Label("开关：自动下载更新")
+		pureui.SettingRow(c, i18n.S("发现新版本后自动下载", "Auto-Download Updates"), i18n.S("在后台通过所选镜像提前下载并校验安装包，待您点击安装时一键升级", "Pre-download and verify installers in the background for one-click install"), pal, func() {
+			ui.Switch(c, &h.hostDraft.Update.AutoDownload).Label(i18n.S("开关：自动下载更新", "Toggle: Auto-Download Updates"))
 		})
 		ui.Divider(c)
-		opts := make([]string, len(UpdateDownloadSources))
-		for i, s := range UpdateDownloadSources {
-			opts[i] = s.Label
-		}
-		pureui.SettingRow(c, "更新下载源", "国内推荐「自动优选」，依次尝试镜像加速与 GitHub 官方源", pal, func() {
-			sel := ui.Select(c, &h.updateSourceLabel, opts).Width(220).Label("更新下载源")
+		opts := UpdateDownloadSourceLabels()
+		curSourceLabel := UpdateSourceLabel(h.hostDraft.Update.DownloadSource)
+		pureui.SettingRow(c, i18n.S("更新下载源", "Download Source"), i18n.S("推荐保持「自动优选」，依次尝试加速镜像与 GitHub 官方源", "Auto tries mirrors before official GitHub"), pal, func() {
+			sel := ui.Select(c, &curSourceLabel, opts).Width(220).Label(i18n.S("更新下载源", "Download Source"))
 			sel.Border(0, ui.Transparent)
 			if sel.Changed() {
-				h.hostDraft.Update.DownloadSource = UpdateSourceIDFromLabel(h.updateSourceLabel)
+				h.hostDraft.Update.DownloadSource = UpdateSourceIDFromLabel(curSourceLabel)
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "检查频率", "自动后台检查新版本的最小时间间隔", pal, func() {
-			seg := ui.Segmented(c, &h.updateIntervalIdx, "6 小时", "每天", "3 天", "每周").Label("更新检查频率")
+		pureui.SettingRow(c, i18n.S("检查频率", "Check Interval"), i18n.S("自动后台检查新版本的最小时间间隔", "Minimum interval between background update checks"), pal, func() {
+			seg := ui.Segmented(c, &h.updateIntervalIdx, i18n.S("6 小时", "6h"), i18n.S("每天", "Daily"), i18n.S("3 天", "3d"), i18n.S("每周", "Weekly")).Label(i18n.S("更新检查频率", "Update Check Interval"))
 			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
 				h.hostDraft.Update.CheckIntervalHours = updateIntervalFromIndex(h.updateIntervalIdx)
@@ -817,7 +845,8 @@ func (h *settingsView) startRecording(id string) {
 	rec, err := platform.StartHotkeyRecorder()
 	if err != nil {
 		h.app.ReloadHotkeys()
-		h.status = "无法录制: " + err.Error()
+		h.statusIsRecorded = false
+		h.status = i18n.S("无法录制: ", "Cannot start recorder: ") + err.Error()
 		h.invalidate()
 		return
 	}
@@ -825,7 +854,8 @@ func (h *settingsView) startRecording(id string) {
 	h.recordingID = id
 	h.recordingErr = ""
 	h.app.SetGlobalHookSuppressed("host:hotkey-recorder", true)
-	h.status = "正在录制，请按下组合键（Esc 取消）"
+	h.statusIsRecorded = false
+	h.status = i18n.S("正在录制，请按下组合键（Esc 取消）", "Recording… press keys (Esc to cancel)")
 	h.invalidate()
 	go func() {
 		for res := range rec.Results() {
@@ -855,10 +885,12 @@ func (h *settingsView) onRecording(res platform.HotkeyResult) {
 	}
 	switch {
 	case res.Canceled:
-		h.status = "已取消录制"
+		h.statusIsRecorded = false
+		h.status = i18n.S("已取消录制", "Recording canceled")
 		h.recordingID = ""
 		h.recordingErr = ""
 	case res.Err != "":
+		h.statusIsRecorded = false
 		h.recordingErr = res.Err
 		h.status = res.Err
 	case !res.Gesture.Empty():
@@ -868,11 +900,12 @@ func (h *settingsView) onRecording(res platform.HotkeyResult) {
 				break
 			}
 		}
+		h.statusIsRecorded = true
 		if core.RequiresTakeover(res.Gesture) && !h.hostDraft.Hotkeys.TakeoverWinKeys {
 			h.hostDraft.Hotkeys.TakeoverWinKeys = true
-			h.status = "已录制: " + res.Gesture.String() + "（已自动开启 Win 组合键接管，点击保存生效）"
+			h.status = i18n.F("已录制: %s（已自动开启 Win 组合键接管，点击保存生效）", "Recorded: %s (Win hotkey takeover enabled; click Save)", res.Gesture.String())
 		} else {
-			h.status = "已录制: " + res.Gesture.String() + "（点击保存生效）"
+			h.status = i18n.F("已录制: %s（点击保存生效）", "Recorded: %s (click Save to apply)", res.Gesture.String())
 		}
 		h.recordingID = ""
 		h.recordingErr = ""
@@ -898,6 +931,7 @@ func (h *settingsView) stopRecorder() {
 
 func (h *settingsView) isDirty() bool {
 	if h.hostDraft.Appearance.Theme != h.hostOrig.Appearance.Theme ||
+		h.hostDraft.Appearance.Language != h.hostOrig.Appearance.Language ||
 		h.hostDraft.Hotkeys.TakeoverWinKeys != h.hostOrig.Hotkeys.TakeoverWinKeys ||
 		h.hostDraft.Advanced.RunOnStartup != h.hostOrig.Advanced.RunOnStartup ||
 		h.hostDraft.Advanced.VerboseLogging != h.hostOrig.Advanced.VerboseLogging ||
@@ -942,11 +976,15 @@ func (h *settingsView) pluginActiveInDraft(pluginID string) bool {
 }
 
 func (h *settingsView) save(c *ui.Context) {
+	h.saving = true
+	defer func() { h.saving = false }()
 	h.stopRecorder()
+	h.statusIsRecorded = false
+	prevLang := i18n.Current()
 
 	modulesChanged := !h.app.custom && h.modDraft != h.modOrig
 	if modulesChanged && h.app.InstalledModules().Any() && !h.modDraft.Any() {
-		h.status = "请至少保留一个已启用的功能组件"
+		h.status = i18n.S("请至少保留一个已启用的功能组件", "Keep at least one module enabled")
 		h.invalidate()
 		return
 	}
@@ -965,12 +1003,12 @@ func (h *settingsView) save(c *ui.Context) {
 		}
 		g, err := core.ParseGesture(raw)
 		if err != nil {
-			h.status = "热键无效: " + err.Error()
+			h.status = i18n.S("热键无效: ", "Invalid shortcut: ") + err.Error()
 			h.invalidate()
 			return
 		}
 		if g.Modifiers == core.ModWin && g.Key == "L" {
-			h.status = "热键无效: Win+L 是系统锁屏，不能占用"
+			h.status = i18n.S("热键无效: Win+L 是系统锁屏，不能占用", "Invalid shortcut: Win+L is reserved by Windows Lock Screen")
 			h.invalidate()
 			return
 		}
@@ -992,6 +1030,7 @@ func (h *settingsView) save(c *ui.Context) {
 
 	nextHost := h.app.HostConfig()
 	nextHost.Appearance.Theme = themeKeyFromIndex(h.themeIdx)
+	nextHost.Appearance.Language = langPrefFromIndex(h.langIdx)
 	nextHost.Hotkeys.TakeoverWinKeys = h.hostDraft.Hotkeys.TakeoverWinKeys
 	if hasWinHotkey && !h.hostOrig.Hotkeys.TakeoverWinKeys && !h.hostDraft.Hotkeys.TakeoverWinKeys {
 		nextHost.Hotkeys.TakeoverWinKeys = true
@@ -1003,7 +1042,7 @@ func (h *settingsView) save(c *ui.Context) {
 	nextHost.Update.AutoCheck = h.hostDraft.Update.AutoCheck
 	nextHost.Update.AutoDownload = h.hostDraft.Update.AutoDownload
 	nextHost.Update.CheckIntervalHours = updateIntervalFromIndex(h.updateIntervalIdx)
-	nextHost.Update.DownloadSource = UpdateSourceIDFromLabel(h.updateSourceLabel)
+	nextHost.Update.DownloadSource = h.hostDraft.Update.DownloadSource
 	if !h.app.custom {
 		installed := h.app.InstalledModules()
 		for _, mod := range []core.ModuleID{core.ModuleCapture, core.ModuleHistory, core.ModuleViewer, core.ModuleVideo, core.ModuleZip} {
@@ -1013,7 +1052,7 @@ func (h *settingsView) save(c *ui.Context) {
 		}
 	}
 	if err := h.app.SaveHostConfig(nextHost); err != nil {
-		h.status = "保存失败: " + err.Error()
+		h.status = i18n.S("保存失败: ", "Failed to save: ") + err.Error()
 		h.invalidate()
 		return
 	}
@@ -1028,7 +1067,7 @@ func (h *settingsView) save(c *ui.Context) {
 		}
 		if normalizedHotkeys[i] != cur && h.hotkeys[i].spec.SetGesture != nil {
 			if err := h.hotkeys[i].spec.SetGesture(normalizedHotkeys[i]); err != nil {
-				h.status = fmt.Sprintf("保存热键 %s 失败: %v", h.hotkeys[i].spec.Label, err)
+				h.status = i18n.F("保存热键 %s 失败: %v", "Failed to save shortcut %s: %v", h.hotkeys[i].spec.Label, err)
 				h.invalidate()
 				return
 			}
@@ -1042,7 +1081,7 @@ func (h *settingsView) save(c *ui.Context) {
 				continue
 			}
 			if err := sec.pluginView.Save(); err != nil {
-				h.status = fmt.Sprintf("保存 %s 设置失败: %v", sec.title, err)
+				h.status = i18n.F("保存 %s 设置失败: %v", "Failed to save %s settings: %v", sec.title, err)
 				h.invalidate()
 				return
 			}
@@ -1051,15 +1090,19 @@ func (h *settingsView) save(c *ui.Context) {
 
 	h.app.ReloadHotkeys()
 	h.app.RebuildTray()
-	if modulesChanged {
+	langChanged := i18n.Current() != prevLang
+	if modulesChanged || langChanged {
 		prevSection := h.section
 		h.buildSections()
 		h.selectSection(prevSection)
+		if h.win != nil {
+			h.win.SetTitle(i18n.S("PureUtils 设置", "PureUtils Settings"))
+		}
 	}
 	h.loadFromHost()
-	h.status = "设置已保存"
+	h.status = i18n.S("设置已保存", "Settings saved")
 	if c != nil {
-		c.Toast("设置已保存")
+		c.Toast(h.status)
 	}
 	h.invalidate()
 }
@@ -1075,6 +1118,28 @@ func (h *settingsView) close() {
 func (h *settingsView) invalidate() {
 	if h.win != nil {
 		h.win.Invalidate()
+	}
+}
+
+func langIndex(pref string) int {
+	switch i18n.NormalizePref(pref) {
+	case i18n.PrefZH:
+		return 1
+	case i18n.PrefEN:
+		return 2
+	default:
+		return 0
+	}
+}
+
+func langPrefFromIndex(idx int) string {
+	switch idx {
+	case 1:
+		return i18n.PrefZH
+	case 2:
+		return i18n.PrefEN
+	default:
+		return i18n.PrefAuto
 	}
 }
 

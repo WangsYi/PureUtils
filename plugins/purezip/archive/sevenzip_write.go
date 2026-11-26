@@ -9,7 +9,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"hash/crc32"
 	"io"
 	"os"
@@ -19,6 +18,8 @@ import (
 	"unicode/utf16"
 
 	"github.com/ulikunitz/xz/lzma"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 // Minimal 7z writer: LZMA2 (or Copy) folders compressed in parallel, optional
@@ -260,7 +261,7 @@ func encode7zFolder(ctx context.Context, open func(yield func(r io.Reader, size 
 			return err
 		}
 		if n != size {
-			return fmt.Errorf("文件在压缩过程中被修改：%s", name)
+			return errors.New(i18n.F("文件在压缩过程中被修改：%s", "File was modified during compression: %s", name))
 		}
 		fo.sizes = append(fo.sizes, uint64(n))
 		fo.crcs = append(fo.crcs, cr.crc)

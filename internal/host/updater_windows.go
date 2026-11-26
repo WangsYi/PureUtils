@@ -12,6 +12,8 @@ import (
 	"syscall"
 
 	"golang.org/x/sys/windows"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 func isInnoInstallDir(exePath string) bool {
@@ -30,7 +32,7 @@ func isInnoInstallDir(exePath string) bool {
 func launchUpdateInstaller(installerPath, currentExe string) error {
 	installerPath = strings.TrimSpace(installerPath)
 	if installerPath == "" {
-		return fmt.Errorf("安装包路径为空")
+		return fmt.Errorf("%s", i18n.S("安装包路径为空", "Installer path is empty"))
 	}
 	if currentExe != "" {
 		currentExe, _ = filepath.Abs(currentExe)
@@ -55,16 +57,16 @@ func launchUpdateInstaller(installerPath, currentExe string) error {
 
 	// Fallback when a release provides standalone PureUtils.exe instead of setup.exe.
 	if currentExe == "" {
-		return fmt.Errorf("无法定位当前可执行文件路径")
+		return fmt.Errorf("%s", i18n.S("无法定位当前可执行文件路径", "Cannot locate current executable path"))
 	}
 	backupPath := currentExe + ".old"
 	_ = os.Remove(backupPath)
 	if err := os.Rename(currentExe, backupPath); err != nil {
-		return fmt.Errorf("备份当前程序失败: %w", err)
+		return fmt.Errorf("%s: %w", i18n.S("备份当前程序失败", "Failed to back up current executable"), err)
 	}
 	if err := copyFileExact(installerPath, currentExe); err != nil {
 		_ = os.Rename(backupPath, currentExe)
-		return fmt.Errorf("替换主程序失败: %w", err)
+		return fmt.Errorf("%s: %w", i18n.S("替换主程序失败", "Failed to replace executable"), err)
 	}
 	cmd := exec.Command(currentExe, "--settings")
 	cmd.SysProcAttr = &syscall.SysProcAttr{

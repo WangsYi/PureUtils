@@ -5,38 +5,49 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/egoist/mygo"
 
 	"pureutils/internal/host"
 	"pureutils/pkg/purekit/config"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 )
 
 func main() {
 	args := os.Args[1:]
 	if core.HasHelp(args) {
-		fmt.Println("PureUtils — PureShot 截图贴图 / PureClip 剪贴板历史 / PureImage 看图 / PureVideo 视频 / PureZip 压缩管理")
-		fmt.Println("用法: PureUtils [命令 | 图片或视频路径 | 压缩文件路径 | 目录路径]")
-		fmt.Println("命令:")
+		i18n.SetPreference(i18n.PrefAuto)
+		fmt.Println(i18n.S(
+			"PureUtils — PureShot 截图贴图 / PureClip 剪贴板历史 / PureImage 看图 / PureVideo 视频 / PureZip 压缩管理",
+			"PureUtils — PureShot Capture / PureClip Clipboard / PureImage Viewer / PureVideo Player / PureZip Archive",
+		))
+		fmt.Println(i18n.S(
+			"用法: PureUtils [命令 | 图片或视频路径 | 压缩文件路径 | 目录路径]",
+			"Usage: PureUtils [command | image/video path | archive path | folder path]",
+		))
+		fmt.Println(i18n.S("命令:", "Commands:"))
 		for _, v := range core.Verbs {
-			fmt.Printf("  %-22s %s\n", v.Arg, v.Description)
+			fmt.Printf("  %-22s %s\n", v.Arg, v.LocalizedDescription())
 		}
-		fmt.Printf("  %-22s %s\n", "--background", "仅在后台托盘驻留，不主动打开窗口")
+		fmt.Printf("  %-22s %s\n", "--background", i18n.S("仅在后台托盘驻留，不主动打开窗口", "Stay in system tray without opening a window"))
 		return
 	}
 
+	i18n.SetPreference(i18n.PrefAuto)
 	paths := core.ResolvePaths()
 	if err := paths.Ensure(); err != nil {
-		fmt.Fprintln(os.Stderr, "无法创建数据目录:", err)
+		fmt.Fprintln(os.Stderr, i18n.S("无法创建数据目录:", "Failed to create data directory:"), err)
 		os.Exit(1)
 	}
 	_, crashErr := core.SetupCrashOutput(paths.Logs)
 	cfgMgr := config.Load(paths.Settings)
 	hc := cfgMgr.Host()
+	lang := i18n.SetPreference(hc.Appearance.Language)
 	logger, err := core.OpenLogger(paths.Logs, hc.Advanced.VerboseLogging)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "无法打开日志:", err)
+		fmt.Fprintln(os.Stderr, i18n.S("无法打开日志:", "Failed to open log file:"), err)
 		os.Exit(1)
 	}
 	if crashErr != nil {
@@ -49,8 +60,14 @@ func main() {
 	}
 	modules := core.LoadModuleConfig(exeDir, host.ViewerCompiled())
 
-	mygo.App.SetName("PureUtils")
+	appName := "PureUtils"
+	if inst := strings.TrimSpace(os.Getenv("PUREUTILS_INSTANCE_ID")); inst != "" {
+		appName = "PureUtils-" + inst
+	}
+	mygo.App.SetName(appName)
 	mygo.App.SetVersion(core.AppVersion)
+	mygo.App.SetLanguages("en", "zh-Hans")
+	mygo.App.SetLocale(i18n.MyGoLocale(lang))
 	mygo.Theme.SetSource(mygo.ThemeSource(hc.ThemeSource()))
 
 	if !mygo.App.RequestSingleInstanceLock() {
@@ -63,7 +80,7 @@ func main() {
 	if err != nil {
 		logger.Errorf("启动失败: %v", err)
 		logger.Close()
-		fmt.Fprintln(os.Stderr, "启动失败:", err)
+		fmt.Fprintln(os.Stderr, i18n.S("启动失败:", "Failed to start:"), err)
 		os.Exit(1)
 	}
 

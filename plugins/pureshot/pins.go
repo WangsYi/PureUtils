@@ -16,6 +16,7 @@ import (
 
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	"pureutils/pkg/purekit/platform"
 	pureui "pureutils/pkg/purekit/ui"
 	"pureutils/plugins/pureshot/annotate"
@@ -133,7 +134,7 @@ func (a *Plugin) ShowPinImageAt(img image.Image, cascade int) {
 		opacity: s.Pins.Opacity, alwaysOnTop: s.Pins.AlwaysOnTop,
 	}
 	win := mygo.NewWindow(mygo.WindowOptions{
-		Title:           "贴图",
+		Title:           i18n.S("贴图", "Pin"),
 		Width:           w,
 		Height:          h,
 		Frameless:       true,
@@ -219,7 +220,7 @@ func (a *Plugin) ShowPinTextAt(text string, cascade int) {
 		opacity: s.Pins.Opacity, alwaysOnTop: s.Pins.AlwaysOnTop,
 	}
 	win := mygo.NewWindow(mygo.WindowOptions{
-		Title:           "贴图",
+		Title:           i18n.S("贴图", "Pin"),
 		Width:           w,
 		Height:          h,
 		Frameless:       true,
@@ -311,37 +312,37 @@ func (p *pinWindow) view(c *ui.Context) {
 	root := ui.Box(c).Fill().Cursor(ui.CursorMove).HandleInput(p.handleInput)
 	root.ContextMenu(func(m *ui.Menu) {
 		if isText {
-			if m.Item("复制文本").Chosen() {
+			if m.Item(i18n.S("复制文本", "Copy Text")).Chosen() {
 				p.copy()
 			}
-			if m.Item("复制为图片").Chosen() {
+			if m.Item(i18n.S("复制为图片", "Copy as Image")).Chosen() {
 				p.copyAsImage()
 			}
 		} else {
-			if m.Item("复制图片").Chosen() {
+			if m.Item(i18n.S("复制图片", "Copy Image")).Chosen() {
 				p.copy()
 			}
 		}
-		if m.Item("另存为…").Chosen() {
+		if m.Item(i18n.S("另存为…", "Save As…")).Chosen() {
 			p.saveAs()
 		}
-		if m.Item("实际大小").Chosen() {
+		if m.Item(i18n.S("实际大小", "Actual Size")).Chosen() {
 			p.actualSize()
 		}
 		if !isText && p.plugin != nil && p.plugin.canPreviewImage() && p.img != nil {
-			if m.Item("在 PureImage 中查看").Chosen() {
-				_ = purekit.CallImagePreviewImage(context.Background(), p.plugin.host.Bus(), "贴图预览", p.img)
+			if m.Item(i18n.S("在 PureImage 中查看", "Open in PureImage")).Chosen() {
+				_ = purekit.CallImagePreviewImage(context.Background(), p.plugin.host.Bus(), i18n.S("贴图预览", "Pin Preview"), p.img)
 			}
 		}
 		m.Separator()
-		if m.Item("鼠标穿透").Checked(p.passthrough).Chosen() {
+		if m.Item(i18n.S("鼠标穿透", "Click-Through")).Checked(p.passthrough).Chosen() {
 			p.setPassthrough(!p.passthrough)
 		}
-		if m.Item("置顶").Checked(p.alwaysOnTop).Chosen() {
+		if m.Item(i18n.S("置顶", "Always on Top")).Checked(p.alwaysOnTop).Chosen() {
 			p.setAlwaysOnTop(!p.alwaysOnTop)
 		}
 		m.Separator()
-		if m.Item("关闭").Shortcut(0, ui.KeyEscape).Chosen() {
+		if m.Item(i18n.S("关闭", "Close")).Shortcut(0, ui.KeyEscape).Chosen() {
 			p.closeWindow()
 		}
 	})
@@ -417,11 +418,11 @@ func (p *pinWindow) hudView(c *ui.Context) {
 	}
 	pal := pureui.PaletteFor(true)
 	isText := p.text != ""
-	copyLabel := "复制图片"
-	copyTip := "复制图片 (Ctrl+C)"
+	copyLabel := i18n.S("复制图片", "Copy Image")
+	copyTip := i18n.S("复制图片 (Ctrl+C)", "Copy image (Ctrl+C)")
 	if isText {
-		copyLabel = "复制文本"
-		copyTip = "复制文本 (Ctrl+C)"
+		copyLabel = i18n.S("复制文本", "Copy Text")
+		copyTip = i18n.S("复制文本 (Ctrl+C)", "Copy text (Ctrl+C)")
 	}
 
 	zoomPct := p.zoomPercent()
@@ -449,16 +450,16 @@ func (p *pinWindow) hudView(c *ui.Context) {
 		ui.Box(c).Width(1).Height(14).Background(pal.HudDivider).Shrink(0)
 		ui.Spacer(c)
 		ui.Row(c).Gap(3).AlignItems(ui.Center).Shrink(0).Children(func() {
-			pureui.HudIconButton(c, pureui.IconPin, "置顶", "置顶 / 取消置顶", p.alwaysOnTop, false, false, pal).
+			pureui.HudIconButton(c, pureui.IconPin, i18n.S("置顶", "Always on Top"), i18n.S("置顶 / 取消置顶", "Toggle always on top"), p.alwaysOnTop, false, false, pal).
 				Size(26, 26).Radius(999).OnClick(func() {
 				p.setAlwaysOnTop(!p.alwaysOnTop)
 			})
 			pureui.HudIconButton(c, pureui.IconCopy, copyLabel, copyTip, false, false, false, pal).
 				Size(26, 26).Radius(999).OnClick(p.copy)
-			pureui.HudIconButton(c, pureui.IconSave, "另存为", "另存为… (Ctrl+S)", false, false, false, pal).
+			pureui.HudIconButton(c, pureui.IconSave, i18n.S("另存为", "Save As"), i18n.S("另存为… (Ctrl+S)", "Save As… (Ctrl+S)"), false, false, false, pal).
 				Size(26, 26).Radius(999).OnClick(p.saveAs)
 			ui.Box(c).Width(1).Height(14).Background(pal.HudDivider)
-			pureui.HudIconButton(c, pureui.IconClose, "关闭", "关闭贴图 (双击 / Esc)", false, false, true, pal).
+			pureui.HudIconButton(c, pureui.IconClose, i18n.S("关闭", "Close"), i18n.S("关闭贴图 (双击 / Esc)", "Close pin (Double-click / Esc)"), false, false, true, pal).
 				Size(26, 26).Radius(999).OnClick(p.closeWindow)
 		})
 	})
@@ -796,10 +797,10 @@ func (p *pinWindow) copy() {
 	}
 	if p.text != "" {
 		if err := p.plugin.copyPinText(p.text); err != nil {
-			p.plugin.notify("复制文本失败", err.Error())
+			p.plugin.notify(i18n.S("复制文本失败", "Failed to Copy Text"), err.Error())
 			return
 		}
-		p.plugin.notify("文本已复制", fmt.Sprintf("%d 字符", len([]rune(p.text))))
+		p.plugin.notify(i18n.S("文本已复制", "Text Copied"), i18n.F("%d 字符", "%d chars", len([]rune(p.text))))
 		return
 	}
 	if p.img == nil {
@@ -807,14 +808,14 @@ func (p *pinWindow) copy() {
 	}
 	data, err := annotate.EncodePNG(p.img)
 	if err != nil {
-		p.plugin.notify("复制贴图失败", err.Error())
+		p.plugin.notify(i18n.S("复制贴图失败", "Failed to Copy Pin"), err.Error())
 		return
 	}
 	if err := p.plugin.copyPinImage(data); err != nil {
-		p.plugin.notify("复制贴图失败", err.Error())
+		p.plugin.notify(i18n.S("复制贴图失败", "Failed to Copy Pin"), err.Error())
 		return
 	}
-	p.plugin.notify("贴图已复制", fmt.Sprintf("%d × %d", p.natW, p.natH))
+	p.plugin.notify(i18n.S("贴图已复制", "Pin Copied"), fmt.Sprintf("%d × %d", p.natW, p.natH))
 }
 
 func (p *pinWindow) copyAsImage() {
@@ -824,15 +825,15 @@ func (p *pinWindow) copyAsImage() {
 	card := annotate.RenderTextCard(p.text, p.dark)
 	data, err := annotate.EncodePNG(card)
 	if err != nil {
-		p.plugin.notify("生成图片失败", err.Error())
+		p.plugin.notify(i18n.S("生成图片失败", "Failed to Render Image"), err.Error())
 		return
 	}
 	if err := p.plugin.copyPinImage(data); err != nil {
-		p.plugin.notify("复制图片失败", err.Error())
+		p.plugin.notify(i18n.S("复制图片失败", "Failed to Copy Image"), err.Error())
 		return
 	}
 	b := card.Bounds()
-	p.plugin.notify("已复制为图片", fmt.Sprintf("%d × %d", b.Dx(), b.Dy()))
+	p.plugin.notify(i18n.S("已复制为图片", "Copied as Image"), fmt.Sprintf("%d × %d", b.Dx(), b.Dy()))
 }
 
 func (p *pinWindow) saveAs() {
@@ -843,18 +844,18 @@ func (p *pinWindow) saveAs() {
 	dark := p.dark
 	go func() {
 		opts := mygo.SaveDialogOptions{
-			Parent: p.win, Title: "保存贴图", DefaultPath: "pin.png",
-			Filters: []mygo.FileFilter{{Name: "PNG 图片", Extensions: []string{"png"}}},
+			Parent: p.win, Title: i18n.S("保存贴图", "Save Pin"), DefaultPath: "pin.png",
+			Filters: []mygo.FileFilter{{Name: i18n.S("PNG 图片", "PNG Image"), Extensions: []string{"png"}}},
 		}
 		if isText {
 			opts.Filters = []mygo.FileFilter{
-				{Name: "PNG 图片", Extensions: []string{"png"}},
-				{Name: "文本文件", Extensions: []string{"txt"}},
+				{Name: i18n.S("PNG 图片", "PNG Image"), Extensions: []string{"png"}},
+				{Name: i18n.S("文本文件", "Text File"), Extensions: []string{"txt"}},
 			}
 		}
 		path, err := mygo.Dialog.Save(opts)
 		if err != nil {
-			mygo.RunOnMain(func() { p.plugin.notify("保存失败", err.Error()) })
+			mygo.RunOnMain(func() { p.plugin.notify(i18n.S("保存失败", "Save Failed"), err.Error()) })
 			return
 		}
 		if path == "" {
@@ -878,9 +879,9 @@ func (p *pinWindow) saveAs() {
 		}
 		mygo.RunOnMain(func() {
 			if err != nil {
-				p.plugin.notify("保存失败", err.Error())
+				p.plugin.notify(i18n.S("保存失败", "Save Failed"), err.Error())
 			} else {
-				p.plugin.notify("贴图已保存", path)
+				p.plugin.notify(i18n.S("贴图已保存", "Pin Saved"), path)
 			}
 		})
 	}()
@@ -1082,7 +1083,7 @@ func (a *Plugin) PinClipboardSync() {
 			return
 		}
 	} else if exhausted {
-		notifyUI("已贴出全部历史记录", "继续复制新内容，或关闭贴图即可重新从最新一条开始。")
+		notifyUI(i18n.S("已贴出全部历史记录", "All History Items Pinned"), i18n.S("继续复制新内容，或关闭贴图即可重新从最新一条开始。", "Copy new content or close pins to start over from the latest entry."))
 		return
 	}
 
@@ -1094,7 +1095,7 @@ func (a *Plugin) PinClipboardSync() {
 			}
 		}
 	}
-	notifyUI("剪贴板里没有可贴的内容", "先复制图片、文本或文件路径。")
+	notifyUI(i18n.S("剪贴板里没有可贴的内容", "Nothing in Clipboard to Pin"), i18n.S("先复制图片、文本或文件路径。", "Copy an image, text, or file path first."))
 }
 
 func fileExists(path string) bool {

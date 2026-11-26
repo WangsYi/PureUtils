@@ -13,6 +13,7 @@ import (
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/config"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	"pureutils/pkg/purekit/storage"
 	pureui "pureutils/pkg/purekit/ui"
 )
@@ -68,13 +69,13 @@ func (p *Plugin) Info() purekit.PluginInfo {
 	return purekit.PluginInfo{
 		ID:          PluginID,
 		Name:        "PureShot",
-		Description: "区域与整屏截图、9 种矢量标注与悬浮置顶贴图",
+		Description: i18n.S("区域与整屏截图、9 种矢量标注与悬浮置顶贴图", "Region & full-screen capture, 9 vector annotations, and floating pins"),
 		Version:     core.AppVersion,
 		ModuleID:    core.ModuleCapture,
 		Capabilities: []purekit.CapabilityDescriptor{
 			{
 				Name:        purekit.CapImagePin,
-				Description: "将图片、文本或剪贴板内容置顶贴图到桌面",
+				Description: i18n.S("将图片、文本或剪贴板内容置顶贴图到桌面", "Pin images, text, or clipboard content as always-on-top floating windows"),
 			},
 		},
 	}
@@ -424,8 +425,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "pureshot.region",
 			PluginID: PluginID,
-			Title:    "区域截图",
-			Subtitle: "框选屏幕区域并添加标注、复制或贴图",
+			Title:    i18n.S("区域截图", "Region Capture"),
+			Subtitle: i18n.S("框选屏幕区域并添加标注、复制或贴图", "Select a screen region to annotate, copy, save, or pin"),
 			Keywords: []string{"shot", "capture", "screenshot", "snip", "截图", "区域截图", "pureshot"},
 			Command:  core.CmdCaptureRegion,
 			Shortcut: rKey,
@@ -439,8 +440,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "pureshot.monitor",
 			PluginID: PluginID,
-			Title:    "截取当前显示器",
-			Subtitle: "立即截取光标所在的整个屏幕并复制",
+			Title:    i18n.S("截取当前显示器", "Capture Active Monitor"),
+			Subtitle: i18n.S("立即截取光标所在的整个屏幕并复制", "Capture the full display under cursor and copy immediately"),
 			Keywords: []string{"screen", "monitor", "fullscreen", "整屏截图", "全屏截图"},
 			Command:  core.CmdCaptureMonitor,
 			Shortcut: mKey,
@@ -454,8 +455,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "pureshot.pin",
 			PluginID: PluginID,
-			Title:    "贴图剪贴板",
-			Subtitle: "将最近剪贴板中的图片或文本悬浮置顶在桌面上",
+			Title:    i18n.S("贴图剪贴板", "Pin Clipboard"),
+			Subtitle: i18n.S("将最近剪贴板中的图片或文本悬浮置顶在桌面上", "Float recent clipboard image or text as a sticky pin window"),
 			Keywords: []string{"pin", "stick", "clipboard", "贴图", "置顶", "贴剪贴板"},
 			Command:  core.CmdPinClipboard,
 			Shortcut: pKey,
@@ -469,8 +470,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "pureshot.toggle_pins",
 			PluginID: PluginID,
-			Title:    "显示/隐藏贴图",
-			Subtitle: "切换当前所有桌面悬浮贴图的可见状态",
+			Title:    i18n.S("显示/隐藏贴图", "Show / Hide Pins"),
+			Subtitle: i18n.S("切换当前所有桌面悬浮贴图的可见状态", "Toggle visibility of all floating desktop pins"),
 			Keywords: []string{"hide", "show", "pins", "隐藏贴图", "显示贴图"},
 			Command:  core.CmdTogglePins,
 			Shortcut: tKey,
@@ -493,7 +494,7 @@ type shotMatcher struct {
 }
 
 func (m shotMatcher) ID() string    { return "pureshot.matcher" }
-func (m shotMatcher) Title() string { return "PureShot 贴图匹配" }
+func (m shotMatcher) Title() string { return i18n.S("PureShot 贴图匹配", "PureShot Pin Match") }
 
 func (m shotMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 	var results []purekit.MatchResult
@@ -509,7 +510,7 @@ func (m shotMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 				results = append(results, purekit.MatchResult{
 					FeatureID: "pureshot.pin_file",
 					PluginID:  PluginID,
-					Title:     "用 PureShot 贴图显示",
+					Title:     i18n.S("用 PureShot 贴图显示", "Pin with PureShot"),
 					Subtitle:  raw,
 					Score:     74,
 					Badge:     "PureShot",
@@ -531,7 +532,7 @@ func (m shotMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 			results = append(results, purekit.MatchResult{
 				FeatureID: "pureshot.pin",
 				PluginID:  PluginID,
-				Title:     "将剪贴板内容贴到桌面",
+				Title:     i18n.S("将剪贴板内容贴到桌面", "Pin Clipboard Content to Screen"),
 				Subtitle:  sub,
 				Score:     78,
 				Badge:     "PureShot",
@@ -569,7 +570,7 @@ func (p *Plugin) Hotkeys() []purekit.HotkeySpec {
 		{
 			ID:             "pureshot.region",
 			Command:        core.CmdCaptureRegion,
-			Label:          "区域截图",
+			Label:          i18n.S("区域截图", "Region Capture"),
 			DefaultGesture: "F1",
 			CurrentGesture: func() string {
 				if p.host == nil {
@@ -590,7 +591,7 @@ func (p *Plugin) Hotkeys() []purekit.HotkeySpec {
 		{
 			ID:             "pureshot.monitor",
 			Command:        core.CmdCaptureMonitor,
-			Label:          "截取当前显示器",
+			Label:          i18n.S("截取当前显示器", "Capture Monitor"),
 			DefaultGesture: "Ctrl+F1",
 			CurrentGesture: func() string {
 				if p.host == nil {
@@ -611,7 +612,7 @@ func (p *Plugin) Hotkeys() []purekit.HotkeySpec {
 		{
 			ID:             "pureshot.pin",
 			Command:        core.CmdPinClipboard,
-			Label:          "贴图剪贴板",
+			Label:          i18n.S("贴图剪贴板", "Pin Clipboard"),
 			DefaultGesture: "F3",
 			CurrentGesture: func() string {
 				if p.host == nil {
@@ -632,7 +633,7 @@ func (p *Plugin) Hotkeys() []purekit.HotkeySpec {
 		{
 			ID:             "pureshot.toggle_pins",
 			Command:        core.CmdTogglePins,
-			Label:          "显示/隐藏贴图",
+			Label:          i18n.S("显示/隐藏贴图", "Show / Hide Pins"),
 			DefaultGesture: "Ctrl+Alt+X",
 			CurrentGesture: func() string {
 				if p.host == nil {
@@ -664,20 +665,20 @@ func (p *Plugin) TrayItems() []purekit.TrayItemSpec {
 	}
 	pinCount := len(p.pins)
 	passthroughCount := p.passthroughPinCount()
-	pinLabel := "显示贴图"
+	pinLabel := i18n.S("显示贴图", "Show Pins")
 	if pinCount > 0 {
-		pinLabel = fmt.Sprintf("显示贴图 (%d)", pinCount)
+		pinLabel = i18n.F("显示贴图 (%d)", "Show Pins (%d)", pinCount)
 	}
-	ptLabel := "贴图鼠标穿透"
+	ptLabel := i18n.S("贴图鼠标穿透", "Pin Click-Through")
 	if passthroughCount > 0 && passthroughCount < pinCount {
-		ptLabel = fmt.Sprintf("贴图鼠标穿透 (%d/%d)", passthroughCount, pinCount)
+		ptLabel = i18n.F("贴图鼠标穿透 (%d/%d)", "Pin Click-Through (%d/%d)", passthroughCount, pinCount)
 	}
 	return []purekit.TrayItemSpec{
 		{
 			ID:          "pureshot.region",
 			Section:     purekit.TraySectionPrimary,
 			Kind:        purekit.TrayItemAction,
-			Label:       "区域截图",
+			Label:       i18n.S("区域截图", "Region Capture"),
 			Accelerator: rKey,
 			Command:     core.CmdCaptureRegion,
 			OnClick:     p.StartRegionCapture,
@@ -686,7 +687,7 @@ func (p *Plugin) TrayItems() []purekit.TrayItemSpec {
 			ID:          "pureshot.monitor",
 			Section:     purekit.TraySectionPrimary,
 			Kind:        purekit.TrayItemAction,
-			Label:       "截取当前显示器",
+			Label:       i18n.S("截取当前显示器", "Capture Monitor"),
 			Accelerator: mKey,
 			Command:     core.CmdCaptureMonitor,
 			OnClick:     p.CaptureWholeScreen,
@@ -695,7 +696,7 @@ func (p *Plugin) TrayItems() []purekit.TrayItemSpec {
 			ID:          "pureshot.pin",
 			Section:     purekit.TraySectionPrimary,
 			Kind:        purekit.TrayItemAction,
-			Label:       "贴图剪贴板",
+			Label:       i18n.S("贴图剪贴板", "Pin Clipboard"),
 			Accelerator: pKey,
 			Command:     core.CmdPinClipboard,
 			OnClick:     p.PinClipboard,
@@ -732,9 +733,9 @@ func (p *Plugin) togglePinsPassthrough() {
 	p.SetPinsPassthrough(next)
 	if !p.headless() {
 		if next {
-			p.notify("贴图鼠标穿透已开启", "贴图将忽略鼠标点击，可在托盘菜单取消勾选恢复。")
+			p.notify(i18n.S("贴图鼠标穿透已开启", "Pin Click-Through Enabled"), i18n.S("贴图将忽略鼠标点击，可在托盘菜单取消勾选恢复。", "Pins will ignore mouse clicks; uncheck in tray menu to restore."))
 		} else {
-			p.notify("贴图鼠标穿透已关闭", "现在可以拖动、缩放或关闭贴图了。")
+			p.notify(i18n.S("贴图鼠标穿透已关闭", "Pin Click-Through Disabled"), i18n.S("现在可以拖动、缩放或关闭贴图了。", "Pins can now be dragged, zoomed, or closed."))
 		}
 	}
 }
@@ -750,7 +751,7 @@ func (p *Plugin) CLICommands() []purekit.CLICommandSpec {
 			Execute: func([]string) {
 				p.SetPinsPassthrough(false)
 				if !p.headless() {
-					p.notify("贴图鼠标穿透已关闭", "现在可以拖动、缩放或关闭贴图了。")
+					p.notify(i18n.S("贴图鼠标穿透已关闭", "Pin Click-Through Disabled"), i18n.S("现在可以拖动、缩放或关闭贴图了。", "Pins can now be dragged, zoomed, or closed."))
 				}
 			},
 		},
@@ -764,8 +765,8 @@ func (p *Plugin) CLICommands() []purekit.CLICommandSpec {
 func (p *Plugin) SettingsTab() *purekit.SettingsTab {
 	return &purekit.SettingsTab{
 		ID:       PluginID,
-		Title:    "PureShot · 截图贴图",
-		Subtitle: "截图保存、框选辅助与悬浮贴图",
+		Title:    i18n.S("PureShot · 截图贴图", "PureShot · Capture"),
+		Subtitle: i18n.S("截图保存、框选辅助与悬浮贴图", "Capture saving, snap helpers, and floating pins"),
 		Icon:     pureui.IconCrop,
 		Order:    10,
 		NewView: func(host purekit.Host) purekit.SettingsTabView {

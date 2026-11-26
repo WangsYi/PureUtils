@@ -10,6 +10,8 @@ import (
 	"unicode"
 
 	"github.com/egoist/mygo"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 // VideoExtList lists every video container extension recognized by PureVideo
@@ -40,8 +42,8 @@ func VideoFileFilters() []mygo.FileFilter {
 	exts := append([]string(nil), VideoExtList...)
 	sort.Strings(exts)
 	return []mygo.FileFilter{
-		{Name: "视频文件", Extensions: exts},
-		{Name: "所有文件", Extensions: []string{"*"}},
+		{Name: i18n.S("视频文件", "Video Files"), Extensions: exts},
+		{Name: i18n.S("所有文件", "All Files"), Extensions: []string{"*"}},
 	}
 }
 

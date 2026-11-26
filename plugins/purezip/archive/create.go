@@ -9,6 +9,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 // ZipEncryption selects the zip encryption scheme.
@@ -158,7 +160,7 @@ func Create(ctx context.Context, dest string, sources []string, opt CreateOption
 		return ErrUnsupported
 	}
 	if opt.Password != "" && !opt.Format.SupportsPassword() {
-		return fmt.Errorf("%s 格式不支持密码", opt.Format.Label())
+		return errors.New(i18n.F("%s 格式不支持密码", "%s format does not support passwords", opt.Format.Label()))
 	}
 	if opt.Encryption == "" {
 		opt.Encryption = ZipAES256
@@ -173,7 +175,7 @@ func Create(ctx context.Context, dest string, sources []string, opt CreateOption
 		for _, it := range items {
 			if !it.isDir {
 				if same, _ := filepath.Abs(it.abs); strings.EqualFold(same, absDest) {
-					return fmt.Errorf("不能把压缩文件自身加入压缩包：%s", it.abs)
+					return errors.New(i18n.F("不能把压缩文件自身加入压缩包：%s", "Cannot add an archive to itself: %s", it.abs))
 				}
 				tr.t.p.TotalBytes += it.info.Size()
 				tr.t.p.TotalFiles++
@@ -205,7 +207,7 @@ func detectEditable(archivePath string) (Format, error) {
 		return "", err
 	}
 	if !f.CanEdit() {
-		return "", fmt.Errorf("%w：%s 格式不支持修改", ErrUnsupported, f.Label())
+		return "", fmt.Errorf("%w: %s", ErrUnsupported, i18n.F("%s 格式不支持修改", "%s format does not support editing", f.Label()))
 	}
 	return f, nil
 }
@@ -232,7 +234,7 @@ func AddFiles(ctx context.Context, archivePath string, sources []string, intoDir
 	replaced := map[string]bool{}
 	for _, it := range items {
 		if a, _ := filepath.Abs(it.abs); strings.EqualFold(a, absArc) {
-			return errors.New("不能把压缩文件自身加入压缩包")
+			return errors.New(i18n.S("不能把压缩文件自身加入压缩包", "Cannot add an archive to itself"))
 		}
 		if !it.isDir {
 			replaced[it.name] = true
@@ -275,7 +277,7 @@ func RenameEntry(ctx context.Context, archivePath, oldPath, newName string, opt 
 		ctx = context.Background()
 	}
 	if newName == "" || strings.ContainsAny(newName, `/\`) {
-		return errors.New("新名称无效")
+		return errors.New(i18n.S("新名称无效", "Invalid new name"))
 	}
 	f, err := detectEditable(archivePath)
 	if err != nil {

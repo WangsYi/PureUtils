@@ -6,7 +6,7 @@ import (
 	"pureutils/pkg/purekit/core"
 )
 
-// KindVisual maps a ClipboardKind to its icon, Chinese label, foreground
+// KindVisual maps a ClipboardKind to its icon, localized label, foreground
 // accent color and soft background tint.
 func KindVisual(k core.ClipboardKind, pal Palette) (icon *ui.SVG, label string, fg, softBg ui.Color) {
 	switch k {
@@ -203,6 +203,20 @@ func SettingRow(c *ui.Context, title, desc string, pal Palette, control func()) 
 			}
 		})
 		ui.Row(c).AlignItems(ui.Center).Gap(8).Shrink(0).Children(control)
+	})
+}
+
+// SettingBlock renders a vertical setting block with title/description above a full-width control row,
+// suited for multi-option segmented controls that would squeeze SettingRow labels at narrow window widths.
+func SettingBlock(c *ui.Context, title, desc string, pal Palette, control func()) {
+	ui.Column(c).Gap(6).Padding(1, 0).Children(func() {
+		ui.Column(c).Gap(2).Children(func() {
+			ui.Text(c, title).FontSize(13).FontWeight(500).TextColor(pal.Text)
+			if desc != "" {
+				ui.Text(c, desc).FontSize(11).TextColor(pal.TextMuted)
+			}
+		})
+		ui.Row(c).AlignItems(ui.Center).Gap(8).Children(control)
 	})
 }
 

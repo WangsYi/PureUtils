@@ -13,6 +13,7 @@ import (
 
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/config"
+	"pureutils/pkg/purekit/i18n"
 	pureui "pureutils/pkg/purekit/ui"
 )
 
@@ -81,11 +82,11 @@ func (v *settingsTabView) onDownloadProgressChanged() {
 			v.draft.DownloadSource = DownloadSourceIDFromLabel(v.sourceLabel)
 			v.syncIndices()
 			if err := v.plugin.ApplyConfig(v.draft); err != nil {
-				v.status = "应用 libmpv 配置失败: " + err.Error()
+				v.status = i18n.F("应用 libmpv 配置失败: %v", "Failed to apply libmpv config: %v", err)
 			} else {
 				v.syncFrom(v.plugin.Config())
 				v.plugin.Reload()
-				v.status = "libmpv 已下载就绪并已重新加载"
+				v.status = i18n.S("libmpv 已下载就绪并已重新加载", "libmpv downloaded and reloaded")
 			}
 		} else if !prog.Active && prog.Err != "" {
 			v.status = prog.Err
@@ -153,27 +154,25 @@ func (v *settingsTabView) renderEngineCard(c *ui.Context, pal pureui.Palette) {
 		prog = v.mpvMgr.Progress()
 	}
 
-	pureui.SettingCard(c, "libmpv 解码内核", "PureVideo 默认内置裁剪版 libmpv-2.dll 硬件解码（支持 MP4 / MKV / MOV / HEVC / FLV / 字幕）；也可按需更新或导入自定义内核", pal, func() {
-		pureui.SettingRow(c, "libmpv 状态", dllPath, pal, func() {
+	pureui.SettingCard(c, i18n.S("libmpv 解码内核", "libmpv Decoder Backend"), i18n.S("PureVideo 默认内置裁剪版 libmpv-2.dll 硬件解码（支持 MP4 / MKV / MOV / HEVC / FLV / 字幕）；也可按需更新或导入自定义内核", "PureVideo bundles a trimmed libmpv-2.dll hardware decoder (MP4 / MKV / MOV / HEVC / FLV / subtitles). You can update or import a custom build below."), pal, func() {
+		pureui.SettingRow(c, i18n.S("libmpv 状态", "libmpv Status"), dllPath, pal, func() {
 			if installed {
-				label := "已就绪"
+				label := i18n.S("已就绪", "Ready")
 				if dllSize > 0 {
-					label = fmt.Sprintf("已就绪 · %.1f MB", float64(dllSize)/(1024*1024))
+					label = i18n.F("已就绪 · %.1f MB", "Ready · %.1f MB", float64(dllSize)/(1024*1024))
 				}
 				pureui.PillBadge(c, label, pal.Success, pal.SuccessSoft)
 			} else {
-				pureui.PillBadge(c, "未检测到", pal.TextMuted, pal.Bg)
+				pureui.PillBadge(c, i18n.S("未检测到", "Not Found"), pal.TextMuted, pal.Bg)
 			}
 		})
 
 		ui.Divider(c)
 
-		sourceOpts := make([]string, len(DownloadSources))
-		for i, s := range DownloadSources {
-			sourceOpts[i] = s.Label
-		}
-		pureui.SettingRow(c, "下载源选择", "国内网络推荐保持「自动优选」，会按顺序探测加速镜像、SourceForge 与 GitHub 官方源", pal, func() {
-			sel := ui.Select(c, &v.sourceLabel, sourceOpts).Width(236).Label("libmpv 下载源")
+		v.sourceLabel = DownloadSourceLabel(v.draft.DownloadSource)
+		sourceOpts := DownloadSourceLabels()
+		pureui.SettingRow(c, i18n.S("下载源选择", "Download Source"), i18n.S("国内网络推荐保持「自动优选」，会按顺序探测加速镜像、SourceForge 与 GitHub 官方源", "Auto tries mirror proxies, SourceForge, and GitHub in order"), pal, func() {
+			sel := ui.Select(c, &v.sourceLabel, sourceOpts).Width(224).Label(i18n.S("libmpv 下载源", "libmpv Download Source"))
 			sel.Border(0, ui.Transparent)
 			if sel.Changed() {
 				v.draft.DownloadSource = DownloadSourceIDFromLabel(v.sourceLabel)
@@ -182,11 +181,11 @@ func (v *settingsTabView) renderEngineCard(c *ui.Context, pal pureui.Palette) {
 
 		ui.Divider(c)
 
-		pureui.SettingRow(c, "自定义镜像地址（可选）", "支持直链 .7z / .zip / .dll 或加速前缀，填写后将优先于预设源尝试", pal, func() {
+		pureui.SettingRow(c, i18n.S("自定义镜像地址（可选）", "Custom Mirror URL (Optional)"), i18n.S("支持直链 .7z / .zip / .dll 或加速前缀，填写后将优先于预设源尝试", "Direct .7z / .zip / .dll link or proxy prefix; tried before preset sources when set"), pal, func() {
 			ti := ui.TextInput(c, &v.draft.CustomMirrorURL).
-				Placeholder("https://...（留空使用预设源）").
-				Width(260).
-				Label("自定义镜像地址")
+				Placeholder(i18n.S("https://...（留空使用预设源）", "https://... (leave empty for preset)")).
+				Width(220).
+				Label(i18n.S("自定义镜像地址", "Custom Mirror URL"))
 			ti.Border(0, ui.Transparent).FocusRing(false)
 		})
 
@@ -218,15 +217,15 @@ func (v *settingsTabView) renderEngineCard(c *ui.Context, pal pureui.Palette) {
 
 		ui.Row(c).Gap(8).Wrap().Children(func() {
 			if prog.Active {
-				ui.Button(c, "取消下载").OnClick(func() {
+				ui.Button(c, i18n.S("取消下载", "Cancel Download")).OnClick(func() {
 					if v.mpvMgr != nil {
 						v.mpvMgr.CancelDownload()
 					}
 				}).Border(0, ui.Transparent)
 			} else {
-				btnLabel := "下载 libmpv"
+				btnLabel := i18n.S("下载 libmpv", "Download libmpv")
 				if installed {
-					btnLabel = "更新 / 重新下载 libmpv"
+					btnLabel = i18n.S("更新 / 重新下载 libmpv", "Update / Re-download libmpv")
 				}
 				ui.PrimaryButton(c, btnLabel).OnClick(func() {
 					if v.mpvMgr == nil {
@@ -238,14 +237,14 @@ func (v *settingsTabView) renderEngineCard(c *ui.Context, pal pureui.Palette) {
 					src := DownloadSourceIDFromLabel(v.sourceLabel)
 					v.mpvMgr.StartDownload(src, v.draft.CustomMirrorURL)
 				})
-				ui.Button(c, "从本地导入…").OnClick(func() {
+				ui.Button(c, i18n.S("从本地导入…", "Import Local File…")).OnClick(func() {
 					if v.headless() || v.mpvMgr == nil {
 						return
 					}
 					v.importLocalPackage(c)
 				}).Border(0, ui.Transparent)
 				if hasOverride {
-					ui.Button(c, "恢复内置内核").OnClick(func() {
+					ui.Button(c, i18n.S("恢复内置内核", "Restore Bundled Backend")).OnClick(func() {
 						v.removeLibMPV(c)
 					}).Border(0, ui.Transparent)
 				}
@@ -267,10 +266,10 @@ func (v *settingsTabView) renderEngineCard(c *ui.Context, pal pureui.Palette) {
 func (v *settingsTabView) importLocalPackage(c *ui.Context) {
 	go func() {
 		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-			Title: "选择 libmpv-2.dll 或压缩包 (.7z / .zip)",
+			Title: i18n.S("选择 libmpv-2.dll 或压缩包 (.7z / .zip)", "Select libmpv-2.dll or Archive (.7z / .zip)"),
 			Filters: []mygo.FileFilter{
-				{Name: "libmpv 内核或压缩包", Extensions: []string{"dll", "7z", "zip"}},
-				{Name: "所有文件", Extensions: []string{"*"}},
+				{Name: i18n.S("libmpv 内核或压缩包", "libmpv Backend or Archive"), Extensions: []string{"dll", "7z", "zip"}},
+				{Name: i18n.S("所有文件", "All Files"), Extensions: []string{"*"}},
 			},
 		})
 		if err != nil || len(paths) == 0 {
@@ -280,16 +279,16 @@ func (v *settingsTabView) importLocalPackage(c *ui.Context) {
 		err = v.mpvMgr.ImportLocal(paths[0])
 		mygo.RunOnMain(func() {
 			if err != nil {
-				v.status = "导入失败: " + err.Error()
+				v.status = i18n.F("导入失败: %v", "Import failed: %v", err)
 			} else {
 				v.draft.Engine = EngineMPV
 				v.syncIndices()
 				_ = v.plugin.ApplyConfig(v.draft)
 				v.syncFrom(v.plugin.Config())
 				v.plugin.Reload()
-				v.status = "已导入并启用 libmpv"
+				v.status = i18n.S("已导入并启用 libmpv", "Imported and enabled libmpv")
 				if c != nil {
-					c.Toast("已导入并启用 libmpv")
+					c.Toast(i18n.S("已导入并启用 libmpv", "Imported and enabled libmpv"))
 				}
 			}
 			v.invalidate()
@@ -303,7 +302,7 @@ func (v *settingsTabView) removeLibMPV(c *ui.Context) {
 	}
 	v.plugin.ReleaseBackend()
 	if err := v.mpvMgr.Remove(); err != nil {
-		v.status = "移除失败（请先关闭正在播放的视频窗口）: " + err.Error()
+		v.status = i18n.F("移除失败（请先关闭正在播放的视频窗口）: %v", "Removal failed (close active player windows first): %v", err)
 		v.invalidate()
 		return
 	}
@@ -312,82 +311,86 @@ func (v *settingsTabView) removeLibMPV(c *ui.Context) {
 	_ = v.plugin.ApplyConfig(v.draft)
 	v.syncFrom(v.plugin.Config())
 	v.plugin.Reload()
-	v.status = "已移除自定义覆盖，恢复使用内置 libmpv"
+	v.status = i18n.S("已移除自定义覆盖，恢复使用内置 libmpv", "Custom override removed; restored bundled libmpv")
 	if c != nil {
-		c.Toast("已恢复内置 libmpv")
+		c.Toast(i18n.S("已恢复内置 libmpv", "Restored bundled libmpv"))
 	}
 	v.invalidate()
 }
 
 func (v *settingsTabView) renderPlaybackCard(c *ui.Context, pal pureui.Palette) {
-	pureui.SettingCard(c, "播放体验", "控制打开视频后的默认播放行为、倍速与目录浏览顺序", pal, func() {
-		pureui.SettingRow(c, "打开后自动播放", "打开本地视频时立即开始播放", pal, func() {
-			ui.Switch(c, &v.draft.AutoPlay).Label("开关：打开后自动播放")
+	pureui.SettingCard(c, i18n.S("播放体验", "Playback"), i18n.S("控制打开视频后的默认播放行为、倍速与目录浏览顺序", "Configure default playback behavior, speed presets, and folder sorting"), pal, func() {
+		pureui.SettingRow(c, i18n.S("打开后自动播放", "Auto-Play on Open"), i18n.S("打开本地视频时立即开始播放", "Start playing immediately when opening a local video"), pal, func() {
+			ui.Switch(c, &v.draft.AutoPlay).Label(i18n.S("开关：打开后自动播放", "Toggle: Auto-Play on Open"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "默认循环播放", "视频播放完毕后自动重头循环，而非自动切换下一条", pal, func() {
-			ui.Switch(c, &v.draft.Loop).Label("开关：默认循环播放")
+		pureui.SettingRow(c, i18n.S("默认循环播放", "Loop by Default"), i18n.S("视频播放完毕后自动重头循环，而非自动切换下一条", "Repeat the current video instead of stopping or advancing"), pal, func() {
+			ui.Switch(c, &v.draft.Loop).Label(i18n.S("开关：默认循环播放", "Toggle: Loop by Default"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "记住音量与静音状态", "在窗口底部调节音量或静音时自动保存供下次使用", pal, func() {
-			ui.Switch(c, &v.draft.RememberVolume).Label("开关：记住音量与静音状态")
+		pureui.SettingRow(c, i18n.S("记住音量与静音状态", "Remember Volume & Mute"), i18n.S("在窗口底部调节音量或静音时自动保存供下次使用", "Persist volume and mute state across sessions"), pal, func() {
+			ui.Switch(c, &v.draft.RememberVolume).Label(i18n.S("开关：记住音量与静音状态", "Toggle: Remember Volume & Mute"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "默认播放倍速", "支持 0.75x 到 2x 预设或播放界面 C 键循环切换", pal, func() {
-			seg := ui.Segmented(c, &v.speedIdx, "0.75x", "1x", "1.25x", "1.5x", "2x").Label("默认播放倍速")
+		pureui.SettingRow(c, i18n.S("默认播放倍速", "Default Speed"), i18n.S("支持 0.75x 到 2x 预设或播放界面 C 键循环切换", "Presets from 0.75x to 2x, or cycle in player with C"), pal, func() {
+			seg := ui.Segmented(c, &v.speedIdx, "0.75x", "1x", "1.25x", "1.5x", "2x").Label(i18n.S("默认播放倍速", "Default Speed"))
 			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
 				v.draft.DefaultSpeed = videoSpeedFromIndex(v.speedIdx)
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "目录排序方式", "控制左右翻片时同目录视频的排列顺序", pal, func() {
-			seg := ui.Segmented(c, &v.sortIdx, "文件名", "修改时间", "文件大小").Label("目录排序方式")
+		pureui.SettingRow(c, i18n.S("目录排序方式", "Folder Sort Order"), i18n.S("控制左右翻片时同目录视频的排列顺序", "Order of videos when navigating within a folder"), pal, func() {
+			seg := ui.Segmented(c, &v.sortIdx,
+				i18n.S("文件名", "Name"),
+				i18n.S("修改时间", "Modified"),
+				i18n.S("文件大小", "Size"),
+			).Label(i18n.S("目录排序方式", "Folder Sort Order"))
 			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
 				v.draft.Sort = videoSortFromIndex(v.sortIdx)
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "降序排列", "按名称 Z→A、最新时间或最大体积优先排序", pal, func() {
-			ui.Switch(c, &v.draft.SortDesc).Label("开关：降序排列")
+		pureui.SettingRow(c, i18n.S("降序排列", "Descending Order"), i18n.S("按名称 Z→A、最新时间或最大体积优先排序", "Sort Z-A, newest first, or largest first"), pal, func() {
+			ui.Switch(c, &v.draft.SortDesc).Label(i18n.S("开关：降序排列", "Toggle: Descending Order"))
 		})
 	})
 }
 
 func (v *settingsTabView) renderAssocCard(c *ui.Context, pal pureui.Palette) {
-	pureui.SettingCard(c, "系统文件关联（21 种视频格式）", "写入当前用户的“打开方式”列表（HKCU），随后在 Windows“默认应用”设为默认后即可双击秒开视频", pal, func() {
-		pureui.SettingRow(c, "关联注册状态", "涵盖 MP4 / MKV / MOV / WebM / AVI / WMV / FLV / TS 等常见格式", pal, func() {
+	pureui.SettingCard(c, i18n.S("系统文件关联（21 种视频格式）", "System File Associations (21 Formats)"), i18n.S("写入当前用户的“打开方式”列表（HKCU），随后在 Windows“默认应用”设为默认后即可双击秒开视频", "Registers PureVideo in your Windows Open With list (HKCU); set as default in Windows Settings for double-click launch"), pal, func() {
+		pureui.SettingRow(c, i18n.S("关联注册状态", "Registration Status"), i18n.S("涵盖 MP4 / MKV / MOV / WebM / AVI / WMV / FLV / TS 等常见格式", "Covers MP4, MKV, MOV, WebM, AVI, WMV, FLV, TS, and more"), pal, func() {
 			if v.assocRegistered {
-				pureui.PillBadge(c, "已注册", pal.Success, pal.SuccessSoft)
+				pureui.PillBadge(c, i18n.S("已注册", "Registered"), pal.Success, pal.SuccessSoft)
 			} else {
-				pureui.PillBadge(c, "未注册", pal.TextMuted, pal.Bg)
+				pureui.PillBadge(c, i18n.S("未注册", "Not Registered"), pal.TextMuted, pal.Bg)
 			}
 		})
 		ui.Row(c).Gap(8).Wrap().Children(func() {
-			ui.Button(c, "加入“打开方式”列表").OnClick(func() {
+			ui.Button(c, i18n.S("加入“打开方式”列表", "Add to Open With List")).OnClick(func() {
 				if !v.headless() {
 					if err := RegisterFileAssoc(); err != nil {
-						v.status = "注册打开方式失败: " + err.Error()
+						v.status = i18n.F("注册打开方式失败: %v", "Failed to register file associations: %v", err)
 					} else {
 						v.assocRegistered = FileAssocRegistered()
-						v.status = "已加入系统“打开方式”列表"
-						c.Toast("已加入打开方式列表")
+						v.status = i18n.S("已加入系统“打开方式”列表", "Added to Windows Open With list")
+						c.Toast(i18n.S("已加入打开方式列表", "Added to Open With list"))
 					}
 				}
 			}).Border(0, ui.Transparent)
-			ui.Button(c, "移除文件关联").OnClick(func() {
+			ui.Button(c, i18n.S("移除文件关联", "Remove Associations")).OnClick(func() {
 				if !v.headless() {
 					if err := UnregisterFileAssoc(); err != nil {
-						v.status = "移除文件关联失败: " + err.Error()
+						v.status = i18n.F("移除文件关联失败: %v", "Failed to remove file associations: %v", err)
 					} else {
 						v.assocRegistered = FileAssocRegistered()
-						v.status = "已移除系统文件关联"
-						c.Toast("已移除文件关联")
+						v.status = i18n.S("已移除系统文件关联", "Removed file associations")
+						c.Toast(i18n.S("已移除文件关联", "Removed file associations"))
 					}
 				}
 			}).Border(0, ui.Transparent)
-			ui.Button(c, "打开系统默认应用设置").OnClick(func() {
+			ui.Button(c, i18n.S("打开系统默认应用设置", "Open Windows Default Apps")).OnClick(func() {
 				if !v.headless() {
 					if !FileAssocRegistered() {
 						if err := RegisterFileAssoc(); err == nil {

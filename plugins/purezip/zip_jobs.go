@@ -13,6 +13,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"pureutils/pkg/purekit/i18n"
 	pureui "pureutils/pkg/purekit/ui"
 	"pureutils/plugins/purezip/archive"
 )
@@ -54,11 +55,156 @@ const (
 	zipJobFailed
 )
 
+type zipJobOp int
+
+const (
+	zipOpExtract zipJobOp = iota
+	zipOpCompress
+	zipOpTest
+	zipOpAdd
+	zipOpDelete
+	zipOpRename
+	zipOpUpdate
+)
+
+func parseZipJobOp(verb string) zipJobOp {
+	switch strings.ToLower(strings.TrimSpace(verb)) {
+	case "compress", "压缩":
+		return zipOpCompress
+	case "test", "测试":
+		return zipOpTest
+	case "add", "添加":
+		return zipOpAdd
+	case "delete", "删除":
+		return zipOpDelete
+	case "rename", "重命名":
+		return zipOpRename
+	case "update", "更新":
+		return zipOpUpdate
+	default:
+		return zipOpExtract
+	}
+}
+
+func zipJobActiveTitle(verb string) string {
+	switch parseZipJobOp(verb) {
+	case zipOpCompress:
+		return i18n.S("正在压缩", "Compressing")
+	case zipOpTest:
+		return i18n.S("正在测试", "Testing")
+	case zipOpAdd:
+		return i18n.S("正在添加", "Adding")
+	case zipOpDelete:
+		return i18n.S("正在删除", "Deleting")
+	case zipOpRename:
+		return i18n.S("正在重命名", "Renaming")
+	case zipOpUpdate:
+		return i18n.S("正在更新", "Updating")
+	default:
+		return i18n.S("正在解压", "Extracting")
+	}
+}
+
+func zipJobPausedTitle(verb string) string {
+	switch parseZipJobOp(verb) {
+	case zipOpCompress:
+		return i18n.S("已暂停压缩", "Compression paused")
+	case zipOpTest:
+		return i18n.S("已暂停测试", "Test paused")
+	case zipOpAdd:
+		return i18n.S("已暂停添加", "Add paused")
+	case zipOpDelete:
+		return i18n.S("已暂停删除", "Delete paused")
+	case zipOpRename:
+		return i18n.S("已暂停重命名", "Rename paused")
+	case zipOpUpdate:
+		return i18n.S("已暂停更新", "Update paused")
+	default:
+		return i18n.S("已暂停解压", "Extraction paused")
+	}
+}
+
+func zipJobDoneTitle(verb string) string {
+	switch parseZipJobOp(verb) {
+	case zipOpCompress:
+		return i18n.S("压缩完成", "Compression complete")
+	case zipOpTest:
+		return i18n.S("测试完成", "Test complete")
+	case zipOpAdd:
+		return i18n.S("添加完成", "Files added")
+	case zipOpDelete:
+		return i18n.S("删除完成", "Items deleted")
+	case zipOpRename:
+		return i18n.S("重命名完成", "Renamed")
+	case zipOpUpdate:
+		return i18n.S("更新完成", "Update complete")
+	default:
+		return i18n.S("解压完成", "Extraction complete")
+	}
+}
+
+func zipJobFailedTitle(verb string) string {
+	switch parseZipJobOp(verb) {
+	case zipOpCompress:
+		return i18n.S("压缩失败", "Compression failed")
+	case zipOpTest:
+		return i18n.S("测试失败", "Test failed")
+	case zipOpAdd:
+		return i18n.S("添加失败", "Add failed")
+	case zipOpDelete:
+		return i18n.S("删除失败", "Delete failed")
+	case zipOpRename:
+		return i18n.S("重命名失败", "Rename failed")
+	case zipOpUpdate:
+		return i18n.S("更新失败", "Update failed")
+	default:
+		return i18n.S("解压失败", "Extraction failed")
+	}
+}
+
+func zipJobVerbLabel(verb string) string {
+	switch parseZipJobOp(verb) {
+	case zipOpCompress:
+		return i18n.S("压缩", "Compress")
+	case zipOpTest:
+		return i18n.S("测试", "Test")
+	case zipOpAdd:
+		return i18n.S("添加", "Add")
+	case zipOpDelete:
+		return i18n.S("删除", "Delete")
+	case zipOpRename:
+		return i18n.S("重命名", "Rename")
+	case zipOpUpdate:
+		return i18n.S("更新", "Update")
+	default:
+		return i18n.S("解压", "Extract")
+	}
+}
+
+func zipJobProgressLabel(verb string) string {
+	switch parseZipJobOp(verb) {
+	case zipOpCompress:
+		return i18n.S("压缩进度", "Compression progress")
+	case zipOpTest:
+		return i18n.S("测试进度", "Test progress")
+	case zipOpAdd:
+		return i18n.S("添加进度", "Add progress")
+	case zipOpDelete:
+		return i18n.S("删除进度", "Delete progress")
+	case zipOpRename:
+		return i18n.S("重命名进度", "Rename progress")
+	case zipOpUpdate:
+		return i18n.S("更新进度", "Update progress")
+	default:
+		return i18n.S("解压进度", "Extraction progress")
+	}
+}
+
 // zipJob is one background archive operation (extract, compress, test, edit)
 // with its own small Bandizip-style progress window.
 type zipJob struct {
 	plugin  *Plugin
-	verb    string // 解压 / 压缩 / 测试 / 更新
+	verb    string // canonical or ZH op key (extract / compress / test / ...)
 	subject string // file name shown under the verb
 	target  string // folder or file revealed after success
 
@@ -209,12 +355,12 @@ func (j *zipJob) answer(r zipPromptReply) {
 
 // askPassword asks for an archive password; ok=false means canceled.
 func (j *zipJob) askPassword(name string, wrong bool) (string, bool) {
-	msg := "「" + name + "」已加密，请输入密码。"
+	msg := i18n.F("「%s」已加密，请输入密码。", `"%s" is encrypted. Please enter the password.`, name)
 	errText := ""
 	if wrong {
-		errText = "密码错误，请重新输入。"
+		errText = i18n.S("密码错误，请重新输入。", "Wrong password, please try again.")
 	}
-	r := j.ask(&zipPrompt{kind: zipPromptPassword, title: "需要密码", message: msg, errText: errText})
+	r := j.ask(&zipPrompt{kind: zipPromptPassword, title: i18n.S("需要密码", "Password Required"), message: msg, errText: errText})
 	return r.password, r.ok && r.password != ""
 }
 
@@ -227,7 +373,7 @@ func (j *zipJob) askConflict(dest string, existing os.FileInfo, incoming archive
 		return m
 	}
 	j.mu.Unlock()
-	r := j.ask(&zipPrompt{kind: zipPromptConflict, title: "文件已存在", message: dest, existing: existing, incoming: incoming})
+	r := j.ask(&zipPrompt{kind: zipPromptConflict, title: i18n.S("文件已存在", "File Already Exists"), message: dest, existing: existing, incoming: incoming})
 	if !r.ok {
 		j.Cancel()
 		return archive.OverwriteSkip
@@ -275,7 +421,7 @@ func (j *zipJob) show() {
 
 func (j *zipJob) createWindow() {
 	win := mygo.NewWindow(mygo.WindowOptions{
-		Title:             j.verb + " - " + j.subject,
+		Title:             zipJobVerbLabel(j.verb) + " - " + j.subject,
 		Width:             480,
 		Height:            268,
 		Hidden:            true,
@@ -380,7 +526,7 @@ func (j *zipJob) finish(summary string, err error) {
 		j.closeWindow()
 		if summary != "" && !j.shown {
 			// Quick jobs finish before the window shows; confirm with a toast-like notification.
-			a.notify("PureZip "+j.verb+"完成", summary)
+			a.notify("PureZip "+zipJobDoneTitle(j.verb), summary)
 		}
 	}
 }
@@ -417,28 +563,28 @@ func (j *zipJob) view(c *ui.Context) {
 		}
 		switch state {
 		case zipJobFailed:
-			j.resultHeader(c, pal, pureui.IconAlertCircle, pal.Danger, pal.DangerSoft, j.verb+"失败", j.subject)
+			j.resultHeader(c, pal, pureui.IconAlertCircle, pal.Danger, pal.DangerSoft, zipJobFailedTitle(j.verb), j.subject)
 			ui.Column(c).Grow(1).Padding(10, 12).Radius(10).Background(pal.DangerSoft).Children(func() {
-				msg := "未知错误"
+				msg := i18n.S("未知错误", "Unknown error")
 				if err != nil {
 					msg = err.Error()
 				}
 				ui.Text(c, msg).FontSize(12).LineHeight(1.45).TextColor(pal.Text).Selectable()
 			})
 			ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
-				ui.PrimaryButton(c, "关闭").OnClick(func() { j.closeWindow() })
+				ui.PrimaryButton(c, i18n.S("关闭", "Close")).OnClick(func() { j.closeWindow() })
 			})
 		case zipJobDone:
-			j.resultHeader(c, pal, pureui.IconCheck, pal.Success, pal.SuccessSoft, j.verb+"完成", j.subject)
+			j.resultHeader(c, pal, pureui.IconCheck, pal.Success, pal.SuccessSoft, zipJobDoneTitle(j.verb), j.subject)
 			ui.Text(c, summary).FontSize(12).LineHeight(1.45).TextColor(pal.TextSecondary).Grow(1)
 			ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
 				if j.target != "" {
-					ui.Button(c, "打开所在位置").OnClick(func() {
+					ui.Button(c, i18n.S("打开所在位置", "Open Location")).OnClick(func() {
 						mygo.Shell.ShowItemInFolder(j.target)
 						j.closeWindow()
 					})
 				}
-				ui.PrimaryButton(c, "关闭").OnClick(func() { j.closeWindow() })
+				ui.PrimaryButton(c, i18n.S("关闭", "Close")).OnClick(func() { j.closeWindow() })
 			})
 		default:
 			j.progressView(c, pal, prog, paused, elapsed)
@@ -467,14 +613,15 @@ func (j *zipJob) resultHeader(c *ui.Context, pal pureui.Palette, icon *ui.SVG, f
 
 func (j *zipJob) progressView(c *ui.Context, pal pureui.Palette, prog archive.Progress, paused bool, elapsed time.Duration) {
 	icon := iconExtract
-	if j.verb == "压缩" || j.verb == "添加" {
+	switch parseZipJobOp(j.verb) {
+	case zipOpCompress, zipOpAdd:
 		icon = iconCompress
-	} else if j.verb == "测试" {
+	case zipOpTest:
 		icon = iconShieldCheck
 	}
-	title := "正在" + j.verb
+	title := zipJobActiveTitle(j.verb)
 	if paused {
-		title = "已暂停" + j.verb
+		title = zipJobPausedTitle(j.verb)
 	}
 	ui.Row(c).Gap(12).AlignItems(ui.Center).Children(func() {
 		ui.Box(c).Size(40, 40).Radius(11).Gradient(pal.Accent, pal.AccentEnd, 135).Center().Shrink(0).
@@ -499,7 +646,7 @@ func (j *zipJob) progressView(c *ui.Context, pal pureui.Palette, prog archive.Pr
 	ui.Column(c).Gap(6).Children(func() {
 		cur := prog.Current
 		if cur == "" {
-			cur = "准备中…"
+			cur = i18n.S("准备中…", "Preparing…")
 		}
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, cur).FontSize(11.5).SingleLine().Grow(1).MinWidth(0).TextColor(pal.TextSecondary)
@@ -507,7 +654,7 @@ func (j *zipJob) progressView(c *ui.Context, pal pureui.Palette, prog archive.Pr
 				ui.Text(c, fmt.Sprintf("%.0f%%", frac*100)).FontSize(12).FontWeight(650).TextColor(pal.Accent).Shrink(0)
 			}
 		})
-		ui.Progress(c, frac).Label(j.verb + "进度")
+		ui.Progress(c, frac).Label(zipJobProgressLabel(j.verb))
 	})
 
 	speed := 0.0
@@ -524,18 +671,18 @@ func (j *zipJob) progressView(c *ui.Context, pal pureui.Palette, prog archive.Pr
 			line1 += " / " + zipSize(prog.TotalBytes)
 		}
 		if prog.TotalFiles > 0 {
-			line1 += fmt.Sprintf(" · %d / %d 个文件", prog.DoneFiles, prog.TotalFiles)
+			line1 += i18n.F(" · %d / %d 个文件", " · %d / %d files", prog.DoneFiles, prog.TotalFiles)
 		}
 		ui.Text(c, line1).FontSize(11.5).TextColor(pal.TextMuted)
-		ui.Text(c, fmt.Sprintf("速度 %s/s · 已用 %s · 剩余 %s", zipSize(int64(speed)), zipDuration(elapsed), remain)).FontSize(11.5).TextColor(pal.TextMuted)
+		ui.Text(c, i18n.F("速度 %s/s · 已用 %s · 剩余 %s", "Speed %s/s · Elapsed %s · Remaining %s", zipSize(int64(speed)), zipDuration(elapsed), remain)).FontSize(11.5).TextColor(pal.TextMuted)
 	})
 	ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
-		label := "暂停"
+		label := i18n.S("暂停", "Pause")
 		if paused {
-			label = "继续"
+			label = i18n.S("继续", "Resume")
 		}
 		ui.Button(c, label).OnClick(j.TogglePause)
-		ui.Button(c, "取消").OnClick(j.Cancel)
+		ui.Button(c, i18n.S("取消", "Cancel")).OnClick(j.Cancel)
 	})
 }
 
@@ -546,13 +693,13 @@ func (j *zipJob) promptView(c *ui.Context, pal pureui.Palette, p *zipPrompt) {
 		ui.Text(c, p.message).FontSize(12).TextColor(pal.TextSecondary)
 		submit := func() {
 			if strings.TrimSpace(p.password) == "" {
-				p.errText = "请输入密码。"
+				p.errText = i18n.S("请输入密码。", "Please enter a password.")
 				return
 			}
 			j.answer(zipPromptReply{ok: true, password: p.password})
 		}
 		ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-			in := ui.TextInput(c, &p.password).Grow(1).Placeholder("输入密码").Label("压缩文件密码").AutoFocus()
+			in := ui.TextInput(c, &p.password).Grow(1).Placeholder(i18n.S("输入密码", "Enter password")).Label(i18n.S("压缩文件密码", "Archive password")).AutoFocus()
 			if !p.showPw {
 				in.Password()
 			}
@@ -563,7 +710,7 @@ func (j *zipJob) promptView(c *ui.Context, pal pureui.Palette, p *zipPrompt) {
 			if p.showPw {
 				icon = iconEyeOff
 			}
-			if pureui.IconButton(c, icon, "显示密码", "显示/隐藏密码", p.showPw, false, pal).Clicked() {
+			if pureui.IconButton(c, icon, i18n.S("显示密码", "Show Password"), i18n.S("显示/隐藏密码", "Show / hide password"), p.showPw, false, pal).Clicked() {
 				p.showPw = !p.showPw
 			}
 		})
@@ -572,28 +719,28 @@ func (j *zipJob) promptView(c *ui.Context, pal pureui.Palette, p *zipPrompt) {
 		}
 		ui.Box(c).Grow(1)
 		ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
-			ui.Button(c, "取消").OnClick(func() { j.answer(zipPromptReply{}) ; j.Cancel() })
-			ui.PrimaryButton(c, "确定").OnClick(submit)
+			ui.Button(c, i18n.S("取消", "Cancel")).OnClick(func() { j.answer(zipPromptReply{}); j.Cancel() })
+			ui.PrimaryButton(c, i18n.S("确定", "OK")).OnClick(submit)
 		})
 	case zipPromptConflict:
 		j.resultHeader(c, pal, pureui.IconAlertCircle, pal.Warning, pal.WarningSoft, p.title, p.message)
 		ui.Column(c).Gap(4).Padding(8, 12).Radius(10).Background(pal.CardBg).Children(func() {
 			if p.existing != nil {
-				ui.Text(c, fmt.Sprintf("现有文件：%s · %s", zipSize(p.existing.Size()), zipTime(p.existing.ModTime()))).FontSize(11.5).TextColor(pal.TextSecondary)
+				ui.Text(c, i18n.F("现有文件：%s · %s", "Existing file: %s · %s", zipSize(p.existing.Size()), zipTime(p.existing.ModTime()))).FontSize(11.5).TextColor(pal.TextSecondary)
 			}
-			ui.Text(c, fmt.Sprintf("压缩包内：%s · %s", zipSize(p.incoming.Size), zipTime(p.incoming.Modified))).FontSize(11.5).TextColor(pal.TextSecondary)
+			ui.Text(c, i18n.F("压缩包内：%s · %s", "In archive: %s · %s", zipSize(p.incoming.Size), zipTime(p.incoming.Modified))).FontSize(11.5).TextColor(pal.TextSecondary)
 		})
-		ui.Checkbox(c, &p.applyAll, "对之后的所有冲突执行相同操作")
+		ui.Checkbox(c, &p.applyAll, i18n.S("对之后的所有冲突执行相同操作", "Apply to all subsequent conflicts"))
 		ui.Box(c).Grow(1)
 		ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
-			ui.Button(c, "取消").OnClick(func() { j.answer(zipPromptReply{}) })
-			ui.Button(c, "跳过").OnClick(func() {
+			ui.Button(c, i18n.S("取消", "Cancel")).OnClick(func() { j.answer(zipPromptReply{}) })
+			ui.Button(c, i18n.S("跳过", "Skip")).OnClick(func() {
 				j.answer(zipPromptReply{ok: true, mode: archive.OverwriteSkip, applyAll: p.applyAll})
 			})
-			ui.Button(c, "自动重命名").OnClick(func() {
+			ui.Button(c, i18n.S("自动重命名", "Auto Rename")).OnClick(func() {
 				j.answer(zipPromptReply{ok: true, mode: archive.OverwriteRename, applyAll: p.applyAll})
 			})
-			ui.PrimaryButton(c, "覆盖").OnClick(func() {
+			ui.PrimaryButton(c, i18n.S("覆盖", "Overwrite")).OnClick(func() {
 				j.answer(zipPromptReply{ok: true, mode: archive.OverwriteAll, applyAll: p.applyAll})
 			})
 		})

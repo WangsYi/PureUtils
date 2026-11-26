@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 // Entry is one file or folder inside an archive.
@@ -46,12 +48,20 @@ type Info struct {
 	Encoding        string // detected name encoding (zip)
 }
 
+type localizedErr struct {
+	zh, en string
+}
+
+func (e *localizedErr) Error() string {
+	return i18n.S(e.zh, e.en)
+}
+
 var (
-	ErrPasswordRequired = errors.New("需要密码")
-	ErrWrongPassword    = errors.New("密码错误")
-	ErrCanceled         = errors.New("操作已取消")
-	ErrUnsupported      = errors.New("不支持的压缩格式或压缩方法")
-	ErrCorrupt          = errors.New("压缩文件已损坏")
+	ErrPasswordRequired error = &localizedErr{"需要密码", "Password required"}
+	ErrWrongPassword    error = &localizedErr{"密码错误", "Wrong password"}
+	ErrCanceled         error = &localizedErr{"操作已取消", "Operation canceled"}
+	ErrUnsupported      error = &localizedErr{"不支持的压缩格式或压缩方法", "Unsupported archive format or compression method"}
+	ErrCorrupt          error = &localizedErr{"压缩文件已损坏", "Archive is corrupt"}
 )
 
 // OpenOptions configures Open.
@@ -434,7 +444,7 @@ func (a *Archive) Extract(ctx context.Context, opt ExtractOptions) (ExtractResul
 	defer a.mu.Unlock()
 	var res ExtractResult
 	if a.be == nil {
-		return res, errors.New("压缩文件已关闭")
+		return res, errors.New(i18n.S("压缩文件已关闭", "Archive is closed"))
 	}
 	dest, err := filepath.Abs(opt.Dest)
 	if err != nil {
@@ -459,7 +469,7 @@ func (a *Archive) Extract(ctx context.Context, opt ExtractOptions) (ExtractResul
 	target := func(r string) (string, error) {
 		out := filepath.Join(dest, filepath.FromSlash(r))
 		if out != dest && !strings.HasPrefix(out, dest+string(os.PathSeparator)) {
-			return "", fmt.Errorf("%w：非法路径 %s", ErrCorrupt, r)
+			return "", fmt.Errorf("%w: %s", ErrCorrupt, i18n.F("非法路径 %s", "invalid path %s", r))
 		}
 		return out, nil
 	}
@@ -546,7 +556,7 @@ func (a *Archive) Extract(ctx context.Context, opt ExtractOptions) (ExtractResul
 				out = UniquePath(out)
 			}
 			if fi.IsDir() && mode != OverwriteRename {
-				return fmt.Errorf("无法覆盖同名文件夹：%s", out)
+				return errors.New(i18n.F("无法覆盖同名文件夹：%s", "Cannot overwrite existing folder: %s", out))
 			}
 		}
 		if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
@@ -617,7 +627,7 @@ func (a *Archive) Test(ctx context.Context, progress ProgressFunc) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.be == nil {
-		return errors.New("压缩文件已关闭")
+		return errors.New(i18n.S("压缩文件已关闭", "Archive is closed"))
 	}
 	tracker := &progressTracker{fn: progress}
 	names := map[int]string{}

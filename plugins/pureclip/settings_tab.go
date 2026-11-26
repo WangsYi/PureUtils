@@ -1,13 +1,13 @@
 package pureclip
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
 
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/config"
+	"pureutils/pkg/purekit/i18n"
 	pureui "pureutils/pkg/purekit/ui"
 )
 
@@ -116,86 +116,86 @@ func (v *settingsTabView) ResetDefaults() {
 }
 
 func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
-	pureui.SettingCard(c, "监听与回放", "控制后台剪贴板收集类型以及回放粘贴行为", pal, func() {
-		pureui.SettingRow(c, "记录剪贴板历史", "启用后台剪贴板变更监听与去重入库", pal, func() {
-			ui.Switch(c, &v.draft.History.Enabled).Label("开关：记录剪贴板历史")
+	pureui.SettingCard(c, i18n.S("监听与回放", "Capture & Paste"), i18n.S("控制后台剪贴板收集类型以及回放粘贴行为", "Configure captured clipboard formats and paste-back behavior"), pal, func() {
+		pureui.SettingRow(c, i18n.S("记录剪贴板历史", "Record Clipboard History"), i18n.S("启用后台剪贴板变更监听与去重入库", "Monitor clipboard changes in background with deduplication"), pal, func() {
+			ui.Switch(c, &v.draft.History.Enabled).Label(i18n.S("开关：记录剪贴板历史", "Toggle: Record Clipboard History"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "记录图片", "将复制的位图与截图保存为内容寻址 PNG 图片", pal, func() {
-			ui.Switch(c, &v.draft.History.CaptureImages).Label("开关：记录图片")
+		pureui.SettingRow(c, i18n.S("记录图片", "Capture Images"), i18n.S("将复制的位图与截图保存为内容寻址 PNG 图片", "Store copied bitmaps and screenshots as content-addressed PNG files"), pal, func() {
+			ui.Switch(c, &v.draft.History.CaptureImages).Label(i18n.S("开关：记录图片", "Toggle: Capture Images"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "记录文件地址", "记录资源管理器复制的文件与文件夹路径引用", pal, func() {
-			ui.Switch(c, &v.draft.History.CaptureFiles).Label("开关：记录文件地址")
+		pureui.SettingRow(c, i18n.S("记录文件地址", "Capture File Paths"), i18n.S("记录资源管理器复制的文件与文件夹路径引用", "Record file and folder path references copied from Explorer"), pal, func() {
+			ui.Switch(c, &v.draft.History.CaptureFiles).Label(i18n.S("开关：记录文件地址", "Toggle: Capture File Paths"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "回放后自动向原窗口发送粘贴", "在历史面板选择粘贴后切回原前景窗口并模拟 Ctrl+V", pal, func() {
-			ui.Switch(c, &v.draft.History.PasteOnEnter).Label("开关：回放后自动向原窗口发送粘贴")
+		pureui.SettingRow(c, i18n.S("回放后自动向原窗口发送粘贴", "Auto-Paste to Previous Window"), i18n.S("在历史面板选择粘贴后切回原前景窗口并模拟 Ctrl+V", "Focus the previous window and send Ctrl+V after selecting an item"), pal, func() {
+			ui.Switch(c, &v.draft.History.PasteOnEnter).Label(i18n.S("开关：回放后自动向原窗口发送粘贴", "Toggle: Auto-Paste to Previous Window"))
 		})
 	})
 
-	pureui.SettingCard(c, "保留策略与上限", "收藏项不会被自动清理；最大天数为 0 时仅按最大条数约束", pal, func() {
-		pureui.SettingRow(c, "最大条数", "非收藏记录的保留条数上限", pal, func() {
-			if ui.NumberInput(c, &v.maxEntries, 1, 100000, 10).Label("数值：最大条数").Changed() {
+	pureui.SettingCard(c, i18n.S("保留策略与上限", "Retention & Limits"), i18n.S("收藏项不会被自动清理；最大天数为 0 时仅按最大条数约束", "Starred items are kept; set Max Days to 0 to limit by count only"), pal, func() {
+		pureui.SettingRow(c, i18n.S("最大条数", "Max Entries"), i18n.S("非收藏记录的保留条数上限", "Maximum number of unstarred entries to keep"), pal, func() {
+			if ui.NumberInput(c, &v.maxEntries, 1, 100000, 10).Label(i18n.S("数值：最大条数", "Number: Max Entries")).Changed() {
 				v.draft.History.MaxEntries = int(v.maxEntries)
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "最大天数", "超过指定天数的非收藏记录将被自动清理（0 表示不限）", pal, func() {
-			if ui.NumberInput(c, &v.maxAgeDays, 0, 3650, 1).Label("数值：最大天数").Changed() {
+		pureui.SettingRow(c, i18n.S("最大天数", "Max Age (Days)"), i18n.S("超过指定天数的非收藏记录将被自动清理（0 表示不限）", "Prune unstarred entries older than this many days (0 = unlimited)"), pal, func() {
+			if ui.NumberInput(c, &v.maxAgeDays, 0, 3650, 1).Label(i18n.S("数值：最大天数", "Number: Max Age (Days)")).Changed() {
 				v.draft.History.MaxAgeDays = int(v.maxAgeDays)
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "正文内联上限", "单条文本存入 SQLite 的最大字符数，超出部分截断标记", pal, func() {
-			if ui.NumberInput(c, &v.maxInlineChars, 1024, 1048576, 1024).Label("数值：正文内联上限").Changed() {
+		pureui.SettingRow(c, i18n.S("正文内联上限", "Inline Text Limit"), i18n.S("单条文本存入 SQLite 的最大字符数，超出部分截断标记", "Maximum characters stored inline in SQLite per text entry"), pal, func() {
+			if ui.NumberInput(c, &v.maxInlineChars, 1024, 1048576, 1024).Label(i18n.S("数值：正文内联上限", "Number: Inline Text Limit")).Changed() {
 				v.draft.History.MaxInlineChars = int(v.maxInlineChars)
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, "列表取回条数", "历史面板单次检索与展示的最大列表数量", pal, func() {
-			if ui.NumberInput(c, &v.listLimit, 20, 2000, 20).Label("数值：列表取回条数").Changed() {
+		pureui.SettingRow(c, i18n.S("列表取回条数", "List Fetch Limit"), i18n.S("历史面板单次检索与展示的最大列表数量", "Maximum items queried and shown per search in history window"), pal, func() {
+			if ui.NumberInput(c, &v.listLimit, 20, 2000, 20).Label(i18n.S("数值：列表取回条数", "Number: List Fetch Limit")).Changed() {
 				v.draft.History.ListLimit = int(v.listLimit)
 			}
 		})
 	})
 
-	pureui.SettingCard(c, "隐私保护", "来自密码管理器等敏感前台进程的复制内容将被自动跳过", pal, func() {
+	pureui.SettingCard(c, i18n.S("隐私保护", "Privacy Exclusions"), i18n.S("来自密码管理器等敏感前台进程的复制内容将被自动跳过", "Skip copies from sensitive foreground apps such as password managers"), pal, func() {
 		ui.Column(c).Gap(6).Children(func() {
-			ui.Text(c, "排除进程").FontSize(13).FontWeight(500).TextColor(pal.Text)
+			ui.Text(c, i18n.S("排除进程", "Excluded Processes")).FontSize(13).FontWeight(500).TextColor(pal.Text)
 			tf := ui.TokenField(c, &v.ignoredTokens, []string{
 				"keepass", "1password", "bitwarden", "keepassxc", "enpass", "lastpass",
-			}).Border(0, ui.Transparent).Label("排除进程输入框")
+			}).Border(0, ui.Transparent).Label(i18n.S("排除进程输入框", "Excluded processes input"))
 			if tf.Changed() {
 				v.ignoredTokens = normalizeTokens(v.ignoredTokens)
 				v.draft.History.IgnoredProcesses = append([]string(nil), v.ignoredTokens...)
 			}
-			ui.Text(c, "输入进程名（不含 .exe，忽略大小写）后按 Enter 或逗号添加；点击标签 × 移除。").
+			ui.Text(c, i18n.S("输入进程名（不含 .exe，忽略大小写）后按 Enter 或逗号添加；点击标签 × 移除。", "Type process names (without .exe, case-insensitive) and press Enter or comma; click × on a tag to remove.")).
 				FontSize(11).TextColor(pal.TextMuted)
 		})
 	})
 
 	if v.plugin.service != nil {
-		pureui.SettingCard(c, "历史维护", "独立管理 plugins/pureclip 存储（只读兼容旧库不会被修改）", pal, func() {
+		pureui.SettingCard(c, i18n.S("历史维护", "History Maintenance"), i18n.S("独立管理 plugins/pureclip 存储（只读兼容旧库不会被修改）", "Manage plugins/pureclip storage independently (legacy read-only DB is untouched)"), pal, func() {
 			ui.Row(c).Gap(8).Wrap().Children(func() {
-				ui.Button(c, "清理过期历史").Border(0, ui.Transparent).OnClick(func() {
+				ui.Button(c, i18n.S("清理过期历史", "Prune Expired")).Border(0, ui.Transparent).OnClick(func() {
 					v.plugin.service.Prune()
-					v.status = "已按保留策略清理"
+					v.status = i18n.S("已按保留策略清理", "Pruned according to retention policy")
 					c.Toast(v.status)
 				})
-				ui.Button(c, "回收孤儿图片").Border(0, ui.Transparent).OnClick(func() {
+				ui.Button(c, i18n.S("回收孤儿图片", "Clean Orphan Images")).Border(0, ui.Transparent).OnClick(func() {
 					n, err := v.plugin.service.CollectOrphans()
 					if err != nil {
-						v.status = "回收失败: " + err.Error()
+						v.status = i18n.F("回收失败: %v", "Cleanup failed: %v", err)
 					} else {
-						v.status = fmt.Sprintf("已回收 %d 张孤儿图片", n)
+						v.status = i18n.F("已回收 %d 张孤儿图片", "Removed %d orphan images", n)
 						c.Toast(v.status)
 					}
 				})
 			})
 			ui.Divider(c)
-			pureui.SettingRow(c, "清空非收藏历史", "删除全部未收藏的剪贴板历史条目及孤儿图片，不可恢复", pal, func() {
-				clearBtn := ui.ButtonBase(c).Padding(6, 12).Radius(7).Label("立即清空").Tooltip("清空非收藏剪贴板历史")
+			pureui.SettingRow(c, i18n.S("清空非收藏历史", "Clear Unstarred History"), i18n.S("删除全部未收藏的剪贴板历史条目及孤儿图片，不可恢复", "Permanently delete all unstarred entries and orphan images"), pal, func() {
+				clearBtn := ui.ButtonBase(c).Padding(6, 12).Radius(7).Label(i18n.S("立即清空", "Clear Now")).Tooltip(i18n.S("清空非收藏剪贴板历史", "Clear unstarred clipboard history"))
 				bg := pal.DangerSoft
 				fg := pal.Danger
 				if clearBtn.Pressed() {
@@ -207,7 +207,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 				clearBtn.Children(func() {
 					ui.Row(c).Gap(5).AlignItems(ui.Center).Children(func() {
 						ui.Icon(c, pureui.IconTrash).Size(13, 13).TextColor(fg)
-						ui.Text(c, "立即清空").FontSize(12).FontWeight(500).SingleLine().TextColor(fg)
+						ui.Text(c, i18n.S("立即清空", "Clear Now")).FontSize(12).FontWeight(500).SingleLine().TextColor(fg)
 					})
 				})
 				clearBtn.OnClick(func() {
@@ -221,15 +221,15 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 	}
 
 	if res := ui.AlertDialog(c, &v.confirmClear,
-		"清空非收藏的剪贴板历史？",
-		"收藏项会保留，其余历史与未被引用的内容删除后无法撤销。",
-		"取消", "清空",
+		i18n.S("清空非收藏的剪贴板历史？", "Clear unstarred clipboard history?"),
+		i18n.S("收藏项会保留，其余历史与未被引用的内容删除后无法撤销。", "Starred items will remain. Deleted unstarred history and unreferenced files cannot be restored."),
+		i18n.S("取消", "Cancel"), i18n.S("清空", "Clear"),
 	); res == 1 {
 		if v.plugin.service != nil {
 			if err := v.plugin.service.Clear(); err != nil {
-				v.status = "清空失败: " + err.Error()
+				v.status = i18n.F("清空失败: %v", "Clear failed: %v", err)
 			} else {
-				v.status = "已清空非收藏历史"
+				v.status = i18n.S("已清空非收藏历史", "Cleared unstarred history")
 				c.Toast(v.status)
 			}
 		}

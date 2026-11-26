@@ -21,6 +21,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"pureutils/pkg/purekit/config"
+	"pureutils/pkg/purekit/i18n"
 )
 
 const (
@@ -336,7 +337,7 @@ func (v *Viewer) ToggleQuickPreview() {
 		}
 	}
 	win := mygo.NewWindow(mygo.WindowOptions{
-		Title:        "PureImage 预览",
+		Title:        i18n.S("PureImage 预览", "PureImage Preview"),
 		Width:        w,
 		Height:       h,
 		Frameless:    true,
@@ -1583,19 +1584,23 @@ func (v *Viewer) closeMenus() {
 	v.showHUD()
 }
 
+const (
+	settingsMenuW float32 = 292
+	settingsMenuH float32 = 316
+	sortMenuW     float32 = 172
+	sortMenuH     float32 = 232
+)
+
 func (v *Viewer) menuContains(x, y float32) bool {
 	if v.settingsOpen {
-		sx, sy := v.menuPosition(v.settingsAnchor, 275, 345, v.viewW/2+150)
-		if x >= sx && x <= sx+275 && y >= sy && y <= sy+345 {
+		sx, sy := v.menuPosition(v.settingsAnchor, settingsMenuW, settingsMenuH, v.viewW/2+150)
+		if x >= sx && x <= sx+settingsMenuW && y >= sy && y <= sy+settingsMenuH {
 			return true
 		}
 		if v.menuSub != "" {
 			w := float32(150)
 			h := float32(116)
-			if v.menuSub == "language" {
-				h = 90
-			}
-			mx := sx + 275 + 4
+			mx := sx + settingsMenuW + 4
 			if mx+w > v.viewW-8 {
 				mx = sx - w - 4
 			}
@@ -1612,8 +1617,8 @@ func (v *Viewer) menuContains(x, y float32) bool {
 		}
 	}
 	if v.sortOpen {
-		sx, sy := v.menuPosition(v.sortAnchor, 140, 232, v.viewW/2+80)
-		if x >= sx && x <= sx+140 && y >= sy && y <= sy+232 {
+		sx, sy := v.menuPosition(v.sortAnchor, sortMenuW, sortMenuH, v.viewW/2+80)
+		if x >= sx && x <= sx+sortMenuW && y >= sy && y <= sy+sortMenuH {
 			return true
 		}
 	}
@@ -1704,8 +1709,8 @@ func (v *Viewer) menuRow(c *ui.Context, label string, checked, disabled, sub boo
 func (v *Viewer) drawSettings(c *ui.Context) {
 	before := v.prefs
 	lang := v.prefs.Language
-	sx, sy := v.menuPosition(v.settingsAnchor, 275, 345, v.viewW/2+150)
-	v.menuPanel(c, sx, sy, 275, func() {
+	sx, sy := v.menuPosition(v.settingsAnchor, settingsMenuW, settingsMenuH, v.viewW/2+150)
+	v.menuPanel(c, sx, sy, settingsMenuW, func() {
 		v.menuRow(c, tr(lang, "recursive"), v.prefs.Recursive, false, false, func(float32) {
 			v.prefs.Recursive = !v.prefs.Recursive
 			v.closeMenus()
@@ -1759,11 +1764,6 @@ func (v *Viewer) drawSettings(c *ui.Context) {
 			v.menuSub = "preload"
 			v.menuSubY = y
 		})
-		v.menuSep(c)
-		v.menuRow(c, tr(lang, "language"), false, false, true, func(y float32) {
-			v.menuSub = "language"
-			v.menuSubY = y
-		})
 	})
 	if v.menuSub != "" {
 		v.drawSubmenu(c, sx, sy)
@@ -1777,10 +1777,7 @@ func (v *Viewer) drawSubmenu(c *ui.Context, sx, sy float32) {
 	lang := v.prefs.Language
 	w := float32(150)
 	h := float32(116)
-	if v.menuSub == "language" {
-		h = 90
-	}
-	x := sx + 275 + 4
+	x := sx + settingsMenuW + 4
 	if x+w > v.viewW-8 {
 		x = sx - w - 4
 	}
@@ -1800,10 +1797,7 @@ func (v *Viewer) drawSubmenu(c *ui.Context, sx, sy float32) {
 		case "slideshow":
 			for _, n := range []int{2, 4, 6, 10} {
 				n := n
-				label := fmt.Sprintf("%d 秒", n)
-				if resolveLang(lang) == "en-US" {
-					label = fmt.Sprintf("%d s", n)
-				}
+				label := i18n.F("%d 秒", "%ds", n)
 				v.menuRow(c, label, v.prefs.SlideshowSeconds == n, false, false, func(float32) {
 					v.prefs.SlideshowSeconds = n
 					v.closeMenus()
@@ -1815,14 +1809,6 @@ func (v *Viewer) drawSubmenu(c *ui.Context, sx, sy float32) {
 				n := n
 				v.menuRow(c, label, v.prefs.PreloadCount == n, false, false, func(float32) {
 					v.prefs.PreloadCount = n
-					v.closeMenus()
-				})
-			}
-		case "language":
-			for _, code := range []string{"zh-CN", "en-US", "system"} {
-				code := code
-				v.menuRow(c, langLabel(lang, code), v.prefs.Language == code, false, false, func(float32) {
-					v.prefs.Language = code
 					v.closeMenus()
 				})
 			}
@@ -1843,8 +1829,8 @@ func (v *Viewer) setSort(kind string, desc bool) {
 
 func (v *Viewer) drawSort(c *ui.Context) {
 	lang := v.prefs.Language
-	sx, sy := v.menuPosition(v.sortAnchor, 140, 232, v.viewW/2+80)
-	v.menuPanel(c, sx, sy, 140, func() {
+	sx, sy := v.menuPosition(v.sortAnchor, sortMenuW, sortMenuH, v.viewW/2+80)
+	v.menuPanel(c, sx, sy, sortMenuW, func() {
 		v.menuRow(c, tr(lang, "sortNameAsc"), v.prefs.Sort == "name" && !v.prefs.SortDesc, false, false, func(float32) {
 			v.setSort("name", false)
 		})
@@ -2058,7 +2044,7 @@ func (v *Viewer) openDialog() {
 		Parent: v.win,
 		Title:  tr(v.prefs.Language, "open"),
 		Filters: []mygo.FileFilter{{
-			Name:       "Images",
+			Name:       i18n.S("图片文件", "Images"),
 			Extensions: ImageExtList,
 		}},
 	})

@@ -14,6 +14,7 @@ import (
 
 	"pureutils/pkg/purekit/config"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	"pureutils/pkg/purekit/platform"
 	pureui "pureutils/pkg/purekit/ui"
 	"pureutils/plugins/pureshot/annotate"
@@ -112,7 +113,7 @@ func (a *Plugin) StartRegionCapture() {
 	frame, err := a.capture.CaptureMonitor(mon, false)
 	if err != nil {
 		if a.log() != nil { a.log().Errorf("区域截图：冻结屏幕失败: %v", err) }
-		a.notify("截图失败", err.Error())
+		a.notify(i18n.S("截图失败", "Capture Failed"), err.Error())
 		return
 	}
 	curPos, curErr := platform.CursorPosition()
@@ -142,7 +143,7 @@ func (a *Plugin) StartRegionCapture() {
 	s.updateMagnifier(curPos)
 
 	win := mygo.NewWindow(mygo.WindowOptions{
-		Title:             "截图",
+		Title:             i18n.S("截图", "Capture"),
 		Width:             display.Bounds.Width,
 		Height:            display.Bounds.Height,
 		X:                 display.Bounds.X,
@@ -295,14 +296,14 @@ func (s *captureSession) guidePill(c *ui.Context, pal pureui.Palette) {
 				ui.Box(c).Size(20, 20).Radius(10).Gradient(pal.Accent, pal.AccentEnd, 135).Center().Children(func() {
 					ui.Icon(c, pureui.IconCrop).Size(11, 11).TextColor(pal.AccentText)
 				})
-				ui.Text(c, "拖拽框选区域 · 单击选中窗口 · 双击完成").
+				ui.Text(c, i18n.S("拖拽框选区域 · 单击选中窗口 · 双击完成", "Drag to select · Click window · Double-click to finish")).
 					FontSize(11).FontWeight(500).SingleLine().TextColor(pal.HudText)
 				ui.Box(c).Width(1).Height(12).Background(pal.HudDivider)
 				pureui.HudKeycap(c, "C", pal)
-				ui.Text(c, "复制色值").FontSize(11).FontWeight(500).SingleLine().TextColor(pal.HudMuted)
+				ui.Text(c, i18n.S("复制色值", "Copy Color")).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.HudMuted)
 				ui.Box(c).Width(1).Height(12).Background(pal.HudDivider)
 				pureui.HudKeycap(c, "Esc", pal)
-				ui.Text(c, "退出").FontSize(11).FontWeight(500).SingleLine().TextColor(pal.HudMuted)
+				ui.Text(c, i18n.S("退出", "Exit")).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.HudMuted)
 			})
 	})
 }
@@ -629,7 +630,7 @@ func (s *captureSession) drawMagnifier(p *ui.Painter) {
 	_, hexH := p.MeasureText(0, ui.Span{Text: hex, Size: 12})
 	p.Text(x+34, row1Y+(18-hexH)/2, hex, 12, ui.RGB(245, 247, 250))
 
-	copyTag := "C 复制"
+	copyTag := i18n.S("C 复制", "C Copy")
 	tw, th := p.MeasureText(0, ui.Span{Text: copyTag, Size: 10})
 	tagW, tagH := tw+12, float32(18)
 	tagRect := ui.Rect{X: x + panelW - 10 - tagW, Y: row1Y, W: tagW, H: tagH}
@@ -1147,7 +1148,7 @@ func (s *captureSession) finalizeSelection(p core.Point) {
 	if sel.W < 4 || sel.H < 4 {
 		s.selection = core.RectI{}
 		s.doc = nil
-		s.status = "选区太小，请重新拖拽"
+		s.status = i18n.S("选区太小，请重新拖拽", "Selection too small, drag again")
 		return
 	}
 	s.selection = sel
@@ -1208,12 +1209,12 @@ func (s *captureSession) copyMagnifierColor() {
 	hex := fmt.Sprintf("#%02X%02X%02X", c.R, c.G, c.B)
 	if s.plugin != nil {
 		if err := s.plugin.copyEphemeralText(hex); err != nil {
-			s.status = "复制色值失败: " + err.Error()
+			s.status = i18n.S("复制色值失败: ", "Failed to copy color: ") + err.Error()
 			s.invalidate()
 			return
 		}
 	}
-	s.status = "已复制色值 " + hex
+	s.status = i18n.S("已复制色值 ", "Copied color ") + hex
 	s.invalidate()
 }
 
@@ -1241,10 +1242,10 @@ func (s *captureSession) toolbarPosition(dockW, dockH float32) (left, top float3
 }
 
 func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
-	maxDockW := minf(768, maxf(240, float32(s.contentW)-24))
+	maxDockW := minf(860, maxf(240, float32(s.contentW)-24))
 	estW := s.dockW
 	if estW <= 0 || estW > maxDockW {
-		estW = minf(728, maxDockW)
+		estW = minf(800, maxDockW)
 	}
 	estH := s.dockH
 	if estH <= 0 {
@@ -1281,20 +1282,20 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 				if s.doc != nil {
 					canUndo, canRedo = s.doc.CanUndo(), s.doc.CanRedo()
 				}
-				pureui.HudIconButton(c, pureui.IconUndo, "撤销", "撤销 (Ctrl+Z)", false, !canUndo, false, pal).OnClick(s.undo)
-				pureui.HudIconButton(c, pureui.IconRedo, "重做", "重做 (Ctrl+Y)", false, !canRedo, false, pal).OnClick(s.redo)
-				pureui.HudIconButton(c, pureui.IconRotateCcw, "重选", "重新框选区域", false, false, false, pal).OnClick(s.resetSelection)
+				pureui.HudIconButton(c, pureui.IconUndo, i18n.S("撤销", "Undo"), i18n.S("撤销 (Ctrl+Z)", "Undo (Ctrl+Z)"), false, !canUndo, false, pal).OnClick(s.undo)
+				pureui.HudIconButton(c, pureui.IconRedo, i18n.S("重做", "Redo"), i18n.S("重做 (Ctrl+Y)", "Redo (Ctrl+Y)"), false, !canRedo, false, pal).OnClick(s.redo)
+				pureui.HudIconButton(c, pureui.IconRotateCcw, i18n.S("重选", "Reselect"), i18n.S("重新框选区域", "Reselect region"), false, false, false, pal).OnClick(s.resetSelection)
 			})
 
 			ui.Box(c).Width(1).Height(20).Background(pal.HudDivider)
 
 			ui.Row(c).Gap(4).AlignItems(ui.Center).Children(func() {
-				s.actionPill(c, pureui.IconCopy, "复制", "复制到剪贴板 (Ctrl+C)", false, pal, func() { s.finish("copy") })
-				s.actionPill(c, pureui.IconSave, "保存", "保存到文件 (Ctrl+S)", false, pal, func() { s.finish("save") })
-				s.actionPill(c, pureui.IconPin, "贴图", "贴到桌面", false, pal, func() { s.finish("pin") })
+				s.actionPill(c, pureui.IconCopy, i18n.S("复制", "Copy"), i18n.S("复制到剪贴板 (Ctrl+C)", "Copy to clipboard (Ctrl+C)"), false, pal, func() { s.finish("copy") })
+				s.actionPill(c, pureui.IconSave, i18n.S("保存", "Save"), i18n.S("保存到文件 (Ctrl+S)", "Save to file (Ctrl+S)"), false, pal, func() { s.finish("save") })
+				s.actionPill(c, pureui.IconPin, i18n.S("贴图", "Pin"), i18n.S("贴到桌面", "Pin to screen"), false, pal, func() { s.finish("pin") })
 				defLabel := captureActionLabel(s.plugin.Config().Capture.DefaultAction)
 				doneBtn := ui.ButtonBase(c).Height(28).Padding(0, 11).Radius(8).Gap(4).AlignItems(ui.Center).
-					Label("完成").Tooltip("完成截图 · " + defLabel + " (双击 / Enter)").
+					Label(i18n.S("完成", "Done")).Tooltip(i18n.F("完成截图 · %s (双击 / Enter)", "Finish capture · %s (Double-click / Enter)", defLabel)).
 					InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.25)).
 					Shadow(0, 3, 10, 0, ui.RGBA(59, 130, 246, 0.42))
 				if doneBtn.Pressed() {
@@ -1306,10 +1307,10 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 				}
 				doneBtn.Children(func() {
 					ui.Icon(c, pureui.IconCheck).Size(12, 12).TextColor(pal.AccentText)
-					ui.Text(c, "完成").FontSize(11).FontWeight(600).SingleLine().TextColor(pal.AccentText)
+					ui.Text(c, i18n.S("完成", "Done")).FontSize(11).FontWeight(600).SingleLine().TextColor(pal.AccentText)
 				})
 				doneBtn.OnClick(func() { s.finish("done") })
-				s.actionPill(c, pureui.IconClose, "取消", "退出截图 (Esc)", true, pal, s.cancel)
+				s.actionPill(c, pureui.IconClose, i18n.S("取消", "Cancel"), i18n.S("退出截图 (Esc)", "Cancel capture (Esc)"), true, pal, s.cancel)
 			})
 		})
 
@@ -1320,7 +1321,7 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 			ui.Row(c).Padding(3, 6).Gap(5).Radius(999).Background(pal.HudWell).AlignItems(ui.Center).Children(func() {
 				for i, col := range core.Palette {
 					colUI := ui.RGBA(col.R(), col.G(), col.B(), float32(col.A())/255)
-					swatch := ui.ButtonBase(c).Size(18, 18).Radius(9).Label(fmt.Sprintf("颜色 %d", i+1)).
+					swatch := ui.ButtonBase(c).Size(18, 18).Radius(9).Label(i18n.F("颜色 %d", "Color %d", i+1)).
 						Background(colUI)
 					if s.color == col {
 						swatch.Border(2, ui.RGB(255, 255, 255)).Shadow(0, 0, 8, 0, colUI.Alpha(0.75))
@@ -1337,8 +1338,8 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 			ui.Row(c).Padding(2, 4).Gap(2).Radius(8).Background(pal.HudWell).AlignItems(ui.Center).Children(func() {
 				for _, th := range core.Thicknesses {
 					active := s.thickness == th
-					btn := ui.ButtonBase(c).Size(24, 24).Radius(6).Center().Label(fmt.Sprintf("粗细 %.0f", th)).
-						Tooltip(fmt.Sprintf("线宽 %.0f px", th))
+					btn := ui.ButtonBase(c).Size(24, 24).Radius(6).Center().Label(i18n.F("粗细 %.0f", "Width %.0f", th)).
+						Tooltip(i18n.F("线宽 %.0f px", "Stroke %.0f px", th))
 					if active {
 						btn.Background(pal.AccentSoft)
 					} else if btn.Hovered() {
@@ -1366,7 +1367,7 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 
 			switch s.tool {
 			case annotate.ToolRect, annotate.ToolEllipse:
-				s.toggleChip(c, pureui.IconFill, "填充", s.filled, pal, func() {
+				s.toggleChip(c, pureui.IconFill, i18n.S("填充", "Fill"), s.filled, pal, func() {
 					s.filled = !s.filled
 					s.invalidate()
 				})
@@ -1379,7 +1380,7 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 						})
 					}
 				})
-				s.toggleChip(c, nil, "文字背景", s.textHasBg, pal, func() {
+				s.toggleChip(c, nil, i18n.S("文字背景", "Text BG"), s.textHasBg, pal, func() {
 					s.textHasBg = !s.textHasBg
 					s.invalidate()
 				})
@@ -1389,9 +1390,9 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 						label string
 						size  float64
 					}{
-						{"细", 8},
-						{"中", 12},
-						{"粗", 20},
+						{i18n.S("细", "Fine"), 8},
+						{i18n.S("中", "Med"), 12},
+						{i18n.S("粗", "Coarse"), 20},
 					} {
 						s.optionChip(c, preset.label, s.resolvedMosaicBlock() == preset.size, pal, func() {
 							s.mosaicBlock = preset.size
@@ -1408,7 +1409,7 @@ func (s *captureSession) toolbar(c *ui.Context, pal pureui.Palette) {
 				telemetry := fmt.Sprintf("#%02X%02X%02X · %.0fpx", s.color.R(), s.color.G(), s.color.B(), s.thickness)
 				ui.Text(c, telemetry).FontSize(10).FontWeight(500).SingleLine().TextColor(pal.HudMuted)
 				pureui.HudKeycap(c, "Enter", pal)
-				ui.Text(c, "双击 · " + defLabel).FontSize(10).FontWeight(500).SingleLine().TextColor(pal.HudMuted)
+				ui.Text(c, i18n.S("双击 · ", "Dbl-click · ")+defLabel).FontSize(10).FontWeight(500).SingleLine().TextColor(pal.HudMuted)
 			})
 		})
 	})
@@ -1495,7 +1496,7 @@ func (s *captureSession) textEditor(c *ui.Context, pal pureui.Palette) {
 		Border(1.5, borderCol).
 		InsetShadow(0, 1, 0, 0, pal.HudHighlight).
 		Shadow(0, 10, 28, 0, ui.RGBA(0, 0, 0, 0.52)).Children(func() {
-		input := ui.TextInput(c, &s.textValue).AutoFocus().Placeholder("输入文字，Enter 确认")
+		input := ui.TextInput(c, &s.textValue).AutoFocus().Placeholder(i18n.S("输入文字，Enter 确认", "Enter text, press Enter"))
 		if input.Submitted() {
 			s.commitText()
 			return
@@ -1504,8 +1505,8 @@ func (s *captureSession) textEditor(c *ui.Context, pal pureui.Palette) {
 			ui.Box(c).Size(10, 10).Radius(5).Background(colUI).Border(1, ui.RGBA(255, 255, 255, 0.45))
 			ui.Text(c, fmt.Sprintf("%.0f px", s.resolvedFontSize())).FontSize(10).TextColor(pal.HudMuted)
 			ui.Spacer(c)
-			ui.Button(c, "取消").FontSize(11).OnClick(s.cancelText)
-			ui.PrimaryButton(c, "确定").FontSize(11).OnClick(s.commitText)
+			ui.Button(c, i18n.S("取消", "Cancel")).FontSize(11).OnClick(s.cancelText)
+			ui.PrimaryButton(c, i18n.S("确定", "OK")).FontSize(11).OnClick(s.commitText)
 		})
 	})
 }
@@ -1581,7 +1582,7 @@ func (s *captureSession) finish(target string) {
 		}
 		if err != nil {
 			s.finishing = false
-			s.status = "处理失败: " + err.Error()
+			s.status = i18n.S("处理失败: ", "Processing failed: ") + err.Error()
 			s.invalidate()
 			return
 		}
@@ -1590,7 +1591,7 @@ func (s *captureSession) finish(target string) {
 			(target == "done" && (defAction == config.CaptureActionSave || defAction == config.CaptureActionCopyAndSave))
 		if needSave && res.SavedPath == "" {
 			s.finishing = false
-			s.status = "保存失败，请检查保存目录"
+			s.status = i18n.S("保存失败，请检查保存目录", "Save failed, please check save folder")
 			s.invalidate()
 			return
 		}
@@ -1599,7 +1600,7 @@ func (s *captureSession) finish(target string) {
 				s.plugin.ShowPinImage(res.PinImage)
 			}
 		} else if !s.plugin.headless() && res.SavedPath != "" && (target == "save" || target == "done") {
-			s.plugin.notify("截图已保存", res.SavedPath)
+			s.plugin.notify(i18n.S("截图已保存", "Screenshot Saved"), res.SavedPath)
 		}
 		s.closeWindow()
 	}
@@ -1617,13 +1618,13 @@ func (s *captureSession) finish(target string) {
 func captureActionLabel(action string) string {
 	switch action {
 	case config.CaptureActionSave:
-		return "保存到文件"
+		return i18n.S("保存到文件", "Save")
 	case config.CaptureActionCopyAndSave:
-		return "复制并保存"
+		return i18n.S("复制并保存", "Copy & Save")
 	case config.CaptureActionPin:
-		return "贴到桌面"
+		return i18n.S("贴到桌面", "Pin")
 	default:
-		return "复制到剪贴板"
+		return i18n.S("复制到剪贴板", "Copy")
 	}
 }
 
@@ -1652,7 +1653,7 @@ func (a *Plugin) CaptureWholeScreen() {
 		frame, err := platform.CaptureMonitor(mon, settings.Capture.IncludeCursor)
 		if err != nil {
 			if a.log() != nil { a.log().Errorf("整屏截图：冻结屏幕失败: %v", err) }
-			mygo.RunOnMain(func() { a.notify("截图失败", err.Error()) })
+			mygo.RunOnMain(func() { a.notify(i18n.S("截图失败", "Capture Failed"), err.Error()) })
 			return
 		}
 		doc := annotate.NewDocument(frame.Bounds().Dx(), frame.Bounds().Dy())
@@ -1662,14 +1663,14 @@ func (a *Plugin) CaptureWholeScreen() {
 		}
 		mygo.RunOnMain(func() {
 			if err != nil {
-				a.notify("截图失败", err.Error())
+				a.notify(i18n.S("截图失败", "Capture Failed"), err.Error())
 				return
 			}
 			body := fmt.Sprintf("%d × %d", res.Width, res.Height)
 			if res.SavedPath != "" {
-				body += "，已保存到 " + res.SavedPath
+				body += i18n.S("，已保存到 ", "\nSaved to ") + res.SavedPath
 			}
-			a.notify("截图已复制", body)
+			a.notify(i18n.S("截图已复制", "Screenshot Copied"), body)
 		})
 	}()
 }

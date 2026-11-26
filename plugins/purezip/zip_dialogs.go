@@ -1,7 +1,6 @@
 package purezip
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"pureutils/pkg/purekit/i18n"
 	pureui "pureutils/pkg/purekit/ui"
 	"pureutils/plugins/purezip/archive"
 )
@@ -202,7 +202,7 @@ func (a *Plugin) ShowCompressDialog(sources []string, dest string) {
 		a.lastCompress = d
 		return
 	}
-	d.win = a.openZipDialogWindow("新建压缩文件 - PureZip", 600, 640, d.view, func() { d.closed = true })
+	d.win = a.openZipDialogWindow(i18n.S("新建压缩文件 - PureZip", "New Archive - PureZip"), 600, 640, d.view, func() { d.closed = true })
 }
 
 func (d *compressDialog) selectedFormat() archive.Format {
@@ -234,17 +234,17 @@ func (d *compressDialog) validate() (archive.CreateOptions, string) {
 	f := d.selectedFormat()
 	opt := archive.CreateOptions{Format: f, Level: zipLevelValues[clampInt(d.levelIdx, 0, len(zipLevelValues)-1)]}
 	if len(d.sources) == 0 {
-		return opt, "请先添加要压缩的文件或文件夹"
+		return opt, i18n.S("请先添加要压缩的文件或文件夹", "Please add files or folders to compress")
 	}
 	if strings.TrimSpace(d.dest) == "" && !d.separate {
-		return opt, "请填写压缩文件名"
+		return opt, i18n.S("请填写压缩文件名", "Please specify an archive filename")
 	}
 	if d.password != "" {
 		if !f.SupportsPassword() {
-			return opt, f.Label() + " 格式不支持密码，请选择 ZIP 或 7Z"
+			return opt, i18n.F("%s 格式不支持密码，请选择 ZIP 或 7Z", "%s format does not support passwords; choose ZIP or 7Z", f.Label())
 		}
 		if d.password != d.password2 {
-			return opt, "两次输入的密码不一致"
+			return opt, i18n.S("两次输入的密码不一致", "Passwords do not match")
 		}
 		opt.Password = d.password
 		if f == archive.FormatZip {
@@ -313,20 +313,20 @@ func (d *compressDialog) view(c *ui.Context) {
 	f := d.selectedFormat()
 
 	ui.Column(c).Fill().Background(pal.Bg).Children(func() {
-		sub := "选择文件并设置压缩选项"
+		sub := i18n.S("选择文件并设置压缩选项", "Select files and configure compression options")
 		if len(d.sources) > 0 {
-			sub = fmt.Sprintf("%d 个项目 · %d 个文件 · %s", len(d.sources), d.files, zipSize(d.bytes))
+			sub = i18n.F("%d 个项目 · %d 个文件 · %s", "%d items · %d files · %s", len(d.sources), d.files, zipSize(d.bytes))
 		}
-		dialogHeader(c, pal, iconCompress, "新建压缩文件", sub)
+		dialogHeader(c, pal, iconCompress, i18n.S("新建压缩文件", "New Archive"), sub)
 		ui.Scroll(c).Grow(1).Children(func() {
 			ui.Column(c).Padding(14, 20).Gap(12).Children(func() {
-				pureui.SettingCard(c, "要压缩的内容", "", pal, func() {
+				pureui.SettingCard(c, i18n.S("要压缩的内容", "Files to Compress"), "", pal, func() {
 					if len(d.sources) == 0 {
-						ui.Text(c, "尚未添加文件，可拖放到资源管理器右键菜单或点击下方按钮添加").FontSize(11.5).TextColor(pal.TextMuted)
+						ui.Text(c, i18n.S("尚未添加文件，可拖放到资源管理器右键菜单或点击下方按钮添加", "No files added yet. Drag files here or use the buttons below.")).FontSize(11.5).TextColor(pal.TextMuted)
 					}
 					for i, s := range d.sources {
 						if i >= 4 {
-							ui.Text(c, fmt.Sprintf("……等共 %d 项", len(d.sources))).FontSize(11.5).TextColor(pal.TextMuted)
+							ui.Text(c, i18n.F("……等共 %d 项", "…and %d items total", len(d.sources))).FontSize(11.5).TextColor(pal.TextMuted)
 							break
 						}
 						ui.Row(c.Key(s)).Gap(8).AlignItems(ui.Center).Children(func() {
@@ -339,38 +339,38 @@ func (d *compressDialog) view(c *ui.Context) {
 						})
 					}
 					ui.Row(c).Gap(8).Children(func() {
-						ui.Button(c, "添加文件…").OnClick(func() {
-							d.plugin.pickFiles(d.win, "选择要压缩的文件", false, true, nil, d.addSources)
+						ui.Button(c, i18n.S("添加文件…", "Add Files…")).OnClick(func() {
+							d.plugin.pickFiles(d.win, i18n.S("选择要压缩的文件", "Select Files to Compress"), false, true, nil, d.addSources)
 						}).Border(0, ui.Transparent)
-						ui.Button(c, "添加文件夹…").OnClick(func() {
-							d.plugin.pickFiles(d.win, "选择要压缩的文件夹", true, true, nil, d.addSources)
+						ui.Button(c, i18n.S("添加文件夹…", "Add Folder…")).OnClick(func() {
+							d.plugin.pickFiles(d.win, i18n.S("选择要压缩的文件夹", "Select Folder to Compress"), true, true, nil, d.addSources)
 						}).Border(0, ui.Transparent)
 						if len(d.sources) > 0 {
-							ui.Button(c, "清空").OnClick(func() { d.sources = nil }).Border(0, ui.Transparent)
+							ui.Button(c, i18n.S("清空", "Clear")).OnClick(func() { d.sources = nil }).Border(0, ui.Transparent)
 						}
 					})
 				})
-				pureui.SettingCard(c, "压缩文件", "", pal, func() {
+				pureui.SettingCard(c, i18n.S("压缩文件", "Destination Archive"), "", pal, func() {
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.TextInput(c, &d.dest).Grow(1).Placeholder("压缩文件保存路径").Label("压缩文件名").Border(0, ui.Transparent).FocusRing(false)
-						ui.Button(c, "浏览…").OnClick(d.browse).Border(0, ui.Transparent)
+						ui.TextInput(c, &d.dest).Grow(1).Placeholder(i18n.S("压缩文件保存路径", "Output archive path")).Label(i18n.S("压缩文件名", "Archive filename")).Border(0, ui.Transparent).FocusRing(false)
+						ui.Button(c, i18n.S("浏览…", "Browse…")).OnClick(d.browse).Border(0, ui.Transparent)
 					})
-					pureui.SettingRow(c, "格式", "ZIP 兼容性最好；7Z 压缩率更高；TAR 系列适合 Linux", pal, func() {
-						ui.Select(c, &d.format, zipFormatLabels()).Width(130).Label("压缩格式").Border(0, ui.Transparent)
+					pureui.SettingRow(c, i18n.S("格式", "Format"), i18n.S("ZIP 兼容性最好；7Z 压缩率更高；TAR 系列适合 Linux", "ZIP for best compatibility, 7Z for highest ratio, TAR for Linux"), pal, func() {
+						ui.Select(c, &d.format, zipFormatLabels()).Width(130).Label(i18n.S("压缩格式", "Archive Format")).Border(0, ui.Transparent)
 					})
 					ui.Divider(c)
-					pureui.SettingRow(c, "压缩级别", "级别越高文件越小、速度越慢", pal, func() {
-						ui.Segmented(c, &d.levelIdx, zipLevelLabels...).Label("压缩级别").Border(0, ui.Transparent)
+					pureui.SettingBlock(c, i18n.S("压缩级别", "Compression Level"), i18n.S("级别越高文件越小、速度越慢", "Higher levels give smaller files but take longer"), pal, func() {
+						ui.Segmented(c, &d.levelIdx, zipLevelLabels()...).Label(i18n.S("压缩级别", "Compression Level")).Border(0, ui.Transparent)
 					})
 				})
-				pureui.SettingCard(c, "加密", "", pal, func() {
+				pureui.SettingCard(c, i18n.S("加密", "Encryption"), "", pal, func() {
 					if !f.SupportsPassword() {
-						ui.Text(c, f.Label()+" 格式不支持加密，如需密码请选择 ZIP 或 7Z。").FontSize(11.5).TextColor(pal.TextMuted)
+						ui.Text(c, i18n.F("%s 格式不支持加密，如需密码请选择 ZIP 或 7Z。", "%s format does not support encryption; select ZIP or 7Z to set a password.", f.Label())).FontSize(11.5).TextColor(pal.TextMuted)
 						return
 					}
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						p1 := ui.TextInput(c, &d.password).Grow(1).Placeholder("密码（留空则不加密）").Label("压缩密码")
-						p2 := ui.TextInput(c, &d.password2).Grow(1).Placeholder("再次输入密码").Label("确认密码")
+						p1 := ui.TextInput(c, &d.password).Grow(1).Placeholder(i18n.S("密码（留空则不加密）", "Password (optional)")).Label(i18n.S("压缩密码", "Archive Password"))
+						p2 := ui.TextInput(c, &d.password2).Grow(1).Placeholder(i18n.S("再次输入密码", "Confirm password")).Label(i18n.S("确认密码", "Confirm Password"))
 						if !d.showPw {
 							p1.Password()
 							p2.Password()
@@ -381,39 +381,39 @@ func (d *compressDialog) view(c *ui.Context) {
 						if d.showPw {
 							icon = iconEyeOff
 						}
-						if pureui.IconButton(c, icon, "显示密码", "显示/隐藏密码", d.showPw, false, pal).Clicked() {
+						if pureui.IconButton(c, icon, i18n.S("显示密码", "Show Password"), i18n.S("显示/隐藏密码", "Show / hide password"), d.showPw, false, pal).Clicked() {
 							d.showPw = !d.showPw
 						}
 					})
 					if f == archive.FormatZip {
-						pureui.SettingRow(c, "加密方式", "AES-256 更安全；ZipCrypto 兼容 Windows 自带解压", pal, func() {
-							ui.Segmented(c, &d.encIdx, "AES-256", "ZipCrypto").Label("加密方式").Border(0, ui.Transparent)
+						pureui.SettingRow(c, i18n.S("加密方式", "Encryption Method"), i18n.S("AES-256 更安全；ZipCrypto 兼容 Windows 自带解压", "AES-256 is stronger; ZipCrypto is compatible with Windows built-in extractor"), pal, func() {
+							ui.Segmented(c, &d.encIdx, "AES-256", "ZipCrypto").Label(i18n.S("加密方式", "Encryption Method")).Border(0, ui.Transparent)
 						})
 					}
 					if f == archive.Format7z {
-						pureui.SettingRow(c, "加密文件名", "未输入密码时无法查看压缩包内的文件列表", pal, func() {
-							ui.Switch(c, &d.encryptNames).Label("开关：加密文件名")
+						pureui.SettingRow(c, i18n.S("加密文件名", "Encrypt File Names"), i18n.S("未输入密码时无法查看压缩包内的文件列表", "Hide the file listing until the password is entered"), pal, func() {
+							ui.Switch(c, &d.encryptNames).Label(i18n.S("开关：加密文件名", "Toggle: Encrypt File Names"))
 						})
 					}
 				})
-				pureui.SettingCard(c, "其他选项", "", pal, func() {
-					pureui.SettingRow(c, "每个项目单独压缩", "为选中的每个文件 / 文件夹分别创建压缩文件", pal, func() {
-						ui.Switch(c, &d.separate).Label("开关：单独压缩")
+				pureui.SettingCard(c, i18n.S("其他选项", "Other Options"), "", pal, func() {
+					pureui.SettingRow(c, i18n.S("每个项目单独压缩", "Compress Each Item Separately"), i18n.S("为选中的每个文件 / 文件夹分别创建压缩文件", "Create a separate archive for each selected file or folder"), pal, func() {
+						ui.Switch(c, &d.separate).Label(i18n.S("开关：单独压缩", "Toggle: Separate Archives"))
 					})
 					ui.Divider(c)
-					pureui.SettingRow(c, "压缩后删除源文件", "源文件移到回收站", pal, func() {
-						ui.Switch(c, &d.deleteAfter).Label("开关：删除源文件")
+					pureui.SettingRow(c, i18n.S("压缩后删除源文件", "Delete Source Files After"), i18n.S("源文件移到回收站", "Move source files to Recycle Bin"), pal, func() {
+						ui.Switch(c, &d.deleteAfter).Label(i18n.S("开关：删除源文件", "Toggle: Delete Source Files"))
 					})
 					ui.Divider(c)
-					pureui.SettingRow(c, "完成后打开所在文件夹", "", pal, func() {
-						ui.Switch(c, &d.openFolder).Label("开关：完成后打开文件夹")
+					pureui.SettingRow(c, i18n.S("完成后打开所在文件夹", "Open Destination Folder"), "", pal, func() {
+						ui.Switch(c, &d.openFolder).Label(i18n.S("开关：完成后打开文件夹", "Toggle: Open Destination Folder"))
 					})
 				})
 			})
 		})
-		dialogFooter(c, pal, "Ctrl+Enter 开始压缩", d.errText, func() {
-			ui.Button(c, "取消").OnClick(d.close).Border(0, ui.Transparent)
-			if ui.PrimaryButton(c, "开始压缩").Clicked() && d.start() {
+		dialogFooter(c, pal, i18n.S("Ctrl+Enter 开始压缩", "Ctrl+Enter to Compress"), d.errText, func() {
+			ui.Button(c, i18n.S("取消", "Cancel")).OnClick(d.close).Border(0, ui.Transparent)
+			if ui.PrimaryButton(c, i18n.S("开始压缩", "Compress")).Clicked() && d.start() {
 				d.close()
 			}
 		})
@@ -433,7 +433,7 @@ func (d *compressDialog) browse() {
 	f := d.selectedFormat()
 	cur := d.dest
 	go func() {
-		p, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: d.win, Title: "保存压缩文件", DefaultPath: cur,
+		p, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: d.win, Title: i18n.S("保存压缩文件", "Save Archive"), DefaultPath: cur,
 			Filters: []mygo.FileFilter{{Name: f.Label(), Extensions: []string{strings.TrimPrefix(f.Extension(), ".")}}}})
 		if err != nil || p == "" {
 			return
@@ -493,7 +493,7 @@ func (a *Plugin) ShowExtractDialog(archives, paths []string, baseDir, pw string)
 		a.lastExtract = d
 		return
 	}
-	d.win = a.openZipDialogWindow("解压 - PureZip", 560, 470, d.view, func() { d.closed = true })
+	d.win = a.openZipDialogWindow(i18n.S("解压 - PureZip", "Extract - PureZip"), 560, 470, d.view, func() { d.closed = true })
 }
 
 func (d *extractDialog) close() {
@@ -506,7 +506,7 @@ func (d *extractDialog) close() {
 func (d *extractDialog) start() bool {
 	dest := strings.TrimSpace(d.dest)
 	if dest == "" {
-		d.errText = "请选择解压目标文件夹"
+		d.errText = i18n.S("请选择解压目标文件夹", "Please select a destination folder")
 		return false
 	}
 	if abs, err := filepath.Abs(dest); err == nil {
@@ -537,7 +537,7 @@ func (d *extractDialog) preview() string {
 	if d.modeIdx == 1 {
 		return filepath.Join(dest, archive.BaseName(d.archives[0]))
 	}
-	return "自动：单一根文件夹时解压到 " + dest + "，否则解压到 " + filepath.Join(dest, archive.BaseName(d.archives[0]))
+	return i18n.F("自动：单一根文件夹时解压到 %s，否则解压到 %s", "Auto: extract to %s if single root folder, otherwise %s", dest, filepath.Join(dest, archive.BaseName(d.archives[0])))
 }
 
 func (d *extractDialog) view(c *ui.Context) {
@@ -548,47 +548,51 @@ func (d *extractDialog) view(c *ui.Context) {
 	ui.Column(c).Fill().Background(pal.Bg).Children(func() {
 		sub := filepath.Base(d.archives[0])
 		if len(d.archives) > 1 {
-			sub = fmt.Sprintf("%s 等 %d 个压缩文件", sub, len(d.archives))
+			sub = i18n.F("%s 等 %d 个压缩文件", "%s and %d archives", sub, len(d.archives))
 		}
 		if len(d.paths) > 0 {
-			sub += fmt.Sprintf(" · 选中的 %d 个项目", len(d.paths))
+			sub += i18n.F(" · 选中的 %d 个项目", " · %d selected", len(d.paths))
 		}
-		dialogHeader(c, pal, iconExtract, "解压", sub)
+		dialogHeader(c, pal, iconExtract, i18n.S("解压", "Extract"), sub)
 		ui.Scroll(c).Grow(1).Children(func() {
 			ui.Column(c).Padding(14, 20).Gap(12).Children(func() {
-				pureui.SettingCard(c, "目标文件夹", d.preview(), pal, func() {
+				pureui.SettingCard(c, i18n.S("目标文件夹", "Destination Folder"), d.preview(), pal, func() {
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.TextInput(c, &d.dest).Grow(1).Placeholder("解压到…").Label("解压目标文件夹").Border(0, ui.Transparent).FocusRing(false)
-						ui.Button(c, "浏览…").OnClick(func() {
-							d.plugin.pickFiles(d.win, "选择解压目标文件夹", true, false, nil, func(p []string) { d.dest = p[0] })
+						ui.TextInput(c, &d.dest).Grow(1).Placeholder(i18n.S("解压到…", "Extract to…")).Label(i18n.S("解压目标文件夹", "Destination Folder")).Border(0, ui.Transparent).FocusRing(false)
+						ui.Button(c, i18n.S("浏览…", "Browse…")).OnClick(func() {
+							d.plugin.pickFiles(d.win, i18n.S("选择解压目标文件夹", "Select Destination Folder"), true, false, nil, func(p []string) { d.dest = p[0] })
 						}).Border(0, ui.Transparent)
 					})
 					if len(d.paths) == 0 {
-						pureui.SettingRow(c, "解压方式", "", pal, func() {
-							ui.Segmented(c, &d.modeIdx, "智能解压", "新建同名文件夹", "直接解压").Label("解压方式").Border(0, ui.Transparent)
+						pureui.SettingRow(c, i18n.S("解压方式", "Extract Mode"), "", pal, func() {
+							ui.Segmented(c, &d.modeIdx,
+								i18n.S("智能解压", "Smart"),
+								i18n.S("新建同名文件夹", "New Folder"),
+								i18n.S("直接解压", "Direct"),
+							).Label(i18n.S("解压方式", "Extract Mode")).Border(0, ui.Transparent)
 						})
 					}
 				})
-				pureui.SettingCard(c, "选项", "", pal, func() {
-					pureui.SettingRow(c, "文件已存在时", "", pal, func() {
-						ui.Segmented(c, &d.overIdx, zipOverwriteLabels...).Label("覆盖方式").Border(0, ui.Transparent)
+				pureui.SettingCard(c, i18n.S("选项", "Options"), "", pal, func() {
+					pureui.SettingBlock(c, i18n.S("文件已存在时", "When File Exists"), "", pal, func() {
+						ui.Segmented(c, &d.overIdx, zipOverwriteLabels()...).Label(i18n.S("覆盖方式", "Overwrite Mode")).Border(0, ui.Transparent)
 					})
 					ui.Divider(c)
-					pureui.SettingRow(c, "完成后打开文件夹", "", pal, func() {
-						ui.Switch(c, &d.openFolder).Label("开关：完成后打开文件夹")
+					pureui.SettingRow(c, i18n.S("完成后打开文件夹", "Open Folder When Done"), "", pal, func() {
+						ui.Switch(c, &d.openFolder).Label(i18n.S("开关：完成后打开文件夹", "Toggle: Open Folder When Done"))
 					})
 					if len(d.paths) == 0 {
 						ui.Divider(c)
-						pureui.SettingRow(c, "解压后删除压缩文件", "压缩文件移到回收站", pal, func() {
-							ui.Switch(c, &d.deleteAfter).Label("开关：解压后删除压缩文件")
+						pureui.SettingRow(c, i18n.S("解压后删除压缩文件", "Delete Archive After Extract"), i18n.S("压缩文件移到回收站", "Move archive to Recycle Bin"), pal, func() {
+							ui.Switch(c, &d.deleteAfter).Label(i18n.S("开关：解压后删除压缩文件", "Toggle: Delete Archive After Extract"))
 						})
 					}
 				})
 			})
 		})
-		dialogFooter(c, pal, "Enter 开始解压", d.errText, func() {
-			ui.Button(c, "取消").OnClick(d.close).Border(0, ui.Transparent)
-			if ui.PrimaryButton(c, "解压").Clicked() && d.start() {
+		dialogFooter(c, pal, i18n.S("Enter 开始解压", "Press Enter to Extract"), d.errText, func() {
+			ui.Button(c, i18n.S("取消", "Cancel")).OnClick(d.close).Border(0, ui.Transparent)
+			if ui.PrimaryButton(c, i18n.S("解压", "Extract")).Clicked() && d.start() {
 				d.close()
 			}
 		})

@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 // ClipboardKind is the primary representation of a clipboard payload.
@@ -20,19 +22,19 @@ const (
 	KindOther    ClipboardKind = 9
 )
 
-// String returns a short Chinese label for the clipboard kind.
+// String returns a localized short label for the clipboard kind.
 func (k ClipboardKind) String() string {
 	switch k {
 	case KindText:
-		return "文本"
+		return i18n.S("文本", "Text")
 	case KindRichText:
-		return "富文本"
+		return i18n.S("富文本", "Rich Text")
 	case KindFiles:
-		return "文件"
+		return i18n.S("文件", "Files")
 	case KindImage:
-		return "图片"
+		return i18n.S("图片", "Image")
 	default:
-		return "其他"
+		return i18n.S("其他", "Other")
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 
+	"pureutils/pkg/purekit/i18n"
 	"pureutils/plugins/purezip/archive"
 )
 
@@ -68,19 +69,23 @@ type verb struct {
 	id, label, arg string
 }
 
-var compressVerbs = []verb{
-	{"10compress", "添加到压缩文件…", "--compress"},
-	{"11zip", "压缩为同名 .zip", "--compress-zip"},
-	{"12sevenzip", "压缩为同名 .7z", "--compress-7z"},
+func compressVerbs() []verb {
+	return []verb{
+		{"10compress", i18n.S("添加到压缩文件…", "Add to archive…"), "--compress"},
+		{"11zip", i18n.S("压缩为同名 .zip", "Compress to .zip"), "--compress-zip"},
+		{"12sevenzip", i18n.S("压缩为同名 .7z", "Compress to .7z"), "--compress-7z"},
+	}
 }
 
-var extractVerbs = []verb{
-	{"01smart", "智能解压（自动判断是否新建文件夹）", "--extract-smart"},
-	{"02here", "解压到当前文件夹", "--extract-here"},
-	{"03folder", "解压到同名文件夹", "--extract-to"},
-	{"04dialog", "解压到…", "--extract-dialog"},
-	{"05open", "用 PureZip 打开", "--zip"},
-	{"06test", "测试压缩文件", "--test-archive"},
+func extractVerbs() []verb {
+	return []verb{
+		{"01smart", i18n.S("智能解压（自动判断是否新建文件夹）", "Smart Extract"), "--extract-smart"},
+		{"02here", i18n.S("解压到当前文件夹", "Extract Here"), "--extract-here"},
+		{"03folder", i18n.S("解压到同名文件夹", "Extract to Subfolder"), "--extract-to"},
+		{"04dialog", i18n.S("解压到…", "Extract To…"), "--extract-dialog"},
+		{"05open", i18n.S("用 PureZip 打开", "Open with PureZip"), "--zip"},
+		{"06test", i18n.S("测试压缩文件", "Test Archive"), "--test-archive"},
+	}
 }
 
 func setStrings(path string, values map[string]string) error {
@@ -131,13 +136,15 @@ func RegisterContextMenu() error {
 		conds = append(conds, "System.FileExtension:=."+e)
 	}
 	notArchive := "NOT (" + strings.Join(conds, " OR ") + ")"
-	if err := writeCascade(classes+`*\shell\`+menuKey, AppDisplayName, icon, exe, compressVerbs, notArchive); err != nil {
+	comp := compressVerbs()
+	ext := extractVerbs()
+	if err := writeCascade(classes+`*\shell\`+menuKey, AppDisplayName, icon, exe, comp, notArchive); err != nil {
 		return err
 	}
-	if err := writeCascade(classes+`Directory\shell\`+menuKey, AppDisplayName, icon, exe, compressVerbs, ""); err != nil {
+	if err := writeCascade(classes+`Directory\shell\`+menuKey, AppDisplayName, icon, exe, comp, ""); err != nil {
 		return err
 	}
-	archiveVerbs := append(append([]verb(nil), extractVerbs...), compressVerbs[0])
+	archiveVerbs := append(append([]verb(nil), ext...), comp[0])
 	for _, e := range exts {
 		if err := writeCascade(classes+`SystemFileAssociations\.`+e+`\shell\`+archiveMenuKey, AppDisplayName, icon, exe, archiveVerbs, ""); err != nil {
 			return err
@@ -175,8 +182,8 @@ func ContextMenuRegistered() bool {
 	if err != nil {
 		return false
 	}
-	return commandContains(classes+`*\shell\`+menuKey+`\shell\`+compressVerbs[1].id+`\command`, exe) &&
-		commandContains(classes+`SystemFileAssociations\.zip\shell\`+archiveMenuKey+`\shell\`+extractVerbs[0].id+`\command`, exe)
+	return commandContains(classes+`*\shell\`+menuKey+`\shell\`+compressVerbs()[1].id+`\command`, exe) &&
+		commandContains(classes+`SystemFileAssociations\.zip\shell\`+archiveMenuKey+`\shell\`+extractVerbs()[0].id+`\command`, exe)
 }
 
 func commandContains(path, exe string) bool {
@@ -201,7 +208,10 @@ func RegisterFileAssoc() error {
 	icon := iconValue(exe)
 	open := `"` + exe + `" --zip "%1"`
 	prog := classes + ProgID
-	if err := setStrings(prog, map[string]string{"": "压缩文件", "FriendlyTypeName": "压缩文件 (PureZip)"}); err != nil {
+	if err := setStrings(prog, map[string]string{
+		"":                 i18n.S("压缩文件", "Archive File"),
+		"FriendlyTypeName": i18n.S("压缩文件 (PureZip)", "Archive File (PureZip)"),
+	}); err != nil {
 		return err
 	}
 	if err := setStrings(prog+`\DefaultIcon`, map[string]string{"": icon}); err != nil {
@@ -233,7 +243,7 @@ func RegisterFileAssoc() error {
 	if err := setStrings(CapabilitiesPath, map[string]string{
 		"ApplicationName":        AppDisplayName,
 		"ApplicationIcon":        icon,
-		"ApplicationDescription": "PureZip 压缩管理",
+		"ApplicationDescription": i18n.S("PureZip 压缩管理", "PureZip Archive Manager"),
 	}); err != nil {
 		return err
 	}

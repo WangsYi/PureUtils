@@ -17,6 +17,7 @@ import (
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/config"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	"pureutils/pkg/purekit/platform"
 	pureui "pureutils/pkg/purekit/ui"
 	"pureutils/plugins/purezip/archive"
@@ -97,7 +98,7 @@ func (p *Plugin) Info() purekit.PluginInfo {
 	return purekit.PluginInfo{
 		ID:          PluginID,
 		Name:        "PureZip",
-		Description: "压缩包浏览、智能解压、多线程压缩与资源管理器右键集成",
+		Description: i18n.S("压缩包浏览、智能解压、多线程压缩与资源管理器右键集成", "Archive browser, smart extraction, multi-threaded compression, and Explorer integration"),
 		Version:     core.AppVersion,
 		ModuleID:    core.ModuleZip,
 		IconPNG:     zipIconPNG,
@@ -339,7 +340,7 @@ func (p *Plugin) openArchiveForJob(j *zipJob, path, pw string) (*archive.Archive
 
 // startExtract extracts an archive in the background with a progress window.
 func (p *Plugin) startExtract(req zipExtractRequest) {
-	j := newZipJob(p, "解压", filepath.Base(req.Archive))
+	j := newZipJob(p, "extract", filepath.Base(req.Archive))
 	p.startZipJob(j, func(j *zipJob) (string, error) {
 		arc, pw, err := p.openArchiveForJob(j, req.Archive, req.Password)
 		if err != nil {
@@ -411,9 +412,9 @@ func (p *Plugin) startExtract(req zipExtractRequest) {
 		if req.DeleteArc {
 			_ = mygo.Shell.TrashItem(req.Archive)
 		}
-		summary := fmt.Sprintf("已解压 %d 个文件（%s）到 %s", res.Files, zipSize(res.Bytes), dest)
+		summary := i18n.F("已解压 %d 个文件（%s）到 %s", "Extracted %d files (%s) to %s", res.Files, zipSize(res.Bytes), dest)
 		if res.Skipped > 0 {
-			summary += fmt.Sprintf("，跳过 %d 个", res.Skipped)
+			summary += i18n.F("，跳过 %d 个", " (%d skipped)", res.Skipped)
 		}
 		return summary, nil
 	})
@@ -421,7 +422,7 @@ func (p *Plugin) startExtract(req zipExtractRequest) {
 
 // startCompress creates an archive in the background with a progress window.
 func (p *Plugin) startCompress(req zipCompressRequest) *zipJob {
-	j := newZipJob(p, "压缩", filepath.Base(req.Dest))
+	j := newZipJob(p, "compress", filepath.Base(req.Dest))
 	j.target = req.Dest
 	p.startZipJob(j, func(j *zipJob) (string, error) {
 		opt := req.Options
@@ -442,14 +443,14 @@ func (p *Plugin) startCompress(req zipCompressRequest) *zipJob {
 		if fi, err := os.Stat(req.Dest); err == nil {
 			size = fi.Size()
 		}
-		return fmt.Sprintf("已创建 %s（%s）", filepath.Base(req.Dest), zipSize(size)), nil
+		return i18n.F("已创建 %s（%s）", "Created %s (%s)", filepath.Base(req.Dest), zipSize(size)), nil
 	})
 	return j
 }
 
 // startTestArchive verifies every entry of an archive.
 func (p *Plugin) startTestArchive(path, pw string) *zipJob {
-	j := newZipJob(p, "测试", filepath.Base(path))
+	j := newZipJob(p, "test", filepath.Base(path))
 	j.keepOpen = true
 	p.startZipJob(j, func(j *zipJob) (string, error) {
 		arc, pw, err := p.openArchiveForJob(j, path, pw)
@@ -467,7 +468,7 @@ func (p *Plugin) startTestArchive(path, pw string) *zipJob {
 			return "", err
 		}
 		info := arc.Info()
-		return fmt.Sprintf("未发现错误：共 %d 个文件、%d 个文件夹，原始大小 %s。", info.Files, info.Dirs, zipSize(info.TotalSize)), nil
+		return i18n.F("未发现错误：共 %d 个文件、%d 个文件夹，原始大小 %s。", "No errors found: %d files, %d folders, uncompressed %s.", info.Files, info.Dirs, zipSize(info.TotalSize)), nil
 	})
 	return j
 }
@@ -486,7 +487,7 @@ func (p *Plugin) startArchiveEdit(verb, path string, work func(j *zipJob, opt ar
 		if err := work(j, opt); err != nil {
 			return "", err
 		}
-		return "已更新 " + filepath.Base(path), nil
+		return i18n.S("已更新 ", "Updated ") + filepath.Base(path), nil
 	})
 	return j
 }
@@ -596,8 +597,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "purezip.open",
 			PluginID: PluginID,
-			Title:    "打开 PureZip 压缩管理",
-			Subtitle: "浏览、解压、加密或编辑压缩包",
+			Title:    i18n.S("打开 PureZip 压缩管理", "Open PureZip Archive Manager"),
+			Subtitle: i18n.S("浏览、解压、加密或编辑压缩包", "Browse, extract, encrypt, and edit archives"),
 			Keywords: []string{"zip", "7z", "rar", "tar", "archive", "压缩", "解压", "归档", "purezip"},
 			Command:  core.CmdOpenZip,
 			Shortcut: openShortcut,
@@ -611,8 +612,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "purezip.compress",
 			PluginID: PluginID,
-			Title:    "PureZip 新建压缩文件",
-			Subtitle: "将文件或文件夹打包为 ZIP / 7Z / TAR",
+			Title:    i18n.S("PureZip 新建压缩文件", "PureZip New Archive"),
+			Subtitle: i18n.S("将文件或文件夹打包为 ZIP / 7Z / TAR", "Pack files or folders into ZIP / 7Z / TAR"),
 			Keywords: []string{"compress", "pack", "zip", "7z", "打包", "新建压缩"},
 			Command:  core.CmdCompress,
 			Badge:    "PureZip",
@@ -634,7 +635,7 @@ type zipMatcher struct {
 }
 
 func (m zipMatcher) ID() string    { return "purezip.matcher" }
-func (m zipMatcher) Title() string { return "PureZip 压缩匹配" }
+func (m zipMatcher) Title() string { return i18n.S("PureZip 压缩匹配", "PureZip Archive Matcher") }
 
 func (m zipMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 	var archives []string
@@ -666,13 +667,13 @@ func (m zipMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 		allArcs := append([]string(nil), archives...)
 		label := filepath.Base(first)
 		if len(allArcs) > 1 {
-			label = fmt.Sprintf("%s 等 %d 个压缩包", label, len(allArcs))
+			label = i18n.F("%s 等 %d 个压缩包", "%s and %d archives", label, len(allArcs))
 		}
 		results = append(results,
 			purekit.MatchResult{
 				FeatureID: "purezip.open",
 				PluginID:  PluginID,
-				Title:     "用 PureZip 打开 " + filepath.Base(first),
+				Title:     i18n.S("用 PureZip 打开 ", "Open with PureZip: ") + filepath.Base(first),
 				Subtitle:  first,
 				Score:     95,
 				Badge:     "PureZip",
@@ -686,7 +687,7 @@ func (m zipMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 			purekit.MatchResult{
 				FeatureID: "purezip.extract_smart",
 				PluginID:  PluginID,
-				Title:     "用 PureZip 智能解压 " + label,
+				Title:     i18n.S("用 PureZip 智能解压 ", "Smart Extract with PureZip: ") + label,
 				Subtitle:  filepath.Dir(first),
 				Score:     90,
 				Badge:     "PureZip",
@@ -708,12 +709,12 @@ func (m zipMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 		}
 		sub := files[0]
 		if len(files) > 1 {
-			sub = fmt.Sprintf("%s 等 %d 项", filepath.Base(files[0]), len(files))
+			sub = i18n.F("%s 等 %d 项", "%s and %d items", filepath.Base(files[0]), len(files))
 		}
 		results = append(results, purekit.MatchResult{
 			FeatureID: "purezip.compress",
 			PluginID:  PluginID,
-			Title:     "用 PureZip 压缩选中项目",
+			Title:     i18n.S("用 PureZip 压缩选中项目", "Compress Selected with PureZip"),
 			Subtitle:  sub,
 			Score:     score,
 			Badge:     "PureZip",
@@ -733,7 +734,7 @@ func (p *Plugin) Hotkeys() []purekit.HotkeySpec {
 		{
 			ID:             "purezip.open",
 			Command:        core.CmdOpenZip,
-			Label:          "打开 PureZip 压缩管理",
+			Label:          i18n.S("打开 PureZip 压缩管理", "Open PureZip Manager"),
 			DefaultGesture: "",
 			CurrentGesture: func() string {
 				if p.host == nil {
@@ -764,7 +765,7 @@ func (p *Plugin) TrayItems() []purekit.TrayItemSpec {
 			ID:          "purezip.open",
 			Section:     purekit.TraySectionPrimary,
 			Kind:        purekit.TrayItemAction,
-			Label:       "打开 PureZip 压缩管理",
+			Label:       i18n.S("打开 PureZip 压缩管理", "Open PureZip Archive Manager"),
 			Accelerator: accel,
 			Command:     core.CmdOpenZip,
 			OnClick:     func() { p.OpenZipManager("") },
@@ -799,8 +800,8 @@ func (p *Plugin) CLICommands() []purekit.CLICommandSpec {
 func (p *Plugin) SettingsTab() *purekit.SettingsTab {
 	return &purekit.SettingsTab{
 		ID:       PluginID,
-		Title:    "PureZip · 压缩",
-		Subtitle: "PureZip 压缩、解压与右键集成",
+		Title:    i18n.S("PureZip · 压缩", "PureZip · Archive"),
+		Subtitle: i18n.S("PureZip 压缩、解压与右键集成", "PureZip compression, extraction, and shell integration"),
 		Icon:     pureui.IconPackage,
 		Order:    40,
 		NewView: func(host purekit.Host) purekit.SettingsTabView {
@@ -827,7 +828,7 @@ func (p *Plugin) pickFiles(parent *mygo.Window, title string, dirs, multiple boo
 func archiveFilters() []mygo.FileFilter {
 	exts := append([]string(nil), archive.ReadableExtensions...)
 	sort.Strings(exts)
-	return []mygo.FileFilter{{Name: "压缩文件", Extensions: exts}, {Name: "所有文件", Extensions: []string{"*"}}}
+	return []mygo.FileFilter{{Name: i18n.S("压缩文件", "Archive Files"), Extensions: exts}, {Name: i18n.S("所有文件", "All Files"), Extensions: []string{"*"}}}
 }
 
 // zipErrText renders engine errors for the UI.
@@ -836,11 +837,11 @@ func zipErrText(err error) string {
 	case err == nil:
 		return ""
 	case errors.Is(err, archive.ErrPasswordRequired):
-		return "需要密码"
+		return i18n.S("需要密码", "Password required")
 	case errors.Is(err, archive.ErrWrongPassword):
-		return "密码错误"
+		return i18n.S("密码错误", "Wrong password")
 	case errors.Is(err, archive.ErrUnsupported):
-		return "不支持的压缩格式：" + err.Error()
+		return i18n.S("不支持的压缩格式：", "Unsupported archive format: ") + err.Error()
 	default:
 		return err.Error()
 	}

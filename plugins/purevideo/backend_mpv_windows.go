@@ -17,6 +17,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 const (
@@ -85,17 +87,17 @@ func FindLibMPV(pluginDir string) (string, bool) {
 func ProbeLibMPV(dllPath string) (uint32, error) {
 	h, err := windows.LoadLibrary(dllPath)
 	if err != nil {
-		return 0, fmt.Errorf("无法加载 %s: %w", filepath.Base(dllPath), err)
+		return 0, fmt.Errorf("%s: %w", i18n.F("无法加载 %s", "Failed to load %s", filepath.Base(dllPath)), err)
 	}
 	defer func() { _ = windows.FreeLibrary(h) }()
 
 	proc, err := windows.GetProcAddress(h, "mpv_client_api_version")
 	if err != nil || proc == 0 {
-		return 0, fmt.Errorf("%s 缺少 mpv_client_api_version 导出", filepath.Base(dllPath))
+		return 0, fmt.Errorf("%s", i18n.F("%s 缺少 mpv_client_api_version 导出", "%s is missing mpv_client_api_version export", filepath.Base(dllPath)))
 	}
 	ver, _, _ := syscall.SyscallN(proc)
 	if ver == 0 {
-		return 0, fmt.Errorf("%s 返回无效的 API 版本", filepath.Base(dllPath))
+		return 0, fmt.Errorf("%s", i18n.F("%s 返回无效的 API 版本", "%s returned an invalid API version", filepath.Base(dllPath)))
 	}
 	return uint32(ver), nil
 }
@@ -149,7 +151,7 @@ func resolveMPVProcs(h windows.Handle) (mpvProcs, error) {
 	for _, n := range need {
 		addr, err := windows.GetProcAddress(h, n.name)
 		if err != nil || addr == 0 {
-			return mpvProcs{}, fmt.Errorf("libmpv-2.dll 缺少导出符号 %s", n.name)
+			return mpvProcs{}, fmt.Errorf("%s", i18n.F("libmpv-2.dll 缺少导出符号 %s", "libmpv-2.dll is missing exported symbol %s", n.name))
 		}
 		*n.dst = addr
 	}
@@ -182,7 +184,7 @@ func goStringFromCStr(ptr uintptr) string {
 func newMPVBackend(dllPath string, hwnd uintptr, cb BackendCallbacks) (*mpvBackend, error) {
 	h, err := windows.LoadLibrary(dllPath)
 	if err != nil {
-		return nil, fmt.Errorf("加载 libmpv-2.dll 失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.S("加载 libmpv-2.dll 失败", "Failed to load libmpv-2.dll"), err)
 	}
 	procs, err := resolveMPVProcs(h)
 	if err != nil {
@@ -192,7 +194,7 @@ func newMPVBackend(dllPath string, hwnd uintptr, cb BackendCallbacks) (*mpvBacke
 	mpvCtx, _, _ := syscall.SyscallN(procs.create)
 	if mpvCtx == 0 {
 		_ = windows.FreeLibrary(h)
-		return nil, fmt.Errorf("mpv_create 返回空句柄")
+		return nil, fmt.Errorf("%s", i18n.S("mpv_create 返回空句柄", "mpv_create returned a null handle"))
 	}
 
 	b := &mpvBackend{
@@ -230,7 +232,7 @@ func newMPVBackend(dllPath string, hwnd uintptr, cb BackendCallbacks) (*mpvBacke
 	if int32(rc) < 0 {
 		_, _, _ = syscall.SyscallN(procs.terminateDestroy, mpvCtx)
 		_ = windows.FreeLibrary(h)
-		return nil, fmt.Errorf("mpv_initialize 失败 (%d)", int32(rc))
+		return nil, fmt.Errorf("%s", i18n.F("mpv_initialize 失败 (%d)", "mpv_initialize failed (%d)", int32(rc)))
 	}
 
 	go b.eventLoop()
@@ -306,25 +308,25 @@ func (b *mpvBackend) errStr(code int32) string {
 	fn := b.procs.errorString
 	b.mu.Unlock()
 	if fn == 0 {
-		return fmt.Sprintf("libmpv 错误 (%d)", code)
+		return i18n.F("libmpv 错误 (%d)", "libmpv error (%d)", code)
 	}
 	ptr, _, _ := syscall.SyscallN(fn, uintptr(code))
 	msg := goStringFromCStr(ptr)
 	if msg == "" {
-		return fmt.Sprintf("libmpv 错误 (%d)", code)
+		return i18n.F("libmpv 错误 (%d)", "libmpv error (%d)", code)
 	}
-	return "libmpv 无法播放此视频: " + msg
+	return i18n.S("libmpv 无法播放此视频: ", "libmpv cannot play this video: ") + msg
 }
 
 func (b *mpvBackend) execCommand(args ...string) error {
 	if b.closed.Load() {
-		return fmt.Errorf("播放器已关闭")
+		return fmt.Errorf("%s", i18n.S("播放器已关闭", "Player is closed"))
 	}
 	b.mu.Lock()
 	ctx, cmdFn := b.ctx, b.procs.command
 	b.mu.Unlock()
 	if ctx == 0 {
-		return fmt.Errorf("播放器未初始化")
+		return fmt.Errorf("%s", i18n.S("播放器未初始化", "Player is not initialized"))
 	}
 	bufs := make([][]byte, len(args))
 	ptrs := make([]uintptr, len(args)+1)
@@ -449,7 +451,7 @@ func (b *mpvBackend) setState(st PlaybackState) {
 func (b *mpvBackend) Open(path string, autoPlay bool) error {
 	path = strings.TrimSpace(path)
 	if path == "" {
-		return fmt.Errorf("视频路径为空")
+		return fmt.Errorf("%s", i18n.S("视频路径为空", "Video path is empty"))
 	}
 	b.mu.Lock()
 	b.autoPlay = autoPlay

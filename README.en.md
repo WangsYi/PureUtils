@@ -39,6 +39,7 @@ Screenshot & Pinning · Clipboard History · Fast Image & Video Browser · Archi
 
 - **Global Context-Aware Launcher (`Alt+Space`)**: Instantly captures selected Windows Explorer items and clipboard contents to surface relevant actions (*Smart Extract*, *Open in PureImage*, *Pin to Desktop*) alongside full plugin & clipboard history search (`Ctrl+1–9` quick run).
 - **Live Component Hot-Toggle & Low-Level `Win+` Hotkey Takeover**: Enable/disable built-in modules cleanly in Settings without restarting—dynamically rebuilding tray items, hotkeys, launcher matchers, and Capability Bus registrations. Optional `WH_KEYBOARD_LL` takeover suppresses the Windows Start menu when rebinding `Win+...` chords.
+- **Full Bilingual i18n (`zh-CN` / `en-US`)**: Supports Simplified Chinese, English, and automatic OS language detection (`Auto`) across tray menus, Launcher, Settings, and all five plugins—applying live without restart.
 - **Zero-Coupling Capability Bus (`pkg/purekit`)**: Plugins interact solely via strongly typed bus contracts (`clipboard.history`, `image.preview`, `image.pin`) and source-aware clipboard events, degrading gracefully whenever a sibling module is disabled or omitted.
 
 ---
@@ -64,7 +65,7 @@ Screenshot & Pinning · Clipboard History · Fast Image & Video Browser · Archi
 
 ## Installation
 
-- Download the modular installer `PureUtils-1.1.0-setup.exe` (with built-in trimmed `libmpv-2.dll`) from [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases).
+- Download the modular installer `PureUtils-1.2.0-setup.exe` (with built-in trimmed `libmpv-2.dll`) from [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases).
 - Installs per-user (`%LOCALAPPDATA%\Programs\PureUtils`, no UAC required) with customizable components: **Full Suite / PureShot+PureClip / PureImage only / PureVideo only / PureZip only**, optional `turbojpeg.dll`, Explorer context menus, and HKCU file associations.
 
 ---
@@ -83,9 +84,12 @@ Prerequisites: Windows 10/11 (x64) + **Go 1.27.3+** (no cgo, no Node, no WebView
 # Selectively exclude specific plugins at compile time (supports pureshot, pureclip, pureimage, purevideo, purezip)
 .\build.ps1 build -Exclude purezip,pureimage
 
-# Run full test suite (including Go AST dependency boundary tests & headless UI tests)
+# Run full tests, bilingual UI/layout checks, E2E, and merged coverage report
 .\build.ps1 test
 .\build.ps1 test -CoreOnly
+.\build.ps1 ui
+.\build.ps1 e2e
+.\build.ps1 coverage -MinCoverage 50
 
 # Launch directly into a specific view
 .\build.ps1 run -AppArgs --launcher

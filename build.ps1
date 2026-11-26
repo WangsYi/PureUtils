@@ -1,13 +1,16 @@
 ﻿# PureUtils（PureShot + PureClip + PureImage + PureVideo + PureZip）Go/MyGo 开发与打包脚本：build / test / run / publish / pack / clean
 param(
-    [ValidateSet('build', 'test', 'run', 'publish', 'pack', 'clean', 'help')]
+    [ValidateSet('build', 'test', 'ui', 'e2e', 'coverage', 'ci', 'run', 'publish', 'pack', 'clean', 'help')]
     [string]$Command = 'build',
     [ValidateSet('Release', 'Debug')]
     [string]$Configuration = 'Release',
-    [string]$Version = '1.1.0',
+    [string]$Version = '1.2.0',
     [switch]$CoreOnly,
     [ValidateSet('pureshot', 'pureclip', 'pureimage', 'purevideo', 'purezip')]
     [string[]]$Exclude = @(),
+    [string]$ShotDir = '',
+    [string]$CovDir = '',
+    [double]$MinCoverage = 0,
     [string[]]$AppArgs = @()
 )
 
@@ -46,8 +49,14 @@ try {
         return ,$tags.ToArray()
     }
 
-    function Build-Binary([string]$OutPath, [bool]$NoFreeImage, [string[]]$Excludes = @()) {
+    function Build-Binary([string]$OutPath, [bool]$NoFreeImage, [string[]]$Excludes = @(), [bool]$Cover = $false, [string]$CoverPkg = '') {
         $args = @('build', '-trimpath', '-buildvcs=false')
+        if ($Cover) {
+            $args += '-cover'
+            if (-not [string]::IsNullOrWhiteSpace($CoverPkg)) {
+                $args += "-coverpkg=$CoverPkg"
+            }
+        }
         $ldflags = @("-X=pureutils/pkg/purekit/core.AppVersion=$Version")
         if ($Configuration -eq 'Release') {
             $ldflags += @('-s', '-w', '-H=windowsgui')
@@ -104,6 +113,209 @@ try {
         }
     }
 
+    function Run-Tests([bool]$NoFreeImage, [string[]]$Excludes = @()) {
+        $tags = Get-BuildTags $NoFreeImage $Excludes
+        $testArgs = @('test', '-buildvcs=false', '-count=1')
+        if ($tags.Count -gt 0) {
+            $testArgs += @('-tags', ($tags -join ' '))
+        }
+        $testArgs += './...'
+        Invoke-Go $testArgs
+        Write-Host '测试通过' -ForegroundColor Green
+    }
+
+    function Run-UI {
+        $resolvedShotDir = if ([string]::IsNullOrWhiteSpace($ShotDir)) {
+            Join-Path $root 'artifacts\ui-screenshots'
+        } elseif ([System.IO.Path]::IsPathRooted($ShotDir)) {
+            $ShotDir
+        } else {
+            Join-Path $root $ShotDir
+        }
+        $enDir = Join-Path $resolvedShotDir 'en'
+        $zhDir = Join-Path $resolvedShotDir 'zh'
+        if (Test-Path -LiteralPath $enDir) { Remove-Item -Recurse -Force $enDir }
+        if (Test-Path -LiteralPath $zhDir) { Remove-Item -Recurse -Force $zhDir }
+        New-Item -ItemType Directory -Force -Path $enDir, $zhDir | Out-Null
+
+        $prevEn = $env:PUREUTILS_EN_SHOT_DIR
+        $prevZh = $env:PUREUTILS_ZH_SHOT_DIR
+        try {
+            $env:PUREUTILS_EN_SHOT_DIR = $enDir
+            $env:PUREUTILS_ZH_SHOT_DIR = $zhDir
+
+            Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './internal/host', '-run', '^(TestI18nAudit|TestEnglishSettingsLayout|TestChineseSettingsLayout|TestSettingsLiveLanguageSwitch|TestEnglishLauncherLayout|TestChineseLauncherLayout|TestSettingsWindowUnifiedTabsAndPersistence|TestLauncherHeadlessUIInteraction)$')
+            Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './pkg/purekit/ui')
+            Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './plugins/pureclip', '-run', '^(TestEnglishPureClipLayout|TestChinesePureClipLayout|TestPureClipHistoryViewBusAndSettingsTab)$')
+            Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './plugins/pureshot', '-run', '^(TestEnglishPureShotLayout|TestChinesePureShotLayout|TestPureShotSettingsTabPersistence)$')
+            Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './plugins/pureimage', '-run', '^(TestEnglishPureImageLayout|TestChinesePureImageLayout|TestViewerHeadlessEmptyMenusToolbarAndPin)$')
+            Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './plugins/purevideo', '-run', '^(TestEnglishPureVideoLayout|TestChinesePureVideoLayout|TestPlayer|TestPureVideoPluginContractAndSettingsUI)')
+            Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './plugins/purezip', '-run', '^(TestEnglishPureZipLayout|TestChinesePureZipLayout|TestZipView|TestCompressAndExtractDialogsHeadless|TestZipJobViewsAndSettingsTabPersistence)')
+
+            $enPngs = @(Get-ChildItem -LiteralPath $enDir -Filter '*.png' -File)
+            $zhPngs = @(Get-ChildItem -LiteralPath $zhDir -Filter '*.png' -File)
+            if ($enPngs.Count -lt 40) {
+                throw ("英文 UI 截图数量异常：{0}（期望 >= 40）" -f $enPngs.Count)
+            }
+            if ($zhPngs.Count -lt 12) {
+                throw ("中文 UI 截图数量异常：{0}（期望 >= 12）" -f $zhPngs.Count)
+            }
+            Write-Host ("UI 测试通过（EN 截图 {0} 张，ZH 截图 {1} 张 -> {2}）" -f $enPngs.Count, $zhPngs.Count, $resolvedShotDir) -ForegroundColor Green
+        } finally {
+            if ($null -eq $prevEn) { Remove-Item Env:PUREUTILS_EN_SHOT_DIR -ErrorAction SilentlyContinue } else { $env:PUREUTILS_EN_SHOT_DIR = $prevEn }
+            if ($null -eq $prevZh) { Remove-Item Env:PUREUTILS_ZH_SHOT_DIR -ErrorAction SilentlyContinue } else { $env:PUREUTILS_ZH_SHOT_DIR = $prevZh }
+        }
+    }
+
+    function Run-E2E {
+        Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './internal/host', '-run', '^TestE2E')
+
+        $e2eOut = Join-Path $root 'artifacts\e2e'
+        New-Item -ItemType Directory -Force -Path $e2eOut | Out-Null
+        $fullBin = Join-Path $e2eOut 'PureUtils.exe'
+        $coreBin = Join-Path $e2eOut 'PureUtils-core.exe'
+        Build-Binary $fullBin $false @()
+        Build-Binary $coreBin $true @()
+
+        $prevBin = $env:PUREUTILS_E2E_BIN
+        $prevCore = $env:PUREUTILS_E2E_CORE_BIN
+        try {
+            $env:PUREUTILS_E2E_BIN = $fullBin
+            $env:PUREUTILS_E2E_CORE_BIN = $coreBin
+            Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', '-tags', 'e2e', '-timeout', '5m', './e2e/...')
+            Write-Host 'E2E 测试通过（无头跨插件 + 实机二进制）' -ForegroundColor Green
+        } finally {
+            if ($null -eq $prevBin) { Remove-Item Env:PUREUTILS_E2E_BIN -ErrorAction SilentlyContinue } else { $env:PUREUTILS_E2E_BIN = $prevBin }
+            if ($null -eq $prevCore) { Remove-Item Env:PUREUTILS_E2E_CORE_BIN -ErrorAction SilentlyContinue } else { $env:PUREUTILS_E2E_CORE_BIN = $prevCore }
+        }
+    }
+
+    function Get-TotalCovPct([string]$ProfilePath) {
+        $lines = & go tool cover "-func=$ProfilePath"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $last = ($lines | Select-Object -Last 1)
+        if ($last -match '([\d.]+)%') {
+            return [double]$Matches[1]
+        }
+        throw "无法从 $ProfilePath 解析总覆盖率：$last"
+    }
+
+    function Get-PkgCovMap([string]$InputDirs) {
+        $lines = & go tool covdata percent "-i=$InputDirs"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $map = @{}
+        foreach ($line in $lines) {
+            if ($line -match '^\s*([^\s]+)\s+coverage:\s+([\d.]+)%\s+of statements') {
+                $map[$Matches[1]] = [double]$Matches[2]
+            }
+        }
+        return $map
+    }
+
+    function Run-Coverage {
+        $resolvedCovDir = if ([string]::IsNullOrWhiteSpace($CovDir)) {
+            Join-Path $root 'artifacts\coverage'
+        } elseif ([System.IO.Path]::IsPathRooted($CovDir)) {
+            $CovDir
+        } else {
+            Join-Path $root $CovDir
+        }
+        $unitDir = Join-Path $resolvedCovDir 'unit'
+        $headlessE2EDir = Join-Path $resolvedCovDir 'headless-e2e'
+        $binE2EDir = Join-Path $resolvedCovDir 'bin-e2e'
+        $binsDir = Join-Path $resolvedCovDir 'bins'
+        foreach ($d in @($unitDir, $headlessE2EDir, $binE2EDir, $binsDir)) {
+            if (Test-Path -LiteralPath $d) { Remove-Item -Recurse -Force $d }
+            New-Item -ItemType Directory -Force -Path $d | Out-Null
+        }
+
+        $pkgs = 'pureutils,pureutils/internal/...,pureutils/pkg/...,pureutils/plugins/...'
+
+        Invoke-Go @('test', '-buildvcs=false', '-count=1', '-cover', "-coverpkg=$pkgs", './...', '-args', "-test.gocoverdir=$unitDir")
+        Invoke-Go @('test', '-buildvcs=false', '-count=1', '-cover', "-coverpkg=$pkgs", './internal/host', '-run', '^TestE2E', '-args', "-test.gocoverdir=$headlessE2EDir")
+
+        $fullBin = Join-Path $binsDir 'PureUtils.exe'
+        $coreBin = Join-Path $binsDir 'PureUtils-core.exe'
+        Build-Binary $fullBin $false @() $true $pkgs
+        Build-Binary $coreBin $true @() $true $pkgs
+
+        $prevCov = $env:GOCOVERDIR
+        $prevBin = $env:PUREUTILS_E2E_BIN
+        $prevCore = $env:PUREUTILS_E2E_CORE_BIN
+        try {
+            $env:GOCOVERDIR = $binE2EDir
+            $env:PUREUTILS_E2E_BIN = $fullBin
+            $env:PUREUTILS_E2E_CORE_BIN = $coreBin
+            Invoke-Go @('test', '-buildvcs=false', '-count=1', '-tags', 'e2e', '-timeout', '5m', './e2e/...')
+        } finally {
+            if ($null -eq $prevCov) { Remove-Item Env:GOCOVERDIR -ErrorAction SilentlyContinue } else { $env:GOCOVERDIR = $prevCov }
+            if ($null -eq $prevBin) { Remove-Item Env:PUREUTILS_E2E_BIN -ErrorAction SilentlyContinue } else { $env:PUREUTILS_E2E_BIN = $prevBin }
+            if ($null -eq $prevCore) { Remove-Item Env:PUREUTILS_E2E_CORE_BIN -ErrorAction SilentlyContinue } else { $env:PUREUTILS_E2E_CORE_BIN = $prevCore }
+        }
+
+        $unitOut = Join-Path $resolvedCovDir 'unit.out'
+        $headlessE2EOut = Join-Path $resolvedCovDir 'headless-e2e.out'
+        $binE2EOut = Join-Path $resolvedCovDir 'bin-e2e.out'
+        $e2eOut = Join-Path $resolvedCovDir 'e2e.out'
+        $combinedOut = Join-Path $resolvedCovDir 'combined.out'
+
+        Invoke-Go @('tool', 'covdata', 'textfmt', "-i=$unitDir", '-o', $unitOut)
+        Invoke-Go @('tool', 'covdata', 'textfmt', "-i=$headlessE2EDir", '-o', $headlessE2EOut)
+        Invoke-Go @('tool', 'covdata', 'textfmt', "-i=$binE2EDir", '-o', $binE2EOut)
+        Invoke-Go @('tool', 'covdata', 'textfmt', "-i=$headlessE2EDir,$binE2EDir", '-o', $e2eOut)
+        Invoke-Go @('tool', 'covdata', 'textfmt', "-i=$unitDir,$binE2EDir", '-o', $combinedOut)
+
+        $unitPct = Get-TotalCovPct $unitOut
+        $headlessPct = Get-TotalCovPct $headlessE2EOut
+        $binPct = Get-TotalCovPct $binE2EOut
+        $e2ePct = Get-TotalCovPct $e2eOut
+        $combinedPct = Get-TotalCovPct $combinedOut
+
+        $unitMap = Get-PkgCovMap $unitDir
+        $e2eMap = Get-PkgCovMap "$headlessE2EDir,$binE2EDir"
+        $combMap = Get-PkgCovMap "$unitDir,$binE2EDir"
+
+        $allPkgs = @($unitMap.Keys + $e2eMap.Keys + $combMap.Keys | Sort-Object -Unique)
+        $lines = New-Object System.Collections.Generic.List[string]
+        $lines.Add('### PureUtils Test Coverage Summary (Unit + UI + Headless E2E + Real-Binary E2E)')
+        $lines.Add('')
+        $lines.Add('| Scope | Statement Coverage |')
+        $lines.Add('| --- | ---: |')
+        $lines.Add(('| Unit + UI + Headless (`./...`) | **{0:F1}%** |' -f $unitPct))
+        $lines.Add(('| Headless Cross-Plugin E2E (`TestE2E*`) | {0:F1}% |' -f $headlessPct))
+        $lines.Add(('| Real-Binary E2E (`./e2e/...` via `GOCOVERDIR`) | {0:F1}% |' -f $binPct))
+        $lines.Add(('| All E2E Merged (Headless + Real Binary) | **{0:F1}%** |' -f $e2ePct))
+        $lines.Add(('| **Combined Total (Unit + UI + All E2E)** | **{0:F1}%** |' -f $combinedPct))
+        if ($MinCoverage -gt 0) {
+            $gateStatus = if ($combinedPct -ge $MinCoverage) { 'PASS' } else { 'FAIL' }
+            $lines.Add(('| Threshold Gate (>= {0:F1}%) | **{1}** |' -f $MinCoverage, $gateStatus))
+        }
+        $lines.Add('')
+        $lines.Add('| Package | Unit + UI | E2E (All) | Combined |')
+        $lines.Add('| --- | ---: | ---: | ---: |')
+        foreach ($pkg in $allPkgs) {
+            $uStr = if ($unitMap.ContainsKey($pkg)) { ('{0:F1}%' -f $unitMap[$pkg]) } else { '—' }
+            $eStr = if ($e2eMap.ContainsKey($pkg)) { ('{0:F1}%' -f $e2eMap[$pkg]) } else { '—' }
+            $cStr = if ($combMap.ContainsKey($pkg)) { ('**{0:F1}%**' -f $combMap[$pkg]) } else { '—' }
+            $lines.Add(("| ``{0}`` | {1} | {2} | {3} |" -f $pkg, $uStr, $eStr, $cStr))
+        }
+        $lines.Add('')
+
+        $md = $lines -join "`n"
+        $summaryPath = Join-Path $resolvedCovDir 'summary.md'
+        Set-Content -LiteralPath $summaryPath -Value $md -Encoding UTF8
+        if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)) {
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $md -Encoding UTF8
+        }
+
+        Write-Host ("覆盖率汇总：Unit+UI={0:F1}% | Headless E2E={1:F1}% | Binary E2E={2:F1}% | All E2E={3:F1}% | Combined={4:F1}%" -f $unitPct, $headlessPct, $binPct, $e2ePct, $combinedPct) -ForegroundColor Cyan
+        Write-Host ("覆盖率报告已生成：{0}" -f $summaryPath) -ForegroundColor Green
+
+        if ($MinCoverage -gt 0 -and $combinedPct -lt $MinCoverage) {
+            throw ("合并覆盖率 {0:F1}% 低于最低门槛 {1:F1}%" -f $combinedPct, $MinCoverage)
+        }
+    }
+
     switch ($Command) {
         'build' {
             Build-Binary (Join-Path $root 'PureUtils.exe') ([bool]$CoreOnly) $Exclude
@@ -115,14 +327,26 @@ try {
             }
         }
         'test' {
-            $tags = Get-BuildTags ([bool]$CoreOnly) $Exclude
-            $testArgs = @('test', '-buildvcs=false', '-count=1')
-            if ($tags.Count -gt 0) {
-                $testArgs += @('-tags', ($tags -join ' '))
-            }
-            $testArgs += './...'
-            Invoke-Go $testArgs
-            Write-Host '测试通过' -ForegroundColor Green
+            Run-Tests ([bool]$CoreOnly) $Exclude
+        }
+        'ui' {
+            Run-UI
+        }
+        'e2e' {
+            Run-E2E
+        }
+        'coverage' {
+            Run-Coverage
+        }
+        'ci' {
+            Invoke-Go @('vet', '-buildvcs=false', '-unsafeptr=false', './...')
+            Invoke-Go @('vet', '-buildvcs=false', '-unsafeptr=false', '-tags', 'nofreeimage', './...')
+            Invoke-Go @('vet', '-buildvcs=false', '-unsafeptr=false', '-tags', 'e2e', './e2e/...')
+            Run-Tests $false @()
+            Run-Tests $true @()
+            Run-UI
+            Run-E2E
+            Write-Host '全部 CI 检查通过' -ForegroundColor Green
         }
         'run' {
             $tags = Get-BuildTags ([bool]$CoreOnly) $Exclude
@@ -206,12 +430,20 @@ try {
             Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $root 'artifacts\publish-core')
             Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $root 'artifacts\stage')
             Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $root 'artifacts\installer')
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $root 'artifacts\ui-screenshots')
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $root 'artifacts\e2e')
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $root 'artifacts\e2e-logs')
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $root 'artifacts\coverage')
             Write-Host '已清理构建产物' -ForegroundColor Green
         }
         'help' {
-            Write-Host '用法: .\build.ps1 [-Command build|test|run|publish|pack|clean] [-Version 1.1.0] [-CoreOnly] [-Exclude pureshot,pureclip,pureimage,purevideo,purezip] [-AppArgs ...]'
+            Write-Host '用法: .\build.ps1 [-Command build|test|ui|e2e|coverage|ci|run|publish|pack|clean] [-Version 1.2.0] [-CoreOnly] [-Exclude pureshot,pureclip,pureimage,purevideo,purezip] [-ShotDir ...] [-CovDir ...] [-MinCoverage 50] [-AppArgs ...]'
             Write-Host '  build     编译 PureUtils.exe（加 -CoreOnly 不含 PureImage 看图，或用 -Exclude 裁剪指定插件）'
             Write-Host '  test      运行 go test -count=1 ./...（支持 -CoreOnly 与 -Exclude）'
+            Write-Host '  ui        运行中英文/深浅色 UI 布局、交互与 i18n 审计测试并导出截图'
+            Write-Host '  e2e       运行无头跨插件 E2E 与真实编译二进制 IPC/打包解压 E2E 测试'
+            Write-Host '  coverage  采集单测 + UI + 无头 E2E + 实机二进制 GOCOVERDIR 合并覆盖率并生成报告'
+            Write-Host '  ci        按顺序执行全套 CI 检查（vet / 双版本 test / ui / e2e）'
             Write-Host '  run       直接运行（可传 AppArgs，例如 --launcher、--history、--view、--video 或 --zip）'
             Write-Host '  publish   输出完整版到 artifacts\publish 与精简版到 artifacts\publish-core'
             Write-Host '  pack      构建双版本并用 Inno Setup 打包模块化安装程序'

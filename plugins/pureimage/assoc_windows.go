@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"golang.org/x/sys/windows/registry"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 const (
@@ -151,7 +153,7 @@ func registerCapabilities(exe, iconVal string) error {
 	if err := key.SetStringValue("ApplicationIcon", iconVal); err != nil {
 		return err
 	}
-	if err := key.SetStringValue("ApplicationDescription", "PureImage 高性能看图"); err != nil {
+	if err := key.SetStringValue("ApplicationDescription", i18n.S("PureImage 高性能看图", "PureImage Fast Image Viewer")); err != nil {
 		return err
 	}
 

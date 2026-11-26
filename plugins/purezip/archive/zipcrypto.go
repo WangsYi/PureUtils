@@ -14,6 +14,8 @@ import (
 	"hash"
 	"hash/crc32"
 	"io"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 // ---------------------------------------------------------------------------
@@ -243,7 +245,7 @@ func (a *aesReader) Read(p []byte) (int, error) {
 				return 0, err
 			}
 			if !hmac.Equal(tag[:], a.mac.Sum(nil)[:10]) {
-				return 0, errors.New("AES 校验失败（数据损坏或密码错误）")
+				return 0, errors.New(i18n.S("AES 校验失败（数据损坏或密码错误）", "AES verification failed (corrupt data or wrong password)"))
 			}
 		}
 		return 0, io.EOF
@@ -311,7 +313,7 @@ func (c *crcReader) Read(p []byte) (int, error) {
 			return n, io.ErrUnexpectedEOF
 		}
 		if c.h.Sum32() != c.want {
-			return n, errors.New("CRC 校验失败")
+			return n, errors.New(i18n.S("CRC 校验失败", "CRC check failed"))
 		}
 	}
 	return n, err

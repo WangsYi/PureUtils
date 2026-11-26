@@ -20,6 +20,7 @@ import (
 
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	"pureutils/pkg/purekit/platform"
 	pureui "pureutils/pkg/purekit/ui"
 )
@@ -83,11 +84,13 @@ type historyView struct {
 	search      ui.Handle
 	splitWidth  float32
 
-	selected     int
-	status       string
-	pendingToast string
-	pinned       bool
-	confirmClear bool
+	selected        int
+	status          string
+	statusAlert     int
+	statusIsLoadErr bool
+	pendingToast    string
+	pinned          bool
+	confirmClear    bool
 
 	suppressBlur       bool
 	closed             bool
@@ -313,6 +316,12 @@ func (h *historyView) schedulePreviewSync() {
 	}()
 }
 
+func (h *historyView) setStatus(msg string, alert int) {
+	h.status = msg
+	h.statusAlert = alert
+	h.statusIsLoadErr = false
+}
+
 // Reload refreshes the in-memory history snapshot from SQLite and applies
 // the active search/filter criteria.
 func (h *historyView) Reload() {
@@ -322,7 +331,9 @@ func (h *historyView) Reload() {
 	}
 	rows, err := h.plugin.Service().Search("", nil, nil, limit)
 	if err != nil {
-		h.status = "读取历史失败: " + err.Error()
+		h.status = i18n.F("读取历史失败: %v", "Failed to read history: %v", err)
+		h.statusAlert = 2
+		h.statusIsLoadErr = true
 		h.allItems = nil
 		h.mayHaveMore = false
 		h.items = nil
@@ -420,8 +431,8 @@ func (h *historyView) applyFilter(fromTyping bool) {
 	}
 
 	h.typingDelayPreview = fromTyping && h.compact
-	if h.status == "" || strings.HasPrefix(h.status, "读取历史失败") {
-		h.status = "就绪"
+	if h.status == "" || h.statusIsLoadErr {
+		h.setStatus(i18n.S("就绪", "Ready"), 0)
 	}
 
 	h.searchGen++
@@ -610,15 +621,15 @@ func (h *historyView) view(c *ui.Context) {
 	h.handleShortcuts(c)
 
 	if switchIdx := ui.AlertDialog(c, &h.confirmClear,
-		"清空非收藏历史？",
-		"收藏项会被保留，其余记录删除后无法撤销。",
-		"取消", "清空",
+		i18n.S("清空非收藏历史？", "Clear unstarred history?"),
+		i18n.S("收藏项会被保留，其余记录删除后无法撤销。", "Starred items will remain. Deleted unstarred records cannot be restored."),
+		i18n.S("取消", "Cancel"), i18n.S("清空", "Clear"),
 	); switchIdx == 1 {
 		if err := h.plugin.Service().Clear(); err != nil {
-			h.status = "清空失败: " + err.Error()
+			h.setStatus(i18n.F("清空失败: %v", "Clear failed: %v", err), 2)
 		} else {
-			h.status = "已清空非收藏记录"
-			c.Toast("已清空非收藏记录")
+			h.setStatus(i18n.S("已清空非收藏记录", "Cleared unstarred records"), 0)
+			c.Toast(i18n.S("已清空非收藏记录", "Cleared unstarred records"))
 		}
 		h.clearImageCaches()
 		h.Reload()
@@ -705,25 +716,27 @@ func (h *historyView) openSettings() {
 func (h *historyView) toggleMonitoringWithToast() {
 	on := h.plugin.ToggleMonitoring()
 	if on {
-		h.status = "剪贴板监控已恢复"
-		h.pendingToast = "剪贴板监控已恢复"
+		msg := i18n.S("剪贴板监控已恢复", "Clipboard monitoring resumed")
+		h.setStatus(msg, 0)
+		h.pendingToast = msg
 	} else {
-		h.status = "剪贴板监控已暂停"
-		h.pendingToast = "剪贴板监控已暂停"
+		msg := i18n.S("剪贴板监控已暂停", "Clipboard monitoring paused")
+		h.setStatus(msg, 1)
+		h.pendingToast = msg
 	}
 	h.invalidate()
 }
 
 func (h *historyView) searchHeader(c *ui.Context, pal pureui.Palette) {
 	height := float32(48)
-	placeholder := "搜索剪贴板历史、文件名或来源…"
+	placeholder := i18n.S("搜索剪贴板历史、文件名或来源…", "Search clipboard history, filenames, or apps…")
 	if h.compact {
 		height = 46
-		placeholder = "搜索剪贴板历史…"
+		placeholder = i18n.S("搜索剪贴板历史…", "Search clipboard history…")
 	}
 	ui.Row(c).Height(height).Padding(8, 12).Gap(7).AlignItems(ui.Center).Background(pal.BgElevated).DragWindow().Children(func() {
 		field := ui.SearchField(c, &h.query).Placeholder(placeholder).Grow(1).MinWidth(120).Bind(&h.search).
-		Background(pal.ControlBg).Border(0, ui.Transparent).FocusRing(false)
+			Background(pal.ControlBg).Border(0, ui.Transparent).FocusRing(false)
 		if h.focusSearch {
 			h.search.Focus()
 			h.focusSearch = false
@@ -737,7 +750,7 @@ func (h *historyView) searchHeader(c *ui.Context, pal pureui.Palette) {
 		}
 
 		if h.query != "" {
-			if pureui.IconButton(c, pureui.IconXCircle, "清空搜索", "清空搜索关键字", false, false, pal).Size(24, 24).Radius(6).Clicked() {
+			if pureui.IconButton(c, pureui.IconXCircle, i18n.S("清空搜索", "Clear search"), i18n.S("清空搜索关键字", "Clear search query"), false, false, pal).Size(24, 24).Radius(6).Clicked() {
 				h.query = ""
 				h.focusSearch = true
 				h.applyFilter(false)
@@ -747,12 +760,12 @@ func (h *historyView) searchHeader(c *ui.Context, pal pureui.Palette) {
 
 		monitoring := h.plugin.Monitoring()
 		dotColor := pal.Success
-		monLabel := "监听中"
-		monTip := "正在监听剪贴板（点击暂停）"
+		monLabel := i18n.S("监听中", "Monitoring")
+		monTip := i18n.S("正在监听剪贴板（点击暂停）", "Monitoring clipboard (click to pause)")
 		if !monitoring {
 			dotColor = pal.Warning
-			monLabel = "已暂停"
-			monTip = "剪贴板监听已暂停（点击恢复）"
+			monLabel = i18n.S("已暂停", "Paused")
+			monTip = i18n.S("剪贴板监听已暂停（点击恢复）", "Clipboard monitoring paused (click to resume)")
 		}
 		monBtn := ui.ButtonBase(c).Size(24, 24).Radius(6).Center().Label(monLabel).Tooltip(monTip)
 		if monBtn.Pressed() {
@@ -767,43 +780,43 @@ func (h *historyView) searchHeader(c *ui.Context, pal pureui.Palette) {
 		})
 		monBtn.OnClick(h.toggleMonitoringWithToast)
 
-		viewTip := "展开双栏预览 (Tab)"
+		viewTip := i18n.S("展开双栏预览 (Tab)", "Expand split preview (Tab)")
 		if !h.compact {
-			viewTip = "收起为精简浮窗 (Tab)"
+			viewTip = i18n.S("收起为精简浮窗 (Tab)", "Collapse to compact popup (Tab)")
 		}
-		if pureui.IconButton(c, pureui.IconPanelRight, "切换视图", viewTip, !h.compact, false, pal).Size(26, 26).Radius(6).Clicked() {
+		if pureui.IconButton(c, pureui.IconPanelRight, i18n.S("切换视图", "Toggle View"), viewTip, !h.compact, false, pal).Size(26, 26).Radius(6).Clicked() {
 			h.toggleCompact()
 		}
 		if !h.compact || h.pinned {
-			if pureui.IconButton(c, pureui.IconPin, "钉住", "钉住面板（失焦不自动关闭）", h.pinned, false, pal).Size(26, 26).Radius(6).Clicked() {
+			if pureui.IconButton(c, pureui.IconPin, i18n.S("钉住", "Pin"), i18n.S("钉住面板（失焦不自动关闭）", "Pin panel (stay open when unfocused)"), h.pinned, false, pal).Size(26, 26).Radius(6).Clicked() {
 				h.pinned = !h.pinned
 				h.invalidate()
 			}
 		}
 
-		moreBtn := pureui.IconButton(c, pureui.IconMoreHorizontal, "更多操作", "更多操作", false, false, pal).Size(26, 26).Radius(6)
+		moreBtn := pureui.IconButton(c, pureui.IconMoreHorizontal, i18n.S("更多操作", "More Actions"), i18n.S("更多操作", "More actions"), false, false, pal).Size(26, 26).Radius(6)
 		moreBtn.Menu(func(m *ui.Menu) {
-			if m.Item("钉住面板").Checked(h.pinned).Chosen() {
+			if m.Item(i18n.S("钉住面板", "Pin Panel")).Checked(h.pinned).Chosen() {
 				h.pinned = !h.pinned
 				h.invalidate()
 			}
-			monMenuLabel := "暂停剪贴板监听"
+			monMenuLabel := i18n.S("暂停剪贴板监听", "Pause Clipboard Monitoring")
 			if !monitoring {
-				monMenuLabel = "恢复剪贴板监听"
+				monMenuLabel = i18n.S("恢复剪贴板监听", "Resume Clipboard Monitoring")
 			}
 			if m.Item(monMenuLabel).Chosen() {
 				h.toggleMonitoringWithToast()
 			}
 			m.Separator()
-			if m.Item("清空非收藏历史…").Chosen() {
+			if m.Item(i18n.S("清空非收藏历史…", "Clear Unstarred History…")).Chosen() {
 				h.confirmClear = true
 				h.invalidate()
 			}
-			if m.Item("打开 PureClip 设置…").Chosen() {
+			if m.Item(i18n.S("打开 PureClip 设置…", "Open PureClip Settings…")).Chosen() {
 				h.openSettings()
 			}
 			m.Separator()
-			if m.Item("关闭 (Esc)").Chosen() {
+			if m.Item(i18n.S("关闭 (Esc)", "Close (Esc)")).Chosen() {
 				h.closeWindow()
 			}
 		})
@@ -812,11 +825,21 @@ func (h *historyView) searchHeader(c *ui.Context, pal pureui.Palette) {
 }
 
 func (h *historyView) filterRow(c *ui.Context, pal pureui.Palette) {
-	filters := [...]string{"全部", "文本", "图片", "文件", "收藏"}
+	filters := [...]string{
+		i18n.S("全部", "All"),
+		i18n.S("文本", "Text"),
+		i18n.S("图片", "Image"),
+		i18n.S("文件", "Files"),
+		i18n.S("收藏", "Starred"),
+	}
+	pillPadX := float32(9)
+	if h.compact {
+		pillPadX = 7
+	}
 	ui.Row(c).Height(34).Padding(0, 12).Gap(4).AlignItems(ui.Center).Background(pal.Bg).Children(func() {
 		for i, label := range filters {
 			active := h.filter == i
-			btn := ui.ButtonBase(c).Padding(3, 9).Radius(7).Center().Label(label)
+			btn := ui.ButtonBase(c).Padding(3, pillPadX).Radius(7).Center().Label(label)
 			fg := pal.TextMuted
 			bg := ui.Transparent
 			weight := 500
@@ -843,7 +866,7 @@ func (h *historyView) filterRow(c *ui.Context, pal pureui.Palette) {
 			}
 		}
 		ui.Spacer(c)
-		countText := fmt.Sprintf("%d 条", len(h.items))
+		countText := i18n.F("%d 条", "%d items", len(h.items))
 		if h.compact {
 			countText = fmt.Sprintf("%d", len(h.items))
 		}
@@ -854,8 +877,8 @@ func (h *historyView) filterRow(c *ui.Context, pal pureui.Palette) {
 
 func (h *historyView) emptyBody(c *ui.Context, pal pureui.Palette) {
 	if h.query != "" || h.filter != 0 {
-		pureui.EmptyState(c, pureui.IconSearch, "没有匹配的记录", "尝试更换搜索关键字，或重置当前类型筛选条件。", pal, func() {
-			btn := ui.ButtonBase(c).Height(34).Padding(0, 16).Radius(9).Center().Label("重置筛选").
+		pureui.EmptyState(c, pureui.IconSearch, i18n.S("没有匹配的记录", "No matching items"), i18n.S("尝试更换搜索关键字，或重置当前类型筛选条件。", "Try a different search term or reset the active type filter."), pal, func() {
+			btn := ui.ButtonBase(c).Height(34).Padding(0, 16).Radius(9).Center().Label(i18n.S("重置筛选", "Reset Filter")).
 				InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.22)).
 				Shadow(0, 4, 12, 0, pal.Accent.Alpha(0.28))
 			if btn.Pressed() {
@@ -866,7 +889,7 @@ func (h *historyView) emptyBody(c *ui.Context, pal pureui.Palette) {
 				btn.Gradient(pal.Accent, pal.AccentEnd, 135)
 			}
 			btn.Children(func() {
-				ui.Text(c, "重置筛选").FontSize(12).FontWeight(600).SingleLine().TextColor(pal.AccentText)
+				ui.Text(c, i18n.S("重置筛选", "Reset Filter")).FontSize(12).FontWeight(600).SingleLine().TextColor(pal.AccentText)
 			})
 			btn.OnClick(func() {
 				h.query = ""
@@ -877,11 +900,11 @@ func (h *historyView) emptyBody(c *ui.Context, pal pureui.Palette) {
 		})
 		return
 	}
-	pureui.EmptyState(c, pureui.IconClipboard, "剪贴板历史为空", "复制文本、代码、图片或文件后，这里会自动收录并智能去重。", pal, func() {
+	pureui.EmptyState(c, pureui.IconClipboard, i18n.S("剪贴板历史为空", "Clipboard history is empty"), i18n.S("复制文本、代码、图片或文件后，这里会自动收录并智能去重。", "Copy text, code, images, or files and they will be captured and deduplicated here."), pal, func() {
 		tips := []struct{ k, v string }{
-			{"Ctrl+Shift+V", "呼出面板"},
-			{"1-9", "快捷粘贴"},
-			{"F", "星标保留"},
+			{"Ctrl+Shift+V", i18n.S("呼出面板", "Toggle Panel")},
+			{"1-9", i18n.S("快捷粘贴", "Quick Paste")},
+			{"F", i18n.S("星标保留", "Star")},
 		}
 		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).AlignItems(ui.Center).Children(func() {
 			for _, tip := range tips {
@@ -933,36 +956,36 @@ func (h *historyView) listPane(c *ui.Context, pal pureui.Palette) {
 
 func (h *historyView) rowContextMenu(r ui.Element, rec Record) {
 	r.ContextMenu(func(m *ui.Menu) {
-		if m.Item("粘贴").Chosen() {
+		if m.Item(i18n.S("粘贴", "Paste")).Chosen() {
 			h.pending, h.pendingID = "paste", rec.ID
 		}
-		if m.Item("复制到剪贴板").Chosen() {
+		if m.Item(i18n.S("复制到剪贴板", "Copy to Clipboard")).Chosen() {
 			h.pending, h.pendingID = "copy", rec.ID
 		}
-		if m.Item("收藏").Checked(rec.Favorite).Chosen() {
+		if m.Item(i18n.S("收藏", "Star")).Checked(rec.Favorite).Chosen() {
 			h.pending, h.pendingID = "favorite", rec.ID
 		}
 		if h.plugin.canPin() {
-			if m.Item("贴成图片").Chosen() {
+			if m.Item(i18n.S("贴成图片", "Pin to Screen")).Chosen() {
 				h.pending, h.pendingID = "pin", rec.ID
 			}
 		}
 		if h.plugin.canPreviewImage() && (rec.Kind == core.KindImage || (rec.Kind == core.KindFiles && firstImageFileFromPayload(rec.PayloadJSON) != "")) {
-			if m.Item("用 PureImage 查看").Chosen() {
+			if m.Item(i18n.S("用 PureImage 查看", "Open in PureImage")).Chosen() {
 				h.pending, h.pendingID = "view", rec.ID
 			}
 		}
 		if rec.Kind == core.KindFiles {
 			m.Separator()
-			if m.Item("复制路径").Chosen() {
+			if m.Item(i18n.S("复制路径", "Copy Path")).Chosen() {
 				h.pending, h.pendingID = "copy-path", rec.ID
 			}
-			if m.Item("打开所在文件夹").Chosen() {
+			if m.Item(i18n.S("打开所在文件夹", "Reveal in Explorer")).Chosen() {
 				h.pending, h.pendingID = "reveal", rec.ID
 			}
 		}
 		m.Separator()
-		if m.Item("删除").Chosen() {
+		if m.Item(i18n.S("删除", "Delete")).Chosen() {
 			h.pending, h.pendingID = "delete", rec.ID
 		}
 	})
@@ -989,7 +1012,7 @@ func rowTitle(rec Record) string {
 		if rec.Width > 0 && rec.Height > 0 {
 			return fmt.Sprintf("PNG %d×%d · %s", rec.Width, rec.Height, sizeStr)
 		}
-		return "PNG 图片 · " + sizeStr
+		return i18n.S("PNG 图片 · ", "PNG Image · ") + sizeStr
 	}
 	return rec.Preview
 }
@@ -998,9 +1021,9 @@ func rowMeta(rec Record) string {
 	parts := make([]string, 0, 3)
 	switch rec.Kind {
 	case core.KindFiles:
-		parts = append(parts, "文件")
+		parts = append(parts, core.KindFiles.String())
 	case core.KindRichText:
-		parts = append(parts, "富文本")
+		parts = append(parts, core.KindRichText.String())
 	}
 	parts = append(parts, timeAgo(rec.LastUsedUTC))
 	if rec.SourceProcess != "" {
@@ -1127,7 +1150,7 @@ func softActionButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active
 func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 	ui.Column(c).Fill().Background(pal.SidebarBg).Padding(12, 14).Gap(10).Children(func() {
 		if h.selected < 0 || h.selected >= len(h.items) {
-			pureui.EmptyState(c, pureui.IconFileText, "选择一条记录查看详情", "在左侧列表点击或使用 ↑↓ 键切换记录。", pal, nil)
+			pureui.EmptyState(c, pureui.IconFileText, i18n.S("选择一条记录查看详情", "Select an item to preview"), i18n.S("在左侧列表点击或使用 ↑↓ 键切换记录。", "Click an item on the left or press ↑↓ to switch."), pal, nil)
 			return
 		}
 		rec := &h.items[h.selected]
@@ -1149,7 +1172,7 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 
 			case core.KindFiles:
 				payload = DecodePayload(rec.PayloadJSON)
-				leftMeta = fmt.Sprintf("%d 个文件", len(payload.Files))
+				leftMeta = i18n.F("%d 个文件", "%d files", len(payload.Files))
 				ui.Box(c).Fill().Padding(10, 12).Radius(10).Background(pal.CardBg).Children(func() {
 					ui.Scroll(c).Fill().Children(func() {
 						ui.Column(c).Gap(6).Children(func() {
@@ -1168,7 +1191,7 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 										ui.Text(c, dir).FontSize(10).SingleLine().TextColor(pal.TextMuted)
 									})
 									if !exists {
-										pureui.PillBadge(c, "已失效", pal.Danger, pal.DangerSoft)
+										pureui.PillBadge(c, i18n.S("已失效", "Missing"), pal.Danger, pal.DangerSoft)
 									}
 								})
 							}
@@ -1183,7 +1206,7 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 				}
 				lines := strings.Count(bodyStr, "\n") + 1
 				chars := utf8.RuneCountInString(bodyStr)
-				leftMeta = fmt.Sprintf("%d 字符 · %d 行", chars, lines)
+				leftMeta = i18n.F("%d 字符 · %d 行", "%d chars · %d lines", chars, lines)
 				ui.Box(c).Fill().Padding(12, 14).Radius(10).Background(pal.CardBg).Children(func() {
 					ui.Scroll(c).Fill().Children(func() {
 						ui.Text(c, bodyStr).FontSize(12.5).LineHeight(1.55).Selectable().TextColor(pal.Text)
@@ -1196,10 +1219,10 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
 			ui.Text(c, leftMeta).FontSize(11).SingleLine().TextColor(pal.TextMuted)
 			if rec.BodyTruncated {
-				pureui.PillBadge(c, "已截断", pal.Warning, pal.WarningSoft)
+				pureui.PillBadge(c, i18n.S("已截断", "Truncated"), pal.Warning, pal.WarningSoft)
 			}
 			if rec.IsLegacy() {
-				pureui.PillBadge(c, "旧库只读", pal.Warning, pal.WarningSoft)
+				pureui.PillBadge(c, i18n.S("旧库只读", "Legacy Read-Only"), pal.Warning, pal.WarningSoft)
 			}
 			ui.Spacer(c)
 			rightMeta := timeAgo(rec.LastUsedUTC)
@@ -1212,7 +1235,7 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 		// 3. Clean action bar
 		ui.Row(c).Gap(6).AlignItems(ui.Center).Shrink(0).Children(func() {
 			pasteBtn := ui.ButtonBase(c).Height(32).Grow(1).Radius(8).Padding(0, 14).Gap(6).Center().
-				Label("粘贴").Tooltip("粘贴到原窗口 (Enter)")
+				Label(i18n.S("粘贴", "Paste")).Tooltip(i18n.S("粘贴到原窗口 (Enter)", "Paste into previous window (Enter)"))
 			if pasteBtn.Pressed() {
 				pasteBtn.Background(pal.AccentPressed)
 			} else if pasteBtn.Hovered() {
@@ -1221,14 +1244,14 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 				pasteBtn.Gradient(pal.Accent, pal.AccentEnd, 135)
 			}
 			pasteBtn.Children(func() {
-				ui.Text(c, "粘贴 ↵").FontSize(12).FontWeight(600).SingleLine().TextColor(pal.AccentText)
+				ui.Text(c, i18n.S("粘贴 ↵", "Paste ↵")).FontSize(12).FontWeight(600).SingleLine().TextColor(pal.AccentText)
 			})
 			pasteBtn.OnClick(func() {
 				h.pending, h.pendingID = "paste", rec.ID
 				h.invalidate()
 			})
 
-			if softActionButton(c, pureui.IconCopy, "复制", "复制到剪贴板 (Ctrl+C)", false, false, 32, pal).Clicked() {
+			if softActionButton(c, pureui.IconCopy, i18n.S("复制", "Copy"), i18n.S("复制到剪贴板 (Ctrl+C)", "Copy to clipboard (Ctrl+C)"), false, false, 32, pal).Clicked() {
 				h.pending, h.pendingID = "copy", rec.ID
 				h.invalidate()
 			}
@@ -1236,37 +1259,37 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 			if rec.Favorite {
 				favIcon = pureui.IconStarFilled
 			}
-			if softActionButton(c, favIcon, "收藏", "收藏 / 取消收藏 (F)", rec.Favorite, false, 32, pal).Clicked() {
+			if softActionButton(c, favIcon, i18n.S("收藏", "Star"), i18n.S("收藏 / 取消收藏 (F)", "Star / Unstar (F)"), rec.Favorite, false, 32, pal).Clicked() {
 				h.pending, h.pendingID = "favorite", rec.ID
 				h.invalidate()
 			}
-			if h.plugin.canPin() && softActionButton(c, pureui.IconPin, "贴图", "贴到桌面悬浮显示 (P)", false, false, 32, pal).Clicked() {
+			if h.plugin.canPin() && softActionButton(c, pureui.IconPin, i18n.S("贴图", "Pin"), i18n.S("贴到桌面悬浮显示 (P)", "Pin as floating widget (P)"), false, false, 32, pal).Clicked() {
 				h.pending, h.pendingID = "pin", rec.ID
 				h.invalidate()
 			}
 			if rec.Kind == core.KindImage && h.plugin.canPreviewImage() {
-				if softActionButton(c, pureui.IconEye, "用 PureImage 查看", "在 PureImage 中大图查看", false, false, 32, pal).Clicked() {
+				if softActionButton(c, pureui.IconEye, i18n.S("用 PureImage 查看", "Open in PureImage"), i18n.S("在 PureImage 中大图查看", "View image in PureImage"), false, false, 32, pal).Clicked() {
 					h.pending, h.pendingID = "view", rec.ID
 					h.invalidate()
 				}
 			}
 			if rec.Kind == core.KindFiles {
 				if h.plugin.canPreviewImage() && firstImageFileFromPayload(rec.PayloadJSON) != "" {
-					if softActionButton(c, pureui.IconEye, "用 PureImage 查看", "在 PureImage 中查看图片文件", false, false, 32, pal).Clicked() {
+					if softActionButton(c, pureui.IconEye, i18n.S("用 PureImage 查看", "Open in PureImage"), i18n.S("在 PureImage 中查看图片文件", "Open image file in PureImage"), false, false, 32, pal).Clicked() {
 						h.pending, h.pendingID = "view", rec.ID
 						h.invalidate()
 					}
 				}
-				if softActionButton(c, pureui.IconExternalLink, "复制路径", "复制文件路径列表", false, false, 32, pal).Clicked() {
+				if softActionButton(c, pureui.IconExternalLink, i18n.S("复制路径", "Copy Path"), i18n.S("复制文件路径列表", "Copy file path list"), false, false, 32, pal).Clicked() {
 					h.pending, h.pendingID = "copy-path", rec.ID
 					h.invalidate()
 				}
-				if softActionButton(c, pureui.IconFolder, "打开所在文件夹", "在资源管理器中显示", false, false, 32, pal).Clicked() {
+				if softActionButton(c, pureui.IconFolder, i18n.S("打开所在文件夹", "Reveal in Explorer"), i18n.S("在资源管理器中显示", "Reveal in File Explorer"), false, false, 32, pal).Clicked() {
 					h.pending, h.pendingID = "reveal", rec.ID
 					h.invalidate()
 				}
 			}
-			if softActionButton(c, pureui.IconTrash, "删除", "删除该记录 (Delete)", false, true, 32, pal).Clicked() {
+			if softActionButton(c, pureui.IconTrash, i18n.S("删除", "Delete"), i18n.S("删除该记录 (Delete)", "Delete entry (Delete)"), false, true, 32, pal).Clicked() {
 				h.pending, h.pendingID = "delete", rec.ID
 				h.invalidate()
 			}
@@ -1364,7 +1387,7 @@ func (h *historyView) previewPopoverView(c *ui.Context) {
 				ui.Text(c, rec.SourceProcess).FontSize(10.5).SingleLine().TextColor(pal.TextMuted)
 			}
 			if rec.IsLegacy() {
-				pureui.PillBadge(c, "旧库只读", pal.Warning, pal.WarningSoft)
+				pureui.PillBadge(c, i18n.S("旧库只读", "Legacy Read-Only"), pal.Warning, pal.WarningSoft)
 			}
 			if rec.Favorite {
 				ui.Icon(c, pureui.IconStarFilled).Size(12, 12).TextColor(pal.Favorite)
@@ -1397,7 +1420,7 @@ func (h *historyView) previewPopoverView(c *ui.Context) {
 									ui.Text(c, dir).FontSize(9.5).SingleLine().TextColor(pal.TextMuted)
 								})
 								if !exists {
-									pureui.PillBadge(c, "已失效", pal.Danger, pal.DangerSoft)
+									pureui.PillBadge(c, i18n.S("已失效", "Missing"), pal.Danger, pal.DangerSoft)
 								}
 							})
 						}
@@ -1422,19 +1445,19 @@ func (h *historyView) previewPopoverView(c *ui.Context) {
 				ui.Text(c, fmt.Sprintf("%d × %d px · %s", rec.Width, rec.Height, humanBytes(rec.ByteSize))).
 					FontSize(10).SingleLine().TextColor(pal.TextMuted)
 			case core.KindFiles:
-				ui.Text(c, fmt.Sprintf("共 %d 个文件", len(payload.Files))).
+				ui.Text(c, i18n.F("共 %d 个文件", "%d files", len(payload.Files))).
 					FontSize(10).SingleLine().TextColor(pal.TextMuted)
 			default:
 				lines := strings.Count(bodyStr, "\n") + 1
 				chars := utf8.RuneCountInString(bodyStr)
-				ui.Text(c, fmt.Sprintf("%d 字符 · %d 行", chars, lines)).
+				ui.Text(c, i18n.F("%d 字符 · %d 行", "%d chars · %d lines", chars, lines)).
 					FontSize(10).SingleLine().TextColor(pal.TextMuted)
 				if rec.BodyTruncated {
-					pureui.PillBadge(c, "已截断", pal.Warning, pal.WarningSoft)
+					pureui.PillBadge(c, i18n.S("已截断", "Truncated"), pal.Warning, pal.WarningSoft)
 				}
 			}
 			ui.Spacer(c)
-			ui.Text(c, "Tab 完整视图").FontSize(10).SingleLine().TextColor(pal.TextMuted.Alpha(0.72))
+			ui.Text(c, i18n.S("Tab 完整视图", "Tab Full View")).FontSize(10).SingleLine().TextColor(pal.TextMuted.Alpha(0.72))
 		})
 	})
 }
@@ -1468,13 +1491,9 @@ func (h *historyView) moveSelection(delta int) {
 func (h *historyView) footer(c *ui.Context, pal pureui.Palette) {
 	ui.Box(c).Height(1).FillWidth().Background(pal.Border)
 	ui.Row(c).Height(26).Padding(0, 12).Gap(8).AlignItems(ui.Center).Background(pal.SidebarBg).Children(func() {
-		hasAlert := strings.Contains(h.status, "失败") ||
-			strings.Contains(h.status, "暂停") ||
-			strings.Contains(h.status, "只读") ||
-			strings.Contains(h.status, "失效")
-		if hasAlert {
+		if h.statusAlert > 0 && h.status != "" {
 			dotCol := pal.Warning
-			if strings.Contains(h.status, "失败") || strings.Contains(h.status, "失效") {
+			if h.statusAlert >= 2 {
 				dotCol = pal.Danger
 			}
 			ui.Row(c).Gap(5).AlignItems(ui.Center).Grow(1).MinWidth(0).Children(func() {
@@ -1482,15 +1501,15 @@ func (h *historyView) footer(c *ui.Context, pal pureui.Palette) {
 				ui.Text(c, h.status).FontSize(10).SingleLine().TextColor(pal.TextMuted)
 			})
 		} else {
-			hints := "↵ 粘贴   Ctrl+1-9 快选   Ctrl+P 贴图   Del 删除"
+			hints := i18n.S("↵ 粘贴   Ctrl+1-9 快选   Ctrl+P 贴图   Del 删除", "↵ Paste · Ctrl+1-9 Quick · Ctrl+P Pin · Del Delete")
 			if h.compact {
-				hints = "↵ 粘贴   Ctrl+1-9 快选   Tab 展开"
+				hints = i18n.S("↵ 粘贴   Ctrl+1-9 快选   Tab 展开", "↵ Paste · Ctrl+1-9 Quick · Tab Expand")
 			}
 			ui.Text(c, hints).FontSize(10).SingleLine().TextColor(pal.TextMuted.Alpha(0.75))
 			ui.Spacer(c)
 		}
 
-		rightHint := "Tab 收起"
+		rightHint := i18n.S("Tab 收起", "Tab Compact")
 		if h.compact {
 			rightHint = "Esc"
 		}
@@ -1646,11 +1665,11 @@ func (h *historyView) renderPreviewImage(c *ui.Context, rec *Record, pal pureui.
 	}
 	if h.previewLoading[rec.ID] || h.previewLoadingID == rec.ID {
 		ui.Box(c).Fill().Radius(10).Background(pal.BgInset).Center().Children(func() {
-			ui.Text(c, "加载图片预览…").FontSize(11).TextColor(pal.TextMuted)
+			ui.Text(c, i18n.S("加载图片预览…", "Loading image preview…")).FontSize(11).TextColor(pal.TextMuted)
 		})
 		return
 	}
-	pureui.EmptyState(c, pureui.IconAlertCircle, "图片文件缺失", "原始内容文件可能已被外部删除或移动。", pal, nil)
+	pureui.EmptyState(c, pureui.IconAlertCircle, i18n.S("图片文件缺失", "Image file missing"), i18n.S("原始内容文件可能已被外部删除或移动。", "The original image file may have been moved or deleted."), pal, nil)
 }
 
 func (h *historyView) applyPending(c *ui.Context) {
@@ -1664,24 +1683,25 @@ func (h *historyView) applyPending(c *ui.Context) {
 	case "favorite":
 		if _, err := h.plugin.Service().ToggleFavorite(id); err != nil {
 			if errors.Is(err, ErrLegacyReadOnly) {
-				h.status = "旧版历史记录为只读，无法收藏或修改"
+				h.setStatus(i18n.S("旧版历史记录为只读，无法收藏或修改", "Legacy history is read-only and cannot be starred or edited"), 1)
 			} else {
-				h.status = "收藏失败: " + err.Error()
+				h.setStatus(i18n.F("收藏失败: %v", "Star failed: %v", err), 2)
 			}
 		} else {
-			h.status = "已更新收藏状态"
+			h.setStatus(i18n.S("已更新收藏状态", "Updated star status"), 0)
 		}
 		h.Reload()
 	case "delete":
 		if err := h.plugin.Service().Delete(id); err != nil {
 			if errors.Is(err, ErrLegacyReadOnly) {
-				h.status = "旧版历史记录为只读，无法删除"
+				h.setStatus(i18n.S("旧版历史记录为只读，无法删除", "Legacy history is read-only and cannot be deleted"), 1)
 			} else {
-				h.status = "删除失败: " + err.Error()
+				h.setStatus(i18n.F("删除失败: %v", "Delete failed: %v", err), 2)
 			}
 		} else {
-			h.status = "已删除记录"
-			c.Toast("已删除记录")
+			msg := i18n.S("已删除记录", "Entry deleted")
+			h.setStatus(msg, 0)
+			c.Toast(msg)
 		}
 		delete(h.thumbCache, id)
 		delete(h.thumbLoading, id)
@@ -1725,13 +1745,13 @@ func (h *historyView) paste(id int64) {
 				return
 			}
 			if len(outcome.MissingFiles) > 0 {
-				h.status = fmt.Sprintf("已粘贴，但 %d 个文件地址已失效", len(outcome.MissingFiles))
+				h.setStatus(i18n.F("已粘贴，但 %d 个文件地址已失效", "Pasted, but %d file paths are missing", len(outcome.MissingFiles)), 2)
 				h.suppressBlur = false
 				h.invalidate()
 				return
 			}
 			if !outcome.Wrote {
-				h.status = "写回剪贴板失败"
+				h.setStatus(i18n.S("写回剪贴板失败", "Failed to write to clipboard"), 2)
 				h.suppressBlur = false
 				h.invalidate()
 				return
@@ -1749,12 +1769,13 @@ func (h *historyView) copyToClipboard(id int64) {
 				return
 			}
 			if len(outcome.MissingFiles) > 0 {
-				h.status = fmt.Sprintf("已复制，但 %d 个文件地址已失效", len(outcome.MissingFiles))
+				h.setStatus(i18n.F("已复制，但 %d 个文件地址已失效", "Copied, but %d file paths are missing", len(outcome.MissingFiles)), 2)
 			} else if outcome.Wrote {
-				h.status = "已复制到剪贴板"
-				h.pendingToast = "已复制到剪贴板"
+				msg := i18n.S("已复制到剪贴板", "Copied to clipboard")
+				h.setStatus(msg, 0)
+				h.pendingToast = msg
 			} else {
-				h.status = "写回剪贴板失败"
+				h.setStatus(i18n.S("写回剪贴板失败", "Failed to write to clipboard"), 2)
 			}
 			h.Reload()
 			h.invalidate()
@@ -1764,35 +1785,35 @@ func (h *historyView) copyToClipboard(id int64) {
 
 func (h *historyView) pinRecord(id int64) {
 	if !h.plugin.canPin() {
-		h.status = "PureShot 贴图插件未启用"
+		h.setStatus(i18n.S("PureShot 贴图插件未启用", "PureShot pin plugin is disabled"), 1)
 		return
 	}
 	content, err := h.plugin.Service().LoadContent(id)
 	if err != nil || content == nil || content.IsEmpty() {
-		h.status = "这条记录没有可贴的内容"
+		h.setStatus(i18n.S("这条记录没有可贴的内容", "This entry has no pinnable content"), 1)
 		return
 	}
 	if err := purekit.CallImagePinContent(context.Background(), h.plugin.host.Bus(), content, 0); err != nil {
-		h.status = "这条记录无法贴图显示"
+		h.setStatus(i18n.S("这条记录无法贴图显示", "Unable to pin this entry"), 2)
 		return
 	}
 	if content.PrimaryKind() == core.KindImage {
-		h.status = "已贴成图片"
-		h.pendingToast = "已贴成悬浮图片"
+		h.setStatus(i18n.S("已贴成图片", "Pinned image"), 0)
+		h.pendingToast = i18n.S("已贴成悬浮图片", "Pinned as floating image")
 	} else {
-		h.status = "已贴到桌面"
-		h.pendingToast = "已贴到桌面悬浮显示"
+		h.setStatus(i18n.S("已贴到桌面", "Pinned to screen"), 0)
+		h.pendingToast = i18n.S("已贴到桌面悬浮显示", "Pinned to screen")
 	}
 }
 
 func (h *historyView) viewInFreeImage(id int64) {
 	if !h.plugin.canPreviewImage() {
-		h.status = "PureImage 看图插件未启用"
+		h.setStatus(i18n.S("PureImage 看图插件未启用", "PureImage viewer plugin is disabled"), 1)
 		return
 	}
 	rec, err := h.plugin.Service().Get(id)
 	if err != nil || rec == nil {
-		h.status = "记录不存在"
+		h.setStatus(i18n.S("记录不存在", "Entry not found"), 1)
 		return
 	}
 	bus := h.plugin.host.Bus()
@@ -1800,30 +1821,30 @@ func (h *historyView) viewInFreeImage(id int64) {
 	case core.KindImage:
 		if fullPath := h.plugin.Service().ResolveImagePath(rec); fullPath != "" && fileExists(fullPath) {
 			if err := purekit.CallImagePreviewPath(context.Background(), bus, fullPath); err == nil {
-				h.status = "已在 PureImage 中打开"
+				h.setStatus(i18n.S("已在 PureImage 中打开", "Opened in PureImage"), 0)
 				return
 			}
 		}
 		content, err := h.plugin.Service().LoadContent(id)
 		if err != nil || content == nil || len(content.ImagePNG) == 0 {
-			h.status = "这条记录没有可用的图片"
+			h.setStatus(i18n.S("这条记录没有可用的图片", "No image available for this entry"), 1)
 			return
 		}
 		img, err := png.Decode(bytes.NewReader(content.ImagePNG))
 		if err != nil {
-			h.status = "图片解码失败: " + err.Error()
+			h.setStatus(i18n.F("图片解码失败: %v", "Failed to decode image: %v", err), 2)
 			return
 		}
-		_ = purekit.CallImagePreviewImage(context.Background(), bus, "剪贴板图片", img)
-		h.status = "已在 PureImage 中打开"
+		_ = purekit.CallImagePreviewImage(context.Background(), bus, i18n.S("剪贴板图片", "Clipboard Image"), img)
+		h.setStatus(i18n.S("已在 PureImage 中打开", "Opened in PureImage"), 0)
 	case core.KindFiles:
 		p := firstImageFileFromPayload(rec.PayloadJSON)
 		if p == "" {
-			h.status = "列表里没有可查看的本地图片文件"
+			h.setStatus(i18n.S("列表里没有可查看的本地图片文件", "No local image files to preview"), 1)
 			return
 		}
 		_ = purekit.CallImagePreviewPath(context.Background(), bus, p)
-		h.status = "已在 PureImage 中打开"
+		h.setStatus(i18n.S("已在 PureImage 中打开", "Opened in PureImage"), 0)
 	}
 }
 
@@ -1853,41 +1874,42 @@ func firstImageFileFromPayload(payloadJSON string) string {
 func (h *historyView) copyPaths(id int64) {
 	rec, err := h.plugin.Service().Get(id)
 	if err != nil || rec == nil {
-		h.status = "记录不存在"
+		h.setStatus(i18n.S("记录不存在", "Entry not found"), 1)
 		return
 	}
 	payload := DecodePayload(rec.PayloadJSON)
 	text := strings.Join(payload.Files, "\n")
 	if text == "" {
-		h.status = "没有文件路径"
+		h.setStatus(i18n.S("没有文件路径", "No file paths"), 1)
 		return
 	}
 	if err := h.plugin.host.Clipboard().WriteText(text, PluginID); err != nil {
-		h.status = "复制路径失败: " + err.Error()
+		h.setStatus(i18n.F("复制路径失败: %v", "Failed to copy paths: %v", err), 2)
 		return
 	}
-	h.status = "文件路径已复制"
-	h.pendingToast = "文件路径已复制"
+	msg := i18n.S("文件路径已复制", "File paths copied")
+	h.setStatus(msg, 0)
+	h.pendingToast = msg
 }
 
 func (h *historyView) reveal(id int64) {
 	rec, err := h.plugin.Service().Get(id)
 	if err != nil || rec == nil {
-		h.status = "记录不存在"
+		h.setStatus(i18n.S("记录不存在", "Entry not found"), 1)
 		return
 	}
 	payload := DecodePayload(rec.PayloadJSON)
 	for _, p := range payload.Files {
 		if fileExists(p) {
 			if err := platform.RevealInFolder(p); err != nil {
-				h.status = "打开文件夹失败: " + err.Error()
+				h.setStatus(i18n.F("打开文件夹失败: %v", "Failed to open folder: %v", err), 2)
 			} else {
-				h.status = "已在资源管理器中打开"
+				h.setStatus(i18n.S("已在资源管理器中打开", "Revealed in Explorer"), 0)
 			}
 			return
 		}
 	}
-	h.status = "文件地址都已失效"
+	h.setStatus(i18n.S("文件地址都已失效", "All file paths are missing"), 2)
 }
 
 func (h *historyView) invalidate() {
@@ -1911,11 +1933,11 @@ func timeAgo(unix int64) string {
 	d := time.Since(time.Unix(unix, 0))
 	switch {
 	case d < time.Minute:
-		return "刚刚"
+		return i18n.S("刚刚", "Just now")
 	case d < time.Hour:
-		return fmt.Sprintf("%d 分钟前", int(d.Minutes()))
+		return i18n.F("%d 分钟前", "%dm ago", int(d.Minutes()))
 	case d < 24*time.Hour:
-		return fmt.Sprintf("%d 小时前", int(d.Hours()))
+		return i18n.F("%d 小时前", "%dh ago", int(d.Hours()))
 	default:
 		return time.Unix(unix, 0).Format("2006-01-02")
 	}
@@ -2021,7 +2043,7 @@ func (a *Plugin) ShowHistory() {
 
 	h := newCompactHistoryView(a)
 	win := mygo.NewWindow(mygo.WindowOptions{
-		Title:             "PureClip 剪贴板历史",
+		Title:             i18n.S("PureClip 剪贴板历史", "PureClip Clipboard History"),
 		Width:             compactHistoryWidth,
 		Height:            compactHistoryHeight,
 		Hidden:            true,

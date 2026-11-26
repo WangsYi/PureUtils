@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 )
 
 // HotkeyResult is one recorder event.
@@ -172,7 +173,7 @@ func (r *HotkeyRecorder) handleKeyEvent(msg uint32, vk uint32, flags uint32) uin
 	}
 	key, ok := core.KeyFromVK(uint16(vk))
 	if !ok {
-		r.send(HotkeyResult{Err: fmt.Sprintf("不支持的按键（VK 0x%02X）", vk)})
+		r.send(HotkeyResult{Err: i18n.F("不支持的按键（VK 0x%02X）", "Unsupported key (VK 0x%02X)", vk)})
 		return 1
 	}
 	g, err := core.HotkeyCapture(mods, key)

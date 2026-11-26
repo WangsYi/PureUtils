@@ -16,6 +16,7 @@ import (
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/config"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	pureui "pureutils/pkg/purekit/ui"
 )
 
@@ -41,14 +42,14 @@ func (p *Plugin) Info() purekit.PluginInfo {
 	return purekit.PluginInfo{
 		ID:          PluginID,
 		Name:        "PureImage",
-		Description: "高性能看图、RAW/动图解码与资源管理器空格预览",
+		Description: i18n.S("高性能看图、RAW/动图解码与资源管理器空格预览", "High-speed image viewer, RAW/animation decode & Explorer Space preview"),
 		Version:     core.AppVersion,
 		ModuleID:    core.ModuleViewer,
 		IconPNG:     viewerIconPNG,
 		Capabilities: []purekit.CapabilityDescriptor{
 			{
 				Name:        purekit.CapImagePreview,
-				Description: "打开图片路径或内存图像、查询支持格式、切换快速预览",
+				Description: i18n.S("打开图片路径或内存图像、查询支持格式、切换快速预览", "Open image paths or in-memory images, query supported formats, toggle quick preview"),
 			},
 		},
 	}
@@ -301,8 +302,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "pureimage.open",
 			PluginID: PluginID,
-			Title:    "打开 PureImage 看图",
-			Subtitle: "浏览本地图片、RAW 与动图",
+			Title:    i18n.S("打开 PureImage 看图", "Open PureImage Viewer"),
+			Subtitle: i18n.S("浏览本地图片、RAW 与动图", "Browse local images, RAW photos, and animations"),
 			Keywords: []string{"image", "viewer", "photo", "pic", "看图", "图片", "预览", "pureimage"},
 			Command:  core.CmdOpenViewer,
 			Shortcut: openShortcut,
@@ -320,8 +321,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "pureimage.quick_preview",
 			PluginID: PluginID,
-			Title:    "PureImage 快速预览",
-			Subtitle: "显示或隐藏当前图片的悬浮预览窗",
+			Title:    i18n.S("PureImage 快速预览", "PureImage Quick Preview"),
+			Subtitle: i18n.S("显示或隐藏当前图片的悬浮预览窗", "Show or hide the floating quick-preview window"),
 			Keywords: []string{"preview", "quick", "快速预览", "悬浮预览"},
 			Shortcut: "Ctrl+Shift+Space",
 			Badge:    "PureImage",
@@ -334,8 +335,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "pureimage.toggle_space",
 			PluginID: PluginID,
-			Title:    "切换资源管理器空格预览",
-			Subtitle: "在资源管理器选中图片后按空格快速预览",
+			Title:    i18n.S("切换资源管理器空格预览", "Toggle Explorer Space Preview"),
+			Subtitle: i18n.S("在资源管理器选中图片后按空格快速预览", "Press Spacebar in Explorer to preview selected images"),
 			Keywords: []string{"space", "explorer", "空格预览", "资源管理器"},
 			Badge:    "PureImage",
 			Icon:     pureui.IconEye,
@@ -356,7 +357,7 @@ type imageMatcher struct {
 }
 
 func (m imageMatcher) ID() string    { return "pureimage.matcher" }
-func (m imageMatcher) Title() string { return "PureImage 看图匹配" }
+func (m imageMatcher) Title() string { return i18n.S("PureImage 看图匹配", "PureImage Image Match") }
 
 func (m imageMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 	var results []purekit.MatchResult
@@ -375,7 +376,7 @@ func (m imageMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 		results = append(results, purekit.MatchResult{
 			FeatureID: "pureimage.open",
 			PluginID:  PluginID,
-			Title:     "用 PureImage 查看 " + filepath.Base(path),
+			Title:     i18n.F("用 PureImage 查看 %s", "View %s with PureImage", filepath.Base(path)),
 			Subtitle:  path,
 			Score:     score,
 			Badge:     "PureImage",
@@ -405,8 +406,8 @@ func (m imageMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 		results = append(results, purekit.MatchResult{
 			FeatureID: "pureimage.open_clipboard",
 			PluginID:  PluginID,
-			Title:     "用 PureImage 查看剪贴板图片",
-			Subtitle:  "在独立看图窗口打开当前剪贴板中的图片",
+			Title:     i18n.S("用 PureImage 查看剪贴板图片", "View Clipboard Image in PureImage"),
+			Subtitle:  i18n.S("在独立看图窗口打开当前剪贴板中的图片", "Open the clipboard image in PureImage viewer"),
 			Score:     82,
 			Badge:     "PureImage",
 			Icon:      pureui.IconImage,
@@ -416,7 +417,7 @@ func (m imageMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 				if err != nil {
 					return err
 				}
-				m.plugin.OpenImage("剪贴板图片", img)
+				m.plugin.OpenImage(i18n.S("剪贴板图片", "Clipboard Image"), img)
 				return nil
 			},
 		})
@@ -442,7 +443,7 @@ func (p *Plugin) Hotkeys() []purekit.HotkeySpec {
 		{
 			ID:             "pureimage.open",
 			Command:        core.CmdOpenViewer,
-			Label:          "打开 PureImage 看图",
+			Label:          i18n.S("打开 PureImage 看图", "Open PureImage Viewer"),
 			DefaultGesture: "",
 			CurrentGesture: func() string {
 				if p.host == nil {
@@ -462,7 +463,7 @@ func (p *Plugin) Hotkeys() []purekit.HotkeySpec {
 		},
 		{
 			ID:             "pureimage.quick_preview",
-			Label:          "PureImage 快速预览",
+			Label:          i18n.S("PureImage 快速预览", "PureImage Quick Preview"),
 			DefaultGesture: "Ctrl+Shift+Space",
 			CurrentGesture: func() string {
 				if p.Config().SpacePreview {
@@ -485,7 +486,7 @@ func (p *Plugin) TrayItems() []purekit.TrayItemSpec {
 			ID:          "pureimage.open",
 			Section:     purekit.TraySectionPrimary,
 			Kind:        purekit.TrayItemAction,
-			Label:       "打开 PureImage 看图",
+			Label:       i18n.S("打开 PureImage 看图", "Open PureImage Viewer"),
 			Accelerator: accel,
 			Command:     core.CmdOpenViewer,
 			OnClick:     func() { p.Open("") },
@@ -494,7 +495,7 @@ func (p *Plugin) TrayItems() []purekit.TrayItemSpec {
 			ID:      "pureimage.space_preview",
 			Section: purekit.TraySectionToggle,
 			Kind:    purekit.TrayItemCheckbox,
-			Label:   "资源管理器空格预览",
+			Label:   i18n.S("资源管理器空格预览", "Explorer Space Preview"),
 			Checked: p.Config().SpacePreview,
 			OnClick: p.toggleSpacePreview,
 		},
@@ -524,8 +525,8 @@ func (p *Plugin) CLICommands() []purekit.CLICommandSpec {
 func (p *Plugin) SettingsTab() *purekit.SettingsTab {
 	return &purekit.SettingsTab{
 		ID:       PluginID,
-		Title:    "PureImage · 看图",
-		Subtitle: "PureImage 浏览、渲染与关联",
+		Title:    i18n.S("PureImage · 看图", "PureImage · Viewer"),
+		Subtitle: i18n.S("PureImage 浏览、渲染与关联", "Image browsing, rendering & file associations"),
 		Icon:     pureui.IconImage,
 		Order:    30,
 		NewView: func(host purekit.Host) purekit.SettingsTabView {

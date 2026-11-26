@@ -13,6 +13,7 @@ import (
 
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	"pureutils/pkg/purekit/platform"
 	pureui "pureutils/pkg/purekit/ui"
 )
@@ -86,7 +87,7 @@ func (a *App) ShowLauncher() {
 	}
 
 	win := mygo.NewWindow(mygo.WindowOptions{
-		Title:             "PureUtils 快捷启动器",
+		Title:             i18n.S("PureUtils 快捷启动器", "PureUtils Launcher"),
 		Width:             launcherWidth,
 		Height:            launcherHeight,
 		Hidden:            true,
@@ -351,8 +352,8 @@ func (a *App) hostFeatures() []purekit.Feature {
 		{
 			ID:       "host.settings",
 			PluginID: "host",
-			Title:    "打开 PureUtils 设置",
-			Subtitle: "管理外观、快捷键与插件设置",
+			Title:    i18n.S("打开 PureUtils 设置", "Open PureUtils Settings"),
+			Subtitle: i18n.S("管理外观、快捷键与插件设置", "Manage appearance, hotkeys, and plugin settings"),
 			Keywords: []string{"settings", "config", "preference", "设置", "配置", "快捷键"},
 			Command:  core.CmdShowSettings,
 			Badge:    "PureUtils",
@@ -365,8 +366,8 @@ func (a *App) hostFeatures() []purekit.Feature {
 		{
 			ID:       "host.check_update",
 			PluginID: "host",
-			Title:    "检查软件更新",
-			Subtitle: "检查 GitHub 新版本并支持多镜像加速下载安装",
+			Title:    i18n.S("检查软件更新", "Check for Updates"),
+			Subtitle: i18n.S("检查 GitHub 新版本并支持多镜像加速下载安装", "Check GitHub Releases with mirror acceleration"),
 			Keywords: []string{"update", "upgrade", "version", "check", "更新", "升级", "版本", "检查更新"},
 			Command:  core.CmdCheckUpdate,
 			Badge:    "PureUtils",
@@ -379,8 +380,8 @@ func (a *App) hostFeatures() []purekit.Feature {
 		{
 			ID:       "host.exit",
 			PluginID: "host",
-			Title:    "退出 PureUtils",
-			Subtitle: "关闭后台驻留与全部插件",
+			Title:    i18n.S("退出 PureUtils", "Quit PureUtils"),
+			Subtitle: i18n.S("关闭后台驻留与全部插件", "Quit background tray and all plugins"),
 			Keywords: []string{"exit", "quit", "退出", "关闭"},
 			Command:  core.CmdExit,
 			Badge:    "PureUtils",
@@ -595,7 +596,7 @@ func (l *launcherView) view(c *ui.Context) {
 		ui.Row(c).Height(54).Padding(10, 14).Gap(10).AlignItems(ui.Center).
 			Background(pal.BgElevated).DragWindow().Children(func() {
 			field := ui.SearchField(c, &l.query).
-				Placeholder("搜索插件功能、剪贴板历史，或直接回车执行…").
+				Placeholder(i18n.S("搜索插件功能、剪贴板历史，或直接回车执行…", "Search actions, clipboard history, or press Enter…")).
 				Background(ui.Transparent).Border(0, ui.Transparent).FocusRing(false).
 				Grow(1).MinWidth(120).Bind(&l.search)
 			if l.needFocus {
@@ -610,7 +611,7 @@ func (l *launcherView) view(c *ui.Context) {
 				return
 			}
 			if l.query != "" {
-				if pureui.IconButton(c, pureui.IconXCircle, "清空搜索", "清空搜索内容", false, false, pal).Size(26, 26).Radius(7).Clicked() {
+				if pureui.IconButton(c, pureui.IconXCircle, i18n.S("清空搜索", "Clear search"), i18n.S("清空搜索内容", "Clear search query"), false, false, pal).Size(26, 26).Radius(7).Clicked() {
 					l.query = ""
 					l.refresh()
 					l.search.Focus()
@@ -631,7 +632,7 @@ func (l *launcherView) view(c *ui.Context) {
 		// Results list
 		ui.Column(c).Grow(1).Fill().Background(pal.Bg).Padding(8).Children(func() {
 			if len(l.items) == 0 {
-				pureui.EmptyState(c, pureui.IconSearch, "未找到匹配功能", "换个关键词试试，或按 Esc 关闭启动器", pal, nil)
+				pureui.EmptyState(c, pureui.IconSearch, i18n.S("未找到匹配功能", "No matching actions"), i18n.S("换个关键词试试，或按 Esc 关闭启动器", "Try a different keyword, or press Esc to close"), pal, nil)
 				return
 			}
 
@@ -669,37 +670,45 @@ func (l *launcherView) view(c *ui.Context) {
 		// Footer bar
 		ui.Box(c).Height(1).FillWidth().Background(pal.Border)
 		ui.Row(c).Height(32).Padding(0, 14).Gap(8).AlignItems(ui.Center).Background(pal.SidebarBg).Children(func() {
-			ui.Text(c, "↑↓ 选择 · Enter 执行 · Ctrl+1–9 快捷执行 · Esc 关闭").
-				FontSize(10.5).SingleLine().TextColor(pal.TextMuted).Grow(1)
-			pureui.PillBadge(c, fmt.Sprintf("%d 项", len(l.items)), pal.TextMuted, pal.ControlBg)
+			ui.Text(c, i18n.S("↑↓ 选择 · Enter 执行 · Ctrl+1–9 快捷执行 · Esc 关闭", "↑↓ Select · Enter Run · Ctrl+1–9 Quick Run · Esc Close")).
+				FontSize(10.5).SingleLine().TextColor(pal.TextMuted).Grow(1).MinWidth(0)
+			pureui.PillBadge(c, i18n.F("%d 项", "%d items", len(l.items)), pal.TextMuted, pal.ControlBg)
 		})
 	})
 }
 
+func truncateLauncherMiddle(s string, maxRunes int) string {
+	r := []rune(s)
+	if len(r) <= maxRunes || maxRunes < 7 {
+		return s
+	}
+	keep := (maxRunes - 1) / 2
+	return string(r[:keep]) + "…" + string(r[len(r)-(maxRunes-1-keep):])
+}
+
 func (l *launcherView) contextRibbon(c *ui.Context, pal pureui.Palette) {
 	ui.Row(c).Padding(6, 14).Gap(6).AlignItems(ui.Center).Background(pal.SidebarBg).Children(func() {
-		ui.Text(c, "上下文").FontSize(10.5).FontWeight(600).TextColor(pal.TextMuted).Shrink(0)
+		ui.Text(c, i18n.S("上下文", "Context")).FontSize(10.5).FontWeight(600).TextColor(pal.TextMuted).Shrink(0)
 		if len(l.ctx.SelectedFiles) > 0 {
-			label := filepath.Base(l.ctx.SelectedFiles[0])
+			name := truncateLauncherMiddle(filepath.Base(l.ctx.SelectedFiles[0]), 26)
+			label := i18n.S("已选中 · ", "Selected · ") + name
 			if len(l.ctx.SelectedFiles) > 1 {
-				label = fmt.Sprintf("已选中 %d 项 · %s", len(l.ctx.SelectedFiles), label)
-			} else {
-				label = "已选中 · " + label
+				label = i18n.F("已选中 %d 项 · %s", "%d selected · %s", len(l.ctx.SelectedFiles), name)
 			}
-			pureui.PillBadge(c, label, pal.KindFiles, pal.KindFilesSoft)
+			pureui.PillBadge(c, label, pal.KindFiles, pal.KindFilesSoft).MinWidth(0).Shrink(1)
 		}
 		if l.ctx.Clipboard != nil && !l.ctx.Clipboard.IsEmpty() {
 			switch l.ctx.Clipboard.PrimaryKind() {
 			case core.KindImage:
-				pureui.PillBadge(c, "剪贴板图片", pal.KindImage, pal.KindImageSoft)
+				pureui.PillBadge(c, i18n.S("剪贴板图片", "Clipboard Image"), pal.KindImage, pal.KindImageSoft)
 			case core.KindFiles:
-				pureui.PillBadge(c, "剪贴板文件", pal.KindFiles, pal.KindFilesSoft)
+				pureui.PillBadge(c, i18n.S("剪贴板文件", "Clipboard Files"), pal.KindFiles, pal.KindFilesSoft)
 			default:
-				pureui.PillBadge(c, "剪贴板文本", pal.KindText, pal.KindTextSoft)
+				pureui.PillBadge(c, i18n.S("剪贴板文本", "Clipboard Text"), pal.KindText, pal.KindTextSoft)
 			}
 		}
 		ui.Spacer(c)
-		ui.Button(c, "清除上下文").Background(pal.ControlBg).Border(0, ui.Transparent).OnClick(func() { l.clearContext() })
+		ui.Button(c, i18n.S("清除上下文", "Clear")).Shrink(0).Background(pal.ControlBg).Border(0, ui.Transparent).OnClick(func() { l.clearContext() })
 	})
 }
 

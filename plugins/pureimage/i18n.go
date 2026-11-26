@@ -1,6 +1,6 @@
 package pureimage
 
-import "strings"
+import "pureutils/pkg/purekit/i18n"
 
 var texts = map[string]map[string]string{
 	"zh-CN": {
@@ -95,13 +95,13 @@ var texts = map[string]map[string]string{
 		"reveal":            "Show in Explorer",
 		"close":             "Close",
 		"recursive":         "Include subfolders (recursive)",
-		"wheelZoom":         "Wheel zoom (off: wheel switches images)",
+		"wheelZoom":         "Wheel zoom (off: switch images)",
 		"checkerboard":      "Checkerboard for transparency",
 		"showDetails":       "Image details (top left)",
 		"spacePreview":      "Space preview (selected in Explorer)",
-		"fileAssoc":         "Add to system \"Open with\" (all image formats)",
+		"fileAssoc":         "Register \"Open with\" formats",
 		"emptyHint":         "Drop an image or folder here, or use the buttons below",
-		"shortcutHint":      "← → switch   R rotate   H flip   S slideshow   P pin   Del delete   F11 full screen   D/0 fit   1 actual",
+		"shortcutHint":      "← → Switch  ·  R Rotate  ·  H Flip  ·  S Slideshow  ·  P Pin  ·  Del Delete  ·  F11 Fullscreen  ·  D/0 Fit  ·  1 Actual",
 		"sortNameAsc":       "Name ascending",
 		"sortNameDesc":      "Name descending",
 		"sortModifiedAsc":   "Modified ascending",
@@ -147,39 +147,21 @@ var texts = map[string]map[string]string{
 	},
 }
 
-func resolveLang(p string) string {
-	if p == "system" {
-		return "zh-CN"
-	}
-	if _, ok := texts[p]; ok {
-		return p
-	}
-	return "zh-CN"
+func resolveLang(_ string) string {
+	return string(i18n.Current())
 }
 
-func tr(langPref, key string) string {
-	lang := resolveLang(langPref)
-	if m, ok := texts[lang]; ok {
-		if s, ok := m[key]; ok {
-			return s
-		}
+func tr(_ string, key string) string {
+	zh := texts["zh-CN"][key]
+	en := texts["en-US"][key]
+	switch {
+	case zh != "" && en != "":
+		return i18n.S(zh, en)
+	case en != "":
+		return en
+	case zh != "":
+		return zh
+	default:
+		return key
 	}
-	if m, ok := texts["zh-CN"]; ok {
-		if s, ok := m[key]; ok {
-			return s
-		}
-	}
-	return key
-}
-
-func langLabel(langPref, code string) string {
-	switch code {
-	case "zh-CN":
-		return tr(langPref, "languageZh")
-	case "en-US":
-		return tr(langPref, "languageEn")
-	case "system":
-		return tr(langPref, "languageSystem")
-	}
-	return strings.ToUpper(code)
 }

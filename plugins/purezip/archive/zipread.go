@@ -19,6 +19,8 @@ import (
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/encoding/traditionalchinese"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
 const (
@@ -135,7 +137,7 @@ func zipMethodLabel(m uint16) string {
 	case zipMethodXz:
 		return "XZ"
 	}
-	return fmt.Sprintf("方法 %d", m)
+	return i18n.F("方法 %d", "Method %d", m)
 }
 
 func (z *zipBackend) list() ([]Entry, Info, error) {
@@ -226,7 +228,7 @@ func (z *zipBackend) openFile(f *zip.File) (io.ReadCloser, error) {
 	if f.Method == zipMethodAES {
 		ae, ok := parseAESExtra(f.Extra)
 		if !ok {
-			return nil, fmt.Errorf("%w：缺少 AES 扩展字段", ErrCorrupt)
+			return nil, fmt.Errorf("%w: %s", ErrCorrupt, i18n.S("缺少 AES 扩展字段", "missing AES extra field"))
 		}
 		method = ae.method
 		checkCRC = ae.version != 2

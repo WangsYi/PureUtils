@@ -16,6 +16,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"pureutils/pkg/purekit/config"
+	"pureutils/pkg/purekit/i18n"
 	pureui "pureutils/pkg/purekit/ui"
 )
 
@@ -100,7 +101,7 @@ func NewPlayer(prefs config.PureVideoConfig, cb PlayerCallbacks) *Player {
 func defaultBackendFactory(_, pluginDir string, hwnd uintptr, cb BackendCallbacks) (PlaybackBackend, string, error) {
 	dllPath, ok := FindLibMPV(pluginDir)
 	if !ok {
-		return nil, "", fmt.Errorf("未找到 libmpv-2.dll，请在「设置 → PureVideo」中下载或从本地导入")
+		return nil, "", fmt.Errorf("%s", i18n.S("未找到 libmpv-2.dll，请在「设置 → PureVideo」中下载或从本地导入", "libmpv-2.dll not found. Download or import it in Settings -> PureVideo"))
 	}
 	b, err := newMPVBackend(dllPath, hwnd, cb)
 	if err != nil {
@@ -135,7 +136,7 @@ func (p *Player) OpenPath(path string) {
 	}
 	info, err := os.Stat(path)
 	if err != nil {
-		p.setError("无法访问路径: " + err.Error())
+		p.setError(i18n.S("无法访问路径: ", "Cannot access path: ") + err.Error())
 		return
 	}
 	if info.IsDir() {
@@ -146,7 +147,7 @@ func (p *Player) OpenPath(path string) {
 		if len(items) == 0 {
 			p.path = ""
 			p.displayName = ""
-			p.showToast("该文件夹中未找到支持的视频文件", 2500*time.Millisecond)
+			p.showToast(i18n.S("该文件夹中未找到支持的视频文件", "No supported video files found in this folder"), 2500*time.Millisecond)
 			p.syncStage()
 			p.invalidate()
 			return
@@ -246,7 +247,7 @@ func (p *Player) ensureWindow() {
 		OnFullScreen: p.ToggleFullScreen,
 		OnWheel: func(steps int) {
 			p.SetVolume(p.volume + steps*5)
-			p.showToast(fmt.Sprintf("音量 %d%%", p.volume), 1200*time.Millisecond)
+			p.showToast(i18n.F("音量 %d%%", "Volume %d%%", p.volume), 1200*time.Millisecond)
 		},
 		OnKey: func(key ui.Key, mods ui.Modifiers) {
 			p.handleKey(key, mods)
@@ -614,9 +615,9 @@ func (p *Player) ToggleLoop() {
 		p.cb.OnPrefsChange(p.prefs)
 	}
 	if p.loop {
-		p.showToast("已开启循环播放", 1200*time.Millisecond)
+		p.showToast(i18n.S("已开启循环播放", "Loop enabled"), 1200*time.Millisecond)
 	} else {
-		p.showToast("已关闭循环播放", 1200*time.Millisecond)
+		p.showToast(i18n.S("已关闭循环播放", "Loop disabled"), 1200*time.Millisecond)
 	}
 	p.invalidate()
 }
@@ -698,7 +699,7 @@ func (p *Player) Reload() {
 		p.setError(err.Error())
 		return
 	}
-	p.showToast("已重新加载 libmpv 内核", 1500*time.Millisecond)
+	p.showToast(i18n.S("已重新加载 libmpv 内核", "Reloaded libmpv backend"), 1500*time.Millisecond)
 }
 
 // ApplySettings synchronizes settings updated from the PureUtils Settings window.
@@ -747,7 +748,7 @@ func (p *Player) pickFile() {
 	go func() {
 		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
 			Parent:  p.win,
-			Title:   "选择视频文件",
+			Title:   i18n.S("选择视频文件", "Select Video File"),
 			Filters: VideoFileFilters(),
 		})
 		if err != nil || len(paths) == 0 {
@@ -764,7 +765,7 @@ func (p *Player) pickFolder() {
 	go func() {
 		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
 			Parent:    p.win,
-			Title:     "选择视频文件夹",
+			Title:     i18n.S("选择视频文件夹", "Select Video Folder"),
 			Directory: true,
 		})
 		if err != nil || len(paths) == 0 {
@@ -827,10 +828,10 @@ func (p *Player) handleKey(key ui.Key, mods ui.Modifiers) {
 		}
 	case ui.KeyUp:
 		p.SetVolume(p.volume + 5)
-		p.showToast(fmt.Sprintf("音量 %d%%", p.volume), 1200*time.Millisecond)
+		p.showToast(i18n.F("音量 %d%%", "Volume %d%%", p.volume), 1200*time.Millisecond)
 	case ui.KeyDown:
 		p.SetVolume(p.volume - 5)
-		p.showToast(fmt.Sprintf("音量 %d%%", p.volume), 1200*time.Millisecond)
+		p.showToast(i18n.F("音量 %d%%", "Volume %d%%", p.volume), 1200*time.Millisecond)
 	case ui.KeyPageUp, ui.KeyBracketLeft:
 		p.Prev()
 	case ui.KeyPageDown, ui.KeyBracketRight:
@@ -868,10 +869,10 @@ func (p *Player) handleShortcuts(c *ui.Context) {
 		p.SeekBy(5 * time.Second)
 	case c.Shortcut(0, ui.KeyUp):
 		p.SetVolume(p.volume + 5)
-		p.showToast(fmt.Sprintf("音量 %d%%", p.volume), 1200*time.Millisecond)
+		p.showToast(i18n.F("音量 %d%%", "Volume %d%%", p.volume), 1200*time.Millisecond)
 	case c.Shortcut(0, ui.KeyDown):
 		p.SetVolume(p.volume - 5)
-		p.showToast(fmt.Sprintf("音量 %d%%", p.volume), 1200*time.Millisecond)
+		p.showToast(i18n.F("音量 %d%%", "Volume %d%%", p.volume), 1200*time.Millisecond)
 	case c.Shortcut(0, ui.KeyPageUp) || c.Shortcut(0, ui.KeyBracketLeft):
 		p.Prev()
 	case c.Shortcut(0, ui.KeyPageDown) || c.Shortcut(0, ui.KeyBracketRight):
@@ -930,7 +931,7 @@ func (p *Player) View(c *ui.Context) {
 		default:
 			ui.Column(c).Grow(1).MinHeight(0).Center().Padding(24).Gap(8).Children(func() {
 				if p.state == StateLoading {
-					ui.Text(c, "正在加载 "+p.displayName+"…").FontSize(13).TextColor(pal.TextMuted)
+					ui.Text(c, i18n.F("正在加载 %s…", "Loading %s…", p.displayName)).FontSize(13).TextColor(pal.TextMuted)
 				} else {
 					ui.Text(c, p.displayName).FontSize(14).FontWeight(500).TextColor(pal.TextSecondary)
 					if p.natW > 0 && p.natH > 0 {
@@ -955,9 +956,9 @@ func (p *Player) View(c *ui.Context) {
 }
 
 func (p *Player) renderEmptyState(c *ui.Context, pal pureui.Palette) {
-	engineHint := "未检测到 libmpv-2.dll，请前往设置页下载或导入内核"
+	engineHint := i18n.S("未检测到 libmpv-2.dll，请前往设置页下载或导入内核", "libmpv-2.dll not found. Download or import it in Settings")
 	if _, ok := FindLibMPV(p.cb.PluginDir); ok {
-		engineHint = "内置 libmpv 硬件解码内核（支持 MP4 / MKV / MOV / HEVC / FLV / 外挂字幕）"
+		engineHint = i18n.S("内置 libmpv 硬件解码内核（支持 MP4 / MKV / MOV / HEVC / FLV / 外挂字幕）", "Built-in libmpv hardware decoding backend (MP4 / MKV / MOV / HEVC / FLV / Subtitles)")
 	}
 
 	ui.Column(c).Fill().Center().Padding(28).Gap(14).Children(func() {
@@ -968,26 +969,26 @@ func (p *Player) renderEmptyState(c *ui.Context, pal pureui.Palette) {
 			})
 		})
 		ui.Column(c).AlignItems(ui.Center).Gap(5).Children(func() {
-			ui.Text(c, "PureVideo 极速视频浏览").FontSize(16).FontWeight(600).TextColor(pal.Text)
-			ui.Text(c, "拖拽视频或文件夹到此窗口即可秒开 · "+engineHint).
-				FontSize(11.5).TextColor(pal.TextMuted).TextAlign(ui.Center).MaxWidth(460)
+			ui.Text(c, i18n.S("PureVideo 极速视频浏览", "PureVideo Fast Video Player")).FontSize(16).FontWeight(600).TextColor(pal.Text)
+			ui.Text(c, i18n.S("拖拽视频或文件夹到此窗口即可秒开 · ", "Drop a video or folder here to play · ")+engineHint).
+				FontSize(11.5).TextColor(pal.TextMuted).TextAlign(ui.Center).MaxWidth(480)
 		})
-		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.PrimaryButton(c, "打开视频文件…").OnClick(p.pickFile)
-			ui.Button(c, "打开文件夹…").OnClick(p.pickFolder).Border(0, ui.Transparent)
+		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).AlignItems(ui.Center).Children(func() {
+			ui.PrimaryButton(c, i18n.S("打开视频文件…", "Open Video…")).OnClick(p.pickFile)
+			ui.Button(c, i18n.S("打开文件夹…", "Open Folder…")).OnClick(p.pickFolder).Border(0, ui.Transparent)
 			if p.cb.OnOpenSettings != nil {
-				ui.Button(c, "播放与内核设置").OnClick(p.cb.OnOpenSettings).Border(0, ui.Transparent)
+				ui.Button(c, i18n.S("播放与内核设置", "Playback & Backend Settings")).OnClick(p.cb.OnOpenSettings).Border(0, ui.Transparent)
 			}
 		})
-		ui.Row(c).Gap(8).Margin(4, 0, 0, 0).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).Margin(4, 0, 0, 0).AlignItems(ui.Center).Children(func() {
 			pureui.Keycap(c, "Space", pal)
-			ui.Text(c, "播放/暂停").FontSize(11).TextColor(pal.TextMuted)
+			ui.Text(c, i18n.S("播放/暂停", "Play/Pause")).FontSize(11).TextColor(pal.TextMuted)
 			pureui.Keycap(c, "←/→", pal)
-			ui.Text(c, "快进退").FontSize(11).TextColor(pal.TextMuted)
+			ui.Text(c, i18n.S("快进退", "Seek")).FontSize(11).TextColor(pal.TextMuted)
 			pureui.Keycap(c, "PgUp/PgDn", pal)
-			ui.Text(c, "切换视频").FontSize(11).TextColor(pal.TextMuted)
+			ui.Text(c, i18n.S("切换视频", "Prev/Next")).FontSize(11).TextColor(pal.TextMuted)
 			pureui.Keycap(c, "F", pal)
-			ui.Text(c, "全屏").FontSize(11).TextColor(pal.TextMuted)
+			ui.Text(c, i18n.S("全屏", "Fullscreen")).FontSize(11).TextColor(pal.TextMuted)
 		})
 	})
 }
@@ -999,21 +1000,21 @@ func (p *Player) renderErrorState(c *ui.Context, pal pureui.Palette) {
 			ui.Icon(c, pureui.IconAlertCircle).Size(24, 24).TextColor(pal.Danger)
 		})
 		ui.Column(c).AlignItems(ui.Center).Gap(6).MaxWidth(480).Children(func() {
-			ui.Text(c, "无法播放 "+p.displayName).FontSize(15).FontWeight(600).TextColor(pal.Text)
+			ui.Text(c, i18n.S("无法播放 ", "Cannot play ")+p.displayName).FontSize(15).FontWeight(600).TextColor(pal.Text)
 			ui.Text(c, p.errText).FontSize(12).LineHeight(1.45).TextColor(pal.TextSecondary).TextAlign(ui.Center)
 		})
 		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).Children(func() {
 			if !mpvInstalled && p.cb.OnOpenSettings != nil {
-				ui.PrimaryButton(c, "前往下载 / 导入 libmpv 内核").OnClick(p.cb.OnOpenSettings)
+				ui.PrimaryButton(c, i18n.S("前往下载 / 导入 libmpv 内核", "Download / Import libmpv Backend")).OnClick(p.cb.OnOpenSettings)
 			} else if p.path != "" {
-				ui.PrimaryButton(c, "重新加载").OnClick(p.Reload)
+				ui.PrimaryButton(c, i18n.S("重新加载", "Reload")).OnClick(p.Reload)
 			}
 			if p.path != "" && !p.cb.Headless {
-				ui.Button(c, "用系统默认程序打开").OnClick(func() {
+				ui.Button(c, i18n.S("用系统默认程序打开", "Open in Default App")).OnClick(func() {
 					_ = mygo.Shell.OpenPath(p.path)
 				}).Border(0, ui.Transparent)
 			}
-			ui.Button(c, "打开其他视频…").OnClick(p.pickFile).Border(0, ui.Transparent)
+			ui.Button(c, i18n.S("打开其他视频…", "Open Another Video…")).OnClick(p.pickFile).Border(0, ui.Transparent)
 		})
 	})
 	p.renderTransportBar(c, pal)
@@ -1052,7 +1053,7 @@ func (p *Player) renderProgressBar(c *ui.Context, pal pureui.Palette) {
 	}
 	frac = clamp01(frac)
 
-	bar := ui.Box(c).Height(16).FillWidth().Cursor(ui.CursorPointer).Label("播放进度条")
+	bar := ui.Box(c).Height(16).FillWidth().Cursor(ui.CursorPointer).Label(i18n.S("播放进度条", "Playback progress"))
 	if bw := bar.Bounds().W; bw > 0 {
 		p.progressBarW = bw
 	}
@@ -1129,14 +1130,14 @@ func (p *Player) renderProgressBar(c *ui.Context, pal pureui.Palette) {
 
 func (p *Player) renderControlsRow(c *ui.Context, pal pureui.Palette) {
 	ui.Row(c).FillWidth().Grow(1).AlignItems(ui.Center).Gap(6).Children(func() {
-		pureui.IconButton(c, pureui.IconSkipBack, "上一个", "上一个视频 (PgUp / [)", false, false, pal).
+		pureui.IconButton(c, pureui.IconSkipBack, i18n.S("上一个", "Previous"), i18n.S("上一个视频 (PgUp / [)", "Previous video (PgUp / [)"), false, false, pal).
 			Disabled(len(p.items) <= 1).OnClick(p.Prev)
 
 		playIcon := pureui.IconPlay
-		playLabel := "播放"
+		playLabel := i18n.S("播放", "Play")
 		if p.state == StatePlaying {
 			playIcon = pureui.IconPause
-			playLabel = "暂停"
+			playLabel = i18n.S("暂停", "Pause")
 		}
 		playBtn := ui.ButtonBase(c).Size(32, 32).Radius(9).Center().Label(playLabel).Tooltip(playLabel + " (Space)")
 		bg := pal.Accent
@@ -1150,9 +1151,9 @@ func (p *Player) renderControlsRow(c *ui.Context, pal pureui.Palette) {
 		})
 		playBtn.OnClick(p.TogglePlayPause)
 
-		pureui.IconButton(c, pureui.IconSkipForward, "下一个", "下一个视频 (PgDn / ])", false, false, pal).
+		pureui.IconButton(c, pureui.IconSkipForward, i18n.S("下一个", "Next"), i18n.S("下一个视频 (PgDn / ])", "Next video (PgDn / ])"), false, false, pal).
 			Disabled(len(p.items) <= 1).OnClick(p.Next)
-		pureui.IconButton(c, pureui.IconStepForward, "逐帧步进", "前进一帧 (.)", false, false, pal).
+		pureui.IconButton(c, pureui.IconStepForward, i18n.S("逐帧步进", "Step Forward"), i18n.S("前进一帧 (.)", "Step forward one frame (.)"), false, false, pal).
 			OnClick(p.FrameStep)
 
 		timeText := FormatDuration(p.pos) + " / " + FormatDuration(p.dur)
@@ -1170,11 +1171,11 @@ func (p *Player) renderControlsRow(c *ui.Context, pal pureui.Palette) {
 
 		ui.Spacer(c)
 
-		pureui.IconButton(c, pureui.IconRepeat, "循环播放", "单视频循环 (L)", p.loop, false, pal).
+		pureui.IconButton(c, pureui.IconRepeat, i18n.S("循环播放", "Loop"), i18n.S("单视频循环 (L)", "Loop current video (L)"), p.loop, false, pal).
 			OnClick(p.ToggleLoop)
 
 		spdBtn := ui.ButtonBase(c).Height(26).Padding(0, 9).Radius(7).Center().
-			Label("播放倍速").Tooltip("点击切换倍速，或右键/下拉选择")
+			Label(i18n.S("播放倍速", "Playback Speed")).Tooltip(i18n.S("点击切换倍速，或右键/下拉选择", "Click to cycle speed, or right-click to choose"))
 		spdBg := pal.ControlBg
 		if spdBtn.Hovered() {
 			spdBg = pal.CardHover
@@ -1195,21 +1196,21 @@ func (p *Player) renderControlsRow(c *ui.Context, pal pureui.Palette) {
 		if p.muted || p.volume == 0 {
 			volIcon = pureui.IconVolumeX
 		}
-		pureui.IconButton(c, volIcon, "静音", "静音/取消静音 (M)", p.muted, false, pal).
+		pureui.IconButton(c, volIcon, i18n.S("静音", "Mute"), i18n.S("静音/取消静音 (M)", "Mute / Unmute (M)"), p.muted, false, pal).
 			OnClick(p.ToggleMute)
 		p.renderVolumeBar(c, pal)
 
-		pureui.IconButton(c, pureui.IconFolder, "打开视频", "打开视频文件 (O)", false, false, pal).
+		pureui.IconButton(c, pureui.IconFolder, i18n.S("打开视频", "Open Video"), i18n.S("打开视频文件 (O)", "Open video file (O)"), false, false, pal).
 			OnClick(p.pickFile)
 		if p.cb.OnOpenSettings != nil {
-			pureui.IconButton(c, pureui.IconSettings, "PureVideo 设置", "打开解码内核与播放设置", false, false, pal).
+			pureui.IconButton(c, pureui.IconSettings, i18n.S("PureVideo 设置", "PureVideo Settings"), i18n.S("打开解码内核与播放设置", "Open decoder & playback settings"), false, false, pal).
 				OnClick(p.cb.OnOpenSettings)
 		}
 		fsIcon := pureui.IconMaximize
 		if p.fullscreen {
 			fsIcon = pureui.IconMinimize
 		}
-		pureui.IconButton(c, fsIcon, "全屏", "切换全屏 (F)", p.fullscreen, false, pal).
+		pureui.IconButton(c, fsIcon, i18n.S("全屏", "Fullscreen"), i18n.S("切换全屏 (F)", "Toggle fullscreen (F)"), p.fullscreen, false, pal).
 			OnClick(p.ToggleFullScreen)
 	})
 }
@@ -1219,7 +1220,7 @@ func (p *Player) renderVolumeBar(c *ui.Context, pal pureui.Palette) {
 	if p.muted {
 		eff = 0
 	}
-	vbar := ui.Box(c).Size(68, 16).Cursor(ui.CursorPointer).Label("音量滑块")
+	vbar := ui.Box(c).Size(68, 16).Cursor(ui.CursorPointer).Label(i18n.S("音量滑块", "Volume slider"))
 	if bw := vbar.Bounds().W; bw > 0 {
 		p.volumeBarW = bw
 	}

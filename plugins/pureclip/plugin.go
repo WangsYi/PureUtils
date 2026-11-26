@@ -14,6 +14,7 @@ import (
 	"pureutils/pkg/purekit/clipboard"
 	"pureutils/pkg/purekit/config"
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 	pureui "pureutils/pkg/purekit/ui"
 )
 
@@ -57,13 +58,13 @@ func (p *Plugin) Info() purekit.PluginInfo {
 	return purekit.PluginInfo{
 		ID:          PluginID,
 		Name:        "PureClip",
-		Description: "剪贴板历史监控、多格式去重检索与快捷回放",
+		Description: i18n.S("剪贴板历史监控、多格式去重检索与快捷回放", "Clipboard history monitoring, deduplicated multi-format search, and quick paste"),
 		Version:     core.AppVersion,
 		ModuleID:    core.ModuleHistory,
 		Capabilities: []purekit.CapabilityDescriptor{
 			{
 				Name:        purekit.CapClipboardHistory,
-				Description: "提供最近剪贴板历史查询、内容加载、防抖刷新与变更订阅",
+				Description: i18n.S("提供最近剪贴板历史查询、内容加载、防抖刷新与变更订阅", "Provides recent clipboard history query, content loading, debounced refresh, and change subscription"),
 			},
 		},
 	}
@@ -407,8 +408,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "pureclip.show",
 			PluginID: PluginID,
-			Title:    "剪贴板历史",
-			Subtitle: "搜索并快速回放历史文本、图片与文件",
+			Title:    i18n.S("剪贴板历史", "Clipboard History"),
+			Subtitle: i18n.S("搜索并快速回放历史文本、图片与文件", "Search and quickly paste recent text, images, and files"),
 			Keywords: []string{"clip", "clipboard", "history", "paste", "剪贴板", "历史", "粘贴", "pureclip"},
 			Command:  core.CmdShowHistory,
 			Shortcut: shortcut,
@@ -422,8 +423,8 @@ func (p *Plugin) Features() []purekit.Feature {
 		{
 			ID:       "pureclip.toggle_monitoring",
 			PluginID: PluginID,
-			Title:    "切换剪贴板监控",
-			Subtitle: "暂停或恢复后台剪贴板历史收录",
+			Title:    i18n.S("切换剪贴板监控", "Toggle Clipboard Monitoring"),
+			Subtitle: i18n.S("暂停或恢复后台剪贴板历史收录", "Pause or resume background clipboard history capture"),
 			Keywords: []string{"clip", "monitor", "pause", "监控", "暂停剪贴板"},
 			Command:  core.CmdToggleMonitoring,
 			Badge:    "PureClip",
@@ -445,7 +446,7 @@ type historyMatcher struct {
 }
 
 func (m historyMatcher) ID() string    { return "pureclip.matcher" }
-func (m historyMatcher) Title() string { return "PureClip 剪贴板搜索匹配" }
+func (m historyMatcher) Title() string { return i18n.S("PureClip 剪贴板搜索匹配", "PureClip Clipboard Search") }
 
 func (m historyMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 	q := strings.TrimSpace(ctx.Query)
@@ -464,7 +465,7 @@ func (m historyMatcher) Match(ctx purekit.MatchContext) []purekit.MatchResult {
 			FeatureID: "pureclip.restore",
 			PluginID:  PluginID,
 			Title:     r.Preview,
-			Subtitle:  fmt.Sprintf("剪贴板历史 · %s · %s", r.Kind.String(), timeAgo(r.LastUsedUTC)),
+			Subtitle:  i18n.F("剪贴板历史 · %s · %s", "Clipboard · %s · %s", r.Kind.String(), timeAgo(r.LastUsedUTC)),
 			Score:     74 - i,
 			Badge:     "PureClip",
 			Icon:      pureui.IconClipboard,
@@ -482,7 +483,7 @@ func (p *Plugin) Hotkeys() []purekit.HotkeySpec {
 		{
 			ID:             "pureclip.show",
 			Command:        core.CmdShowHistory,
-			Label:          "剪贴板历史",
+			Label:          i18n.S("剪贴板历史", "Clipboard History"),
 			DefaultGesture: "Ctrl+Shift+V",
 			CurrentGesture: func() string {
 				if p.host == nil {
@@ -513,7 +514,7 @@ func (p *Plugin) TrayItems() []purekit.TrayItemSpec {
 			ID:          "pureclip.show",
 			Section:     purekit.TraySectionPrimary,
 			Kind:        purekit.TrayItemAction,
-			Label:       "剪贴板历史",
+			Label:       i18n.S("剪贴板历史", "Clipboard History"),
 			Accelerator: accel,
 			Command:     core.CmdShowHistory,
 			OnClick:     p.ShowHistory,
@@ -522,7 +523,7 @@ func (p *Plugin) TrayItems() []purekit.TrayItemSpec {
 			ID:      "pureclip.monitoring",
 			Section: purekit.TraySectionToggle,
 			Kind:    purekit.TrayItemCheckbox,
-			Label:   "剪贴板监控",
+			Label:   i18n.S("剪贴板监控", "Clipboard Monitoring"),
 			Checked: p.Monitoring(),
 			Command: core.CmdToggleMonitoring,
 			OnClick: func() { p.ToggleMonitoring() },
@@ -546,8 +547,8 @@ func (p *Plugin) CLICommands() []purekit.CLICommandSpec {
 func (p *Plugin) SettingsTab() *purekit.SettingsTab {
 	return &purekit.SettingsTab{
 		ID:       PluginID,
-		Title:    "PureClip · 剪贴板",
-		Subtitle: "监听类型、保留策略、隐私保护与历史维护",
+		Title:    i18n.S("PureClip · 剪贴板", "PureClip · Clipboard"),
+		Subtitle: i18n.S("监听类型、保留策略、隐私保护与历史维护", "Capture rules, retention, privacy exclusions, and maintenance"),
 		Icon:     pureui.IconClipboard,
 		Order:    20,
 		NewView: func(host purekit.Host) purekit.SettingsTabView {
