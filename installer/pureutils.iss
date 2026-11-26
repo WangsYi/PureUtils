@@ -31,7 +31,21 @@ SetupIconFile={#StageDir}\resources\setup.ico
 UninstallDisplayIcon={app}\resources\icon.ico
 Compression=lzma2/max
 SolidCompression=yes
-WizardStyle=modern
+WizardStyle=modern dynamic windows11 hidebevels
+WizardSizePercent=115,115
+WizardBackColor=#ffffff
+WizardBackColorDynamicDark=#1c1c1e
+WizardImageFile={#StageDir}\resources\wizard-side.png
+WizardImageFileDynamicDark={#StageDir}\resources\wizard-side-dark.png
+WizardImageBackColor=#3730a3
+WizardImageBackColorDynamicDark=#13112e
+WizardImageStretch=yes
+WizardSmallImageFile={#StageDir}\resources\wizard-small.png
+WizardSmallImageFileDynamicDark={#StageDir}\resources\wizard-small.png
+WizardSmallImageBackColor=#ffffff
+WizardSmallImageBackColorDynamicDark=#1c1c1e
+DisableReadyPage=yes
+ShowLanguageDialog=auto
 MinVersion=10.0
 ChangesAssociations=yes
 ArchitecturesAllowed=x64compatible
@@ -46,52 +60,125 @@ VersionInfoProductVersion={#AppVersion}
 Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
-[CustomMessages]
-chinesesimplified.TypeFull=完整安装（PureShot + PureClip + PureImage + PureVideo + PureZip）
-chinesesimplified.TypeShotClip=PureShot + PureClip（截图贴图 + 剪贴板历史）
-chinesesimplified.TypeViewer=仅 PureImage（高性能看图 + 空格预览）
-chinesesimplified.TypeVideo=仅 PureVideo（极速视频浏览）
-chinesesimplified.TypeZip=仅 PureZip（压缩与解压管理）
-chinesesimplified.TypeCustom=自定义选择组件
-chinesesimplified.CompCore=PureUtils 核心框架（必需）
-chinesesimplified.CompCapture=PureShot — 截图、标注与悬浮贴图
-chinesesimplified.CompHistory=PureClip — 剪贴板历史管理
-chinesesimplified.CompViewer=PureImage — 高性能看图与空格预览
-chinesesimplified.CompTurbo=libjpeg-turbo 原生 JPEG 解码加速
-chinesesimplified.CompAssoc=关联 40 种图片格式（注册系统“打开方式”与默认应用条目）
-chinesesimplified.CompVideo=PureVideo — 极速视频浏览（内置 libmpv 硬件解码，支持 21 种格式与字幕）
-chinesesimplified.CompVideoAssoc=关联 21 种视频格式（注册系统“打开方式”与默认应用条目）
-chinesesimplified.CompZip=PureZip — 压缩与解压管理（浏览 / 智能解压 / AES-256 / 7z）
-chinesesimplified.CompZipContext=注册资源管理器右键压缩 / 解压级联菜单
-chinesesimplified.CompZipAssoc=关联 13 种压缩格式（注册系统“打开方式”与默认应用条目）
-chinesesimplified.TaskAutostart=开机自动启动 PureUtils（后台托盘常驻）
-chinesesimplified.LaunchViewer=打开 PureImage 看图
-chinesesimplified.LaunchVideo=打开 PureVideo 视频
-chinesesimplified.LaunchZip=打开 PureZip 压缩管理
-chinesesimplified.NeedModule=请至少选择一个功能组件（PureShot、PureClip、PureImage、PureVideo 或 PureZip）。
+[Messages]
+chinesesimplified.SetupWindowTitle=PureUtils {#AppVersion}
+chinesesimplified.BeveledLabel=
+chinesesimplified.ClickNext=
+chinesesimplified.ClickFinish=
+chinesesimplified.ButtonBack=上一步(&B)
+chinesesimplified.ButtonNext=下一步(&N)
+chinesesimplified.ButtonInstall=安装(&I)
+chinesesimplified.ButtonFinish=完成(&F)
+chinesesimplified.ButtonCancel=取消
+chinesesimplified.ButtonWizardBrowse=浏览(&R)…
+chinesesimplified.WelcomeLabel1=PureUtils {#AppVersion}
+chinesesimplified.WelcomeLabel2=轻量、原生的 Windows 效率工具集。%n%n截图贴图 · 剪贴板 · 看图 · 视频 · 压缩，按需安装。
+chinesesimplified.WizardSelectDir=安装位置
+chinesesimplified.SelectDirDesc=选择 PureUtils 的安装目录
+chinesesimplified.SelectDirLabel3=目标文件夹
+chinesesimplified.SelectDirBrowseLabel=
+chinesesimplified.DiskSpaceMBLabel=所需空间：[mb] MB
+chinesesimplified.DiskSpaceGBLabel=所需空间：[gb] GB
+chinesesimplified.WizardSelectComponents=选择组件
+chinesesimplified.SelectComponentsDesc=按需勾选要安装的功能模块
+chinesesimplified.SelectComponentsLabel2=
+chinesesimplified.ComponentsDiskSpaceMBLabel=所需空间：[mb] MB
+chinesesimplified.ComponentsDiskSpaceGBLabel=所需空间：[gb] GB
+chinesesimplified.WizardSelectTasks=快捷方式与启动
+chinesesimplified.SelectTasksDesc=可选的系统集成设置
+chinesesimplified.SelectTasksLabel2=
+chinesesimplified.WizardInstalling=正在安装
+chinesesimplified.InstallingLabel=正在安装 PureUtils，请稍候…
+chinesesimplified.FinishedHeadingLabel=安装完成
+chinesesimplified.FinishedLabel=PureUtils {#AppVersion} 已准备就绪。
+chinesesimplified.FinishedLabelNoIcons=PureUtils {#AppVersion} 已准备就绪。
 
-english.TypeFull=Full installation (PureShot + PureClip + PureImage + PureVideo + PureZip)
-english.TypeShotClip=PureShot + PureClip (Screenshot, Pins + Clipboard History)
-english.TypeViewer=PureImage only (Fast Viewer + Explorer Space Preview)
-english.TypeVideo=PureVideo only (Instant Video Browser)
-english.TypeZip=PureZip only (Archive Manager, Smart Extract & Compression)
-english.TypeCustom=Custom component selection
-english.CompCore=PureUtils Core Runtime (Required)
-english.CompCapture=PureShot — Screenshot, Annotation & Floating Pins
-english.CompHistory=PureClip — Clipboard History Manager
-english.CompViewer=PureImage — Fast Viewer & Explorer Space Preview
-english.CompTurbo=libjpeg-turbo Native JPEG Scaling Acceleration
-english.CompAssoc=Associate 40 Image Formats (Open With & Windows Default Apps Entry)
-english.CompVideo=PureVideo — Fast Video Browser (Bundled libmpv Hardware Decoding, 21 Formats & Subtitles)
-english.CompVideoAssoc=Associate 21 Video Formats (Open With & Windows Default Apps Entry)
-english.CompZip=PureZip — Archive Manager (Browse, Smart Extract, AES-256, 7z)
-english.CompZipContext=Register Windows Explorer Right-Click Archive Context Menu
-english.CompZipAssoc=Associate 13 Archive Formats (Open With & Windows Default Apps Entry)
-english.TaskAutostart=Start PureUtils automatically at sign-in
-english.LaunchViewer=Launch PureImage Viewer
+english.SetupWindowTitle=PureUtils {#AppVersion}
+english.BeveledLabel=
+english.ClickNext=
+english.ClickFinish=
+english.ButtonBack=&Back
+english.ButtonNext=&Next
+english.ButtonInstall=&Install
+english.ButtonFinish=&Finish
+english.ButtonCancel=Cancel
+english.ButtonWizardBrowse=B&rowse…
+english.WelcomeLabel1=PureUtils {#AppVersion}
+english.WelcomeLabel2=A lightweight, native Windows utility suite.%n%nScreenshot · Clipboard · Image · Video · Archive — install only what you need.
+english.WizardSelectDir=Install Location
+english.SelectDirDesc=Choose where to install PureUtils
+english.SelectDirLabel3=Destination folder
+english.SelectDirBrowseLabel=
+english.DiskSpaceMBLabel=Required space: [mb] MB
+english.DiskSpaceGBLabel=Required space: [gb] GB
+english.WizardSelectComponents=Select Components
+english.SelectComponentsDesc=Choose the modules you want to install
+english.SelectComponentsLabel2=
+english.ComponentsDiskSpaceMBLabel=Required space: [mb] MB
+english.ComponentsDiskSpaceGBLabel=Required space: [gb] GB
+english.WizardSelectTasks=Shortcuts & Startup
+english.SelectTasksDesc=Optional system integration
+english.SelectTasksLabel2=
+english.WizardInstalling=Installing
+english.InstallingLabel=Installing PureUtils, please wait…
+english.FinishedHeadingLabel=Installation Complete
+english.FinishedLabel=PureUtils {#AppVersion} is ready to use.
+english.FinishedLabelNoIcons=PureUtils {#AppVersion} is ready to use.
+
+[CustomMessages]
+chinesesimplified.WelcomeBody=轻量、原生的 Windows 效率工具集。%n%n截图贴图 · 剪贴板 · 看图 · 视频 · 压缩，按需安装。
+chinesesimplified.FinishedBody=PureUtils {#AppVersion} 已准备就绪。
+chinesesimplified.TypeFull=完整安装（全部组件）
+chinesesimplified.TypeShotClip=截图与剪贴板（PureShot + PureClip）
+chinesesimplified.TypeViewer=仅 PureImage 看图
+chinesesimplified.TypeVideo=仅 PureVideo 视频
+chinesesimplified.TypeZip=仅 PureZip 压缩
+chinesesimplified.TypeCustom=自定义
+chinesesimplified.CompCore=核心框架（必需）
+chinesesimplified.CompCapture=PureShot 截图贴图
+chinesesimplified.CompHistory=PureClip 剪贴板历史
+chinesesimplified.CompViewer=PureImage 看图与空格预览
+chinesesimplified.CompTurbo=JPEG 原生加速 (libjpeg-turbo)
+chinesesimplified.CompAssoc=关联图片格式
+chinesesimplified.CompVideo=PureVideo 视频播放
+chinesesimplified.CompVideoAssoc=关联视频格式
+chinesesimplified.CompZip=PureZip 压缩管理
+chinesesimplified.CompZipContext=资源管理器右键菜单
+chinesesimplified.CompZipAssoc=关联压缩格式
+chinesesimplified.TaskDesktopIcon=创建桌面快捷方式
+chinesesimplified.TaskAutostart=开机自动启动
+chinesesimplified.LaunchMain=启动 PureUtils
+chinesesimplified.LaunchViewer=启动 PureImage
+chinesesimplified.LaunchVideo=启动 PureVideo
+chinesesimplified.LaunchZip=启动 PureZip
+chinesesimplified.NeedModule=请至少选择一个功能组件。
+
+english.WelcomeBody=A lightweight, native Windows utility suite.%n%nScreenshot · Clipboard · Image · Video · Archive — install only what you need.
+english.FinishedBody=PureUtils {#AppVersion} is ready to use.
+english.TypeFull=Full (All Components)
+english.TypeShotClip=Screenshot & Clipboard (PureShot + PureClip)
+english.TypeViewer=PureImage Only
+english.TypeVideo=PureVideo Only
+english.TypeZip=PureZip Only
+english.TypeCustom=Custom
+english.CompCore=Core Runtime (Required)
+english.CompCapture=PureShot — Screenshot & Pins
+english.CompHistory=PureClip — Clipboard History
+english.CompViewer=PureImage — Image Viewer & Space Preview
+english.CompTurbo=JPEG Acceleration (libjpeg-turbo)
+english.CompAssoc=Associate Image Formats
+english.CompVideo=PureVideo — Video Player
+english.CompVideoAssoc=Associate Video Formats
+english.CompZip=PureZip — Archive Manager
+english.CompZipContext=Explorer Context Menu
+english.CompZipAssoc=Associate Archive Formats
+english.TaskDesktopIcon=Create desktop shortcut
+english.TaskAutostart=Start automatically at Windows sign-in
+english.LaunchMain=Launch PureUtils
+english.LaunchViewer=Launch PureImage
 english.LaunchVideo=Launch PureVideo
-english.LaunchZip=Launch PureZip Archive Manager
-english.NeedModule=Please select at least one component (PureShot, PureClip, PureImage, PureVideo, or PureZip).
+english.LaunchZip=Launch PureZip
+english.NeedModule=Please select at least one component.
 
 [Types]
 Name: "full"; Description: "{cm:TypeFull}"
@@ -115,8 +202,8 @@ Name: "zip\contextmenu"; Description: "{cm:CompZipContext}"; Types: full zip cus
 Name: "zip\assoc"; Description: "{cm:CompZipAssoc}"; Types: full zip custom
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "autostart"; Description: "{cm:TaskAutostart}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:TaskDesktopIcon}"; Flags: unchecked
+Name: "autostart"; Description: "{cm:TaskAutostart}"; Flags: unchecked
 
 [InstallDelete]
 Type: files; Name: "{app}\turbojpeg.dll"
@@ -439,7 +526,7 @@ Root: HKCU; Subkey: "Software\Classes\.vob\OpenWithProgids"; ValueType: none; Va
 Root: HKCU; Subkey: "Software\Classes\.f4v\OpenWithProgids"; ValueType: none; ValueName: "PureUtils.Video"; Flags: uninsdeletevalue; Components: video\assoc
 
 [Run]
-Filename: "{app}\PureUtils.exe"; Parameters: ""; Description: "{cm:LaunchProgram,PureUtils}"; Flags: nowait postinstall skipifsilent; Components: capture or history
+Filename: "{app}\PureUtils.exe"; Parameters: ""; Description: "{cm:LaunchMain}"; Flags: nowait postinstall skipifsilent; Components: capture or history
 Filename: "{app}\PureUtils.exe"; Parameters: "--view"; Description: "{cm:LaunchViewer}"; Flags: nowait postinstall skipifsilent; Components: viewer and (not capture) and (not history)
 Filename: "{app}\PureUtils.exe"; Parameters: "--video"; Description: "{cm:LaunchVideo}"; Flags: nowait postinstall skipifsilent; Components: video and (not capture) and (not history) and (not viewer)
 Filename: "{app}\PureUtils.exe"; Parameters: "--zip"; Description: "{cm:LaunchZip}"; Flags: nowait postinstall skipifsilent; Components: zip and (not capture) and (not history) and (not viewer) and (not video)
@@ -454,8 +541,13 @@ Filename: "{cmd}"; Parameters: "/C taskkill /IM PureUtils.exe /F"; Flags: runhid
 Type: filesandordirs; Name: "{app}"
 
 [Code]
+#if VER >= 0x07000000
 procedure SHChangeNotify(wEventId: LongInt; uFlags: Cardinal; dwItem1: NativeInt; dwItem2: NativeInt);
   external 'SHChangeNotify@shell32.dll stdcall';
+#else
+procedure SHChangeNotify(wEventId: LongInt; uFlags: Cardinal; dwItem1: LongInt; dwItem2: LongInt);
+  external 'SHChangeNotify@shell32.dll stdcall';
+#endif
 
 function BoolToJson(B: Boolean): String;
 begin
@@ -711,6 +803,65 @@ begin
     Sleep(500);
     Exec(ExpandConstant('{cmd}'), '/C taskkill /IM ShotClip.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Sleep(200);
+  end;
+end;
+
+procedure InitializeWizard;
+var
+  SavedWidth, Delta, TargetTop: Integer;
+begin
+  WizardForm.BeveledLabel.Visible := False;
+
+  SavedWidth := WizardForm.WelcomeLabel1.Width;
+  WizardForm.WelcomeLabel1.Font.Size := 16;
+  WizardForm.WelcomeLabel1.AutoSize := False;
+  WizardForm.WelcomeLabel1.Width := SavedWidth;
+  WizardForm.WelcomeLabel1.AutoSize := True;
+
+  SavedWidth := WizardForm.WelcomeLabel2.Width;
+  WizardForm.WelcomeLabel2.Caption := CustomMessage('WelcomeBody');
+  WizardForm.WelcomeLabel2.AutoSize := False;
+  WizardForm.WelcomeLabel2.Width := SavedWidth;
+  WizardForm.WelcomeLabel2.AutoSize := True;
+  WizardForm.WelcomeLabel2.Top := WizardForm.WelcomeLabel1.Top + WizardForm.WelcomeLabel1.Height + ScaleY(14);
+
+  WizardForm.SelectDirBrowseLabel.Visible := False;
+  TargetTop := WizardForm.SelectDirBitmapImage.Top + WizardForm.SelectDirBitmapImage.Height + ScaleY(18);
+  Delta := TargetTop - WizardForm.DirEdit.Top;
+  WizardForm.DirEdit.Top := WizardForm.DirEdit.Top + Delta;
+  WizardForm.DirBrowseButton.Top := WizardForm.DirBrowseButton.Top + Delta;
+
+  WizardForm.SelectComponentsLabel.Visible := False;
+  WizardForm.TypesCombo.Top := WizardForm.SelectComponentsLabel.Top;
+  WizardForm.ComponentsList.Top := WizardForm.TypesCombo.Top + WizardForm.TypesCombo.Height + ScaleY(10);
+  if WizardForm.ComponentsDiskSpaceLabel.Top - WizardForm.ComponentsList.Top - ScaleY(10) > ScaleY(80) then
+    WizardForm.ComponentsList.Height := WizardForm.ComponentsDiskSpaceLabel.Top - WizardForm.ComponentsList.Top - ScaleY(10);
+
+  WizardForm.SelectTasksLabel.Visible := False;
+  Delta := WizardForm.TasksList.Top - WizardForm.SelectTasksLabel.Top;
+  WizardForm.TasksList.Top := WizardForm.SelectTasksLabel.Top;
+  WizardForm.TasksList.Height := WizardForm.TasksList.Height + Delta;
+
+  SavedWidth := WizardForm.FinishedHeadingLabel.Width;
+  WizardForm.FinishedHeadingLabel.Font.Size := 16;
+  WizardForm.FinishedHeadingLabel.AutoSize := False;
+  WizardForm.FinishedHeadingLabel.Width := SavedWidth;
+  WizardForm.FinishedHeadingLabel.AutoSize := True;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+var
+  SavedWidth: Integer;
+begin
+  if CurPageID = wpFinished then
+  begin
+    SavedWidth := WizardForm.FinishedLabel.Width;
+    WizardForm.FinishedLabel.Caption := CustomMessage('FinishedBody');
+    WizardForm.FinishedLabel.AutoSize := False;
+    WizardForm.FinishedLabel.Width := SavedWidth;
+    WizardForm.FinishedLabel.AutoSize := True;
+    WizardForm.FinishedLabel.Top := WizardForm.FinishedHeadingLabel.Top + WizardForm.FinishedHeadingLabel.Height + ScaleY(14);
+    WizardForm.RunList.Top := WizardForm.FinishedLabel.Top + WizardForm.FinishedLabel.Height + ScaleY(16);
   end;
 end;
 
