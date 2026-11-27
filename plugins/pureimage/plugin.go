@@ -59,6 +59,7 @@ func (p *Plugin) Init(host purekit.Host) error {
 	if host == nil {
 		return fmt.Errorf("pureimage: nil host")
 	}
+	SetCodecsPluginDir(host.Paths().PluginDir(PluginID))
 	cfg := config.LoadPureImage(host.Config(PluginID))
 
 	p.mu.Lock()

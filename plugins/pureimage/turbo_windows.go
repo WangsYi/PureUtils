@@ -27,8 +27,12 @@ var (
 	tjDecompress2      *syscall.LazyProc
 )
 
-// LoadTurboJPEG locates and initializes turbojpeg.dll without cgo.
+// LoadTurboJPEG locates and initializes native JPEG scaling via pureimage_codecs.dll
+// (or legacy turbojpeg.dll as fallback) without cgo.
 func LoadTurboJPEG() error {
+	if LoadCodecs() == nil {
+		return nil
+	}
 	turboOnce.Do(func() {
 		var last error
 		for _, p := range turboCandidates() {
@@ -49,7 +53,7 @@ func LoadTurboJPEG() error {
 	return turboErr
 }
 
-// TurboAvailable reports whether native libjpeg-turbo acceleration is loaded.
+// TurboAvailable reports whether native JPEG acceleration is available.
 func TurboAvailable() bool {
 	return LoadTurboJPEG() == nil
 }
@@ -68,14 +72,27 @@ func turboCandidates() []string {
 	}
 }
 
-// DecodeTurboJPEG decodes a JPEG at the largest libjpeg-turbo native scale
-// (1/1, 1/2, 1/4, 1/8) that stays near maxDim.
+// DecodeTurboJPEG decodes a JPEG at the largest native DCT scale (<= 1/1) that stays near maxDim.
 func DecodeTurboJPEG(data []byte, maxDim int) (image.Image, int, int, error) {
 	if len(data) < 4 || data[0] != 0xFF || data[1] != 0xD8 {
 		return nil, 0, 0, fmt.Errorf("not a JPEG")
 	}
-	if err := LoadTurboJPEG(); err != nil {
-		return nil, 0, 0, err
+	if LoadCodecs() == nil {
+		img, _, origW, origH, err := DecodeCodecImage(PicFmtJPEG, data, maxDim)
+		if err == nil {
+			return img, origW, origH, nil
+		}
+	}
+	turboOnce.Do(func() {
+		_ = LoadTurboJPEG()
+	})
+	if tjInitDecompress == nil {
+		if err := LoadTurboJPEG(); err != nil {
+			return nil, 0, 0, err
+		}
+	}
+	if tjInitDecompress == nil {
+		return nil, 0, 0, fmt.Errorf("turbojpeg not loaded")
 	}
 
 	h, _, _ := tjInitDecompress.Call()

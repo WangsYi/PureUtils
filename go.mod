@@ -7,10 +7,6 @@ require (
 	github.com/dsnet/compress v0.0.1
 	github.com/egoist/mygo v0.7.4
 	github.com/fogleman/gg v1.3.0
-	github.com/gen2brain/avif v0.6.0
-	github.com/gen2brain/heic v0.7.2
-	github.com/gen2brain/jpegxl v0.6.0
-	github.com/gen2brain/webp v0.6.4
 	github.com/go-ole/go-ole v1.3.0
 	github.com/kettek/apng v0.0.0-20250827064933-2bb5f5fcf253
 	github.com/klauspost/compress v1.20.5
@@ -38,7 +34,6 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/stangelandcl/ppmd v0.1.1 // indirect
-	github.com/tetratelabs/wazero v1.12.0 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	golang.org/x/net v0.59.0 // indirect

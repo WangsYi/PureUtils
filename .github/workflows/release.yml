@@ -77,23 +77,20 @@ jobs:
           go run -buildvcs=false ./tools/genicon
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Download and verify Tier 1 libmpv-2.dll
+      - name: Download and verify Tier 1 libmpv-2.dll and pureimage_codecs.dll
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path 'libs\mpv' | Out-Null
-          gh release download libmpv-tier1 `
-            --dir 'libs\mpv' `
-            --pattern 'libmpv-2-tier1-x64.7z' `
-            --pattern 'SHA256SUMS.txt' `
-            --clobber
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $sevenZip = (Get-Command 7z -ErrorAction SilentlyContinue | Select-Object -First 1).Source
+          if (-not $sevenZip -and (Test-Path 'C:\Program Files\7-Zip\7z.exe')) {
+            $sevenZip = 'C:\Program Files\7-Zip\7z.exe'
+          }
+          if (-not $sevenZip) { throw '7z.exe not found on runner' }
 
-          $sums = Get-Content -LiteralPath 'libs\mpv\SHA256SUMS.txt' -Encoding UTF8
-          function Assert-Sha256([string]$FilePath, [string]$AssetName) {
-            $line = $sums | Where-Object { $_ -match ("^([0-9a-fA-F]{64})\s+" + [regex]::Escape($AssetName) + "$") } | Select-Object -First 1
-            if (-not $line) { throw "Missing checksum for $AssetName in libs\mpv\SHA256SUMS.txt" }
+          function Assert-Sha256([string[]]$Sums, [string]$FilePath, [string]$AssetName) {
+            $line = $Sums | Where-Object { $_ -match ("^([0-9a-fA-F]{64})\s+" + [regex]::Escape($AssetName) + "$") } | Select-Object -First 1
+            if (-not $line) { throw "Missing checksum for $AssetName" }
             $line -match '^([0-9a-fA-F]{64})\s+' | Out-Null
             $expected = $Matches[1].ToLowerInvariant()
             $actual = (Get-FileHash -LiteralPath $FilePath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -103,18 +100,26 @@ jobs:
             Write-Host "Verified $AssetName SHA-256: $actual"
           }
 
-          Assert-Sha256 'libs\mpv\libmpv-2-tier1-x64.7z' 'libmpv-2-tier1-x64.7z'
+          $deps = @(
+            @{ Tag = 'libmpv-tier1'; Dir = 'libs\mpv'; Archive = 'libmpv-2-tier1-x64.7z'; Dll = 'libmpv-2.dll' },
+            @{ Tag = 'pureimage-codecs'; Dir = 'libs\codecs'; Archive = 'pureimage-codecs-x64.7z'; Dll = 'pureimage_codecs.dll' }
+          )
+          foreach ($d in $deps) {
+            New-Item -ItemType Directory -Force -Path $d.Dir | Out-Null
+            gh release download $d.Tag `
+              --dir $d.Dir `
+              --pattern $d.Archive `
+              --pattern 'SHA256SUMS.txt' `
+              --clobber
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-          $sevenZip = (Get-Command 7z -ErrorAction SilentlyContinue | Select-Object -First 1).Source
-          if (-not $sevenZip -and (Test-Path 'C:\Program Files\7-Zip\7z.exe')) {
-            $sevenZip = 'C:\Program Files\7-Zip\7z.exe'
+            $sums = Get-Content -LiteralPath (Join-Path $d.Dir 'SHA256SUMS.txt') -Encoding UTF8
+            $arcPath = Join-Path $d.Dir $d.Archive
+            Assert-Sha256 $sums $arcPath $d.Archive
+            & $sevenZip e -y $arcPath ("-o$($d.Dir)") $d.Dll
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Assert-Sha256 $sums (Join-Path $d.Dir $d.Dll) $d.Dll
           }
-          if (-not $sevenZip) { throw '7z.exe not found on runner' }
-
-          & $sevenZip e -y 'libs\mpv\libmpv-2-tier1-x64.7z' '-olibs\mpv' 'libmpv-2.dll'
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          Assert-Sha256 'libs\mpv\libmpv-2.dll' 'libmpv-2.dll'
 
       - name: Ensure Inno Setup (ISCC.exe) is installed
         shell: pwsh

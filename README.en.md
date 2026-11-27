@@ -31,7 +31,7 @@ Screenshot & Pinning · Clipboard History · Fast Image & Video Browser · Archi
 |---|---|---|
 | **PureShot** | `capture` | Frozen region capture, smart window snapping, pixel magnifier (`C` silent hex copy), 9 vector annotation tools, double-click quick finish, always-on-top desktop pins |
 | **PureClip** | `history` | Isolated SQLite (WAL) & SHA-1 content-addressed image blobs, instant in-memory multi-token search (`<1ms`), async thumbnail/preview decoding cache, filters/favorites, sensitive process exclusion, read-only legacy DB fallback |
-| **PureImage** | `viewer` | **40+ formats** (JPG, PNG, GIF, WebP, HEIC, AVIF, JPEG XL, 24 camera RAW formats & animations), native `libjpeg-turbo` DCT scaling, EXIF inspector, Windows Explorer **Spacebar quick preview** & `P` desktop pin |
+| **PureImage** | `viewer` | **40+ formats** (JPG, PNG, GIF, WebP, HEIC, AVIF, JPEG XL, 24 camera RAW formats & animations), native `pureimage_codecs.dll` SIMD codecs & JPEG DCT scaling, EXIF inspector, Windows Explorer **Spacebar quick preview** & `P` desktop pin |
 | **PureVideo** | `video` | Bundled Tier 1 trimmed **`libmpv` hardware decoding engine**, supporting 21 video formats (MP4, MKV, MOV, HEVC, FLV, WebM, etc.), external subtitles, frame-step, speed/loop controls, and HKCU file associations |
 | **PureZip** | `zip` | Pure-Go archive manager (read/write `ZIP, 7Z, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, TAR.ZST`; read `RAR v4/v5` & single-file `GZ/BZ2/XZ/ZST`), folder tree, smart extract, AES-256 / `-mhe`, codepage switcher, Explorer cascading context menu & file associations |
 | **PureMonitor** | `monitor` | Taskbar strip & edge-docked collapsible floating pill (selectable metrics), full hardware & sensor dashboard (optional PawnIO/elevated helper, AMD ADL & NVML), and zero-injection ETW game FPS overlay |
@@ -66,8 +66,8 @@ Screenshot & Pinning · Clipboard History · Fast Image & Video Browser · Archi
 
 ## Installation
 
-- Download the modular installer `PureUtils-1.3.0-setup.exe` (with built-in trimmed `libmpv-2.dll`) from [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases).
-- Installs per-user (`%LOCALAPPDATA%\Programs\PureUtils`, no UAC required) with customizable components: **Full Suite / PureShot+PureClip / PureImage only / PureVideo only / PureZip only**, optional `turbojpeg.dll`, Explorer context menus, and HKCU file associations.
+- Download the modular installer `PureUtils-1.3.0-setup.exe` (with bundled trimmed `libmpv-2.dll` and source-built `pureimage_codecs.dll`) from [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases).
+- Installs per-user (`%LOCALAPPDATA%\Programs\PureUtils`, no UAC required) with customizable components: **Full Suite / PureShot+PureClip / PureImage only / PureVideo only / PureZip only**, `PureMonitor`, Explorer context menus, and HKCU file associations.
 
 ---
 
@@ -79,7 +79,7 @@ Prerequisites: Windows 10/11 (x64) + **Go 1.27.3+** (no cgo, no Node, no WebView
 # Build full binary with all 6 plugins
 .\build.ps1 build
 
-# Build slim core binary without PureImage / turbojpeg.dll (-tags nofreeimage)
+# Build binary without PureImage module (-tags nofreeimage)
 .\build.ps1 build -CoreOnly
 
 # Selectively exclude specific plugins at compile time (supports pureshot, pureclip, pureimage, purevideo, purezip, puremonitor)
@@ -146,7 +146,7 @@ pkg/purekit/                  Reusable plugin SDK (Plugin/Host/Bus/Contracts, co
 plugins/
   ├─ pureshot/                Region capture, vector annotation baker (annotate/), and floating pins
   ├─ pureclip/                Clipboard watcher, SQLite/blob storage, and fast search history UI
-  ├─ pureimage/               40+ image/RAW codecs, EXIF, TurboJPEG, Spacebar preview & HKCU associations
+  ├─ pureimage/               40+ image/RAW codecs, EXIF, pureimage_codecs.dll native SIMD, Spacebar preview & HKCU associations
   ├─ purevideo/               Bundled libmpv hardware playback, controls & HKCU associations
   ├─ purezip/                 Pure-Go archive engine (archive/), Explorer shell integration (zipshell/)
   └─ puremonitor/             Taskbar & floating overlays, hardware sensors & ETW game FPS HUD

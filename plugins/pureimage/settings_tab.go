@@ -20,6 +20,7 @@ type settingsTabView struct {
 	slideIdx        int
 	preloadIdx      int
 	assocRegistered bool
+	codecsAvailable bool
 	turboAvailable  bool
 	status          string
 }
@@ -34,9 +35,10 @@ func newSettingsTabView(p purekitSettingsTarget, host purekit.Host) *settingsTab
 	cur := p.Config()
 	cur.Normalize()
 	v := &settingsTabView{
-		plugin:         p,
-		host:           host,
-		turboAvailable: TurboAvailable(),
+		plugin:          p,
+		host:            host,
+		codecsAvailable: CodecsAvailable(),
+		turboAvailable:  TurboAvailable(),
 	}
 	if host != nil && !host.Headless() {
 		v.assocRegistered = FileAssocRegistered()
@@ -120,11 +122,13 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRowTip(c, i18n.S("JPEG 原生加速 (libjpeg-turbo)", "Native JPEG Acceleration"), i18n.S("利用同目录 turbojpeg.dll 实现 1/2·1/4·1/8 硬件级缩放解码", "Use bundled turbojpeg.dll for fast 1/2·1/4·1/8 scaled decoding"), pal, func() {
-			if v.turboAvailable {
+		pureui.SettingRowTip(c, i18n.S("原生图像解码加速", "Native Codec Acceleration"), i18n.S("通过同目录 pureimage_codecs.dll 提供 JPEG 缩放及 WebP/AVIF/HEIC/JXL 原生 SIMD 解码", "Uses pureimage_codecs.dll for scaled JPEG and native SIMD decoding of WebP, AVIF, HEIC, and JXL"), pal, func() {
+			if v.codecsAvailable {
+				pureui.PillBadge(c, i18n.S("已启用 pureimage_codecs.dll", "pureimage_codecs.dll active"), pal.Success, pal.SuccessSoft)
+			} else if v.turboAvailable {
 				pureui.PillBadge(c, i18n.S("已启用 turbojpeg.dll", "turbojpeg.dll active"), pal.Success, pal.SuccessSoft)
 			} else {
-				pureui.PillBadge(c, i18n.S("未安装，使用纯 Go 解码", "Pure Go decoder"), pal.Warning, pal.WarningSoft)
+				pureui.PillBadge(c, i18n.S("未检测到扩展，使用基础解码", "Fallback to basic Go decoder"), pal.Warning, pal.WarningSoft)
 			}
 		})
 	})

@@ -15,7 +15,7 @@ main.go                       MyGo single-instance entry, crash.log wiring, conf
        └─ plugins/<id>        Self-contained feature plugins (zero cross-plugin imports, zero internal/* imports)
             ├─ pureshot       PureShot: region/screen capture, 9 vector annotation tools (pureshot/annotate), floating pins
             ├─ pureclip       PureClip: clipboard watcher, SQLite/Blob store, Ditto-style popup, read-only legacy fallback
-            ├─ pureimage      PureImage: 40+ image/RAW/animated codecs, TurboJPEG scaling, Spacebar preview, HKCU associations
+            ├─ pureimage      PureImage: 40+ image/RAW/animated codecs, pureimage_codecs.dll native SIMD decoders, Spacebar preview, HKCU associations
             ├─ purevideo      PureVideo: bundled trimmed libmpv hardware playback, 21 video formats, subtitles & HKCU associations
             ├─ purezip        PureZip: archive/ pure-Go engine, zipshell/ Explorer context menu & associations, UI manager
             └─ puremonitor    PureMonitor: taskbar/edge pill, ADL/NVML/PawnIO sensors & ETW game FPS HUD
@@ -39,7 +39,7 @@ Dependency boundaries are automatically enforced on every test run by [`internal
 ## 2. Three-Layer Modularity: Compile-Time, Install-Time & Runtime Hot-Toggle
 
 1. **Compile Time (Go Build Tags)**:
-   - `nofreeimage` / `nopureimage`: strips PureImage codecs (`avif`, `heic`, `jxl`, `webp`, `wazero`) and optional `turbojpeg.dll` usage (~10 MB binary reduction);
+   - `nofreeimage` / `nopureimage`: excludes the PureImage module and `pureimage_codecs.dll` native codec bindings (JPEG/WebP/AVIF/HEIC/JXL);
    - `nopureshot`, `nopureclip`, `nopurevideo`, `nopurezip`, `nopuremonitor`: individually omit capture, clipboard history, video player, archive manager, or hardware monitor functionality;
    - Controlled conveniently via `.\build.ps1 build -CoreOnly` or `.\build.ps1 build -Exclude purezip,pureimage,purevideo`.
 2. **Install Time (`modules.json`)**:

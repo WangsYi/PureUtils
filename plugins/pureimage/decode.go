@@ -14,10 +14,6 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"github.com/gen2brain/avif"
-	"github.com/gen2brain/heic"
-	"github.com/gen2brain/jpegxl"
-	"github.com/gen2brain/webp"
 	"github.com/kettek/apng"
 	_ "golang.org/x/image/bmp"
 	xdraw "golang.org/x/image/draw"
@@ -94,6 +90,14 @@ func DecodeSource(data []byte, path string, maxDim int) (image.Image, ExifData, 
 			img, srcW, srcH = timg, w, h
 		}
 	}
+	if img == nil && ext == ".webp" && CodecsAvailable() {
+		if cimg, cex, _, _, err := DecodeCodecImage(PicFmtWebP, data, 0); err == nil {
+			img = cimg
+			if ex.Orientation == 1 && cex.Orientation != 1 || ex.Make == "" && cex.Make != "" {
+				ex = cex
+			}
+		}
+	}
 	if img == nil {
 		if IsSpecialExt(ext) {
 			simg, sex, err := DecodeSpecial(data, path)
@@ -119,8 +123,37 @@ func DecodeSource(data []byte, path string, maxDim int) (image.Image, ExifData, 
 			xdraw.ApproxBiLinear.Scale(dst, dst.Bounds(), img, b, stddraw.Src, nil)
 			img = dst
 		}
+	} else {
+		b := img.Bounds()
+		if maxDim > 0 && ext == ".webp" && max(b.Dx(), b.Dy()) > maxDim {
+			srcW, srcH = b.Dx(), b.Dy()
+			nw, nh := FitWithin(srcW, srcH, maxDim)
+			dst := image.NewNRGBA(image.Rect(0, 0, nw, nh))
+			xdraw.ApproxBiLinear.Scale(dst, dst.Bounds(), img, b, stddraw.Src, nil)
+			img = dst
+		}
+		if srcW <= 0 || srcH <= 0 {
+			srcW, srcH = b.Dx(), b.Dy()
+		}
 	}
 	return img, ex, srcW, srcH, nil
+}
+
+func codecFormatForExt(ext string) (uint32, bool) {
+	switch strings.ToLower(ext) {
+	case ".heic", ".heif", ".hif", ".cr3":
+		return PicFmtHEIC, true
+	case ".avif", ".avifs":
+		return PicFmtAVIF, true
+	case ".jxl":
+		return PicFmtJXL, true
+	case ".webp":
+		return PicFmtWebP, true
+	case ".jpg", ".jpeg", ".jpe", ".jfif":
+		return PicFmtJPEG, true
+	default:
+		return 0, false
+	}
 }
 
 // DecodeSpecial handles HEIC, AVIF, JXL, and camera RAW files.
@@ -129,7 +162,7 @@ func DecodeSpecial(data []byte, path string) (image.Image, ExifData, error) {
 	ex := ExifData{Orientation: 1}
 	switch ext {
 	case ".heic", ".heif", ".hif":
-		img, err := heic.Decode(bytes.NewReader(data))
+		img, hex, _, _, err := DecodeCodecImage(PicFmtHEIC, data, 0)
 		if err != nil {
 			if jpg := LargestEmbeddedJPEG(data); len(jpg) > 0 {
 				if jimg, _, jerr := image.Decode(bytes.NewReader(jpg)); jerr == nil {
@@ -138,28 +171,19 @@ func DecodeSpecial(data []byte, path string) (image.Image, ExifData, error) {
 			}
 			return nil, ex, err
 		}
-		if hx, err := heic.DecodeExif(bytes.NewReader(data)); err == nil {
-			ex = ExifFromFields(hx.Make, hx.Model, hx.DateTime, hx.DateTimeOriginal, hx.ExposureTime, hx.FNumber, hx.ISOSpeed, hx.FocalLength)
-		}
-		return img, ex, nil
+		return img, hex, nil
 	case ".avif", ".avifs":
-		img, err := avif.Decode(bytes.NewReader(data), avif.Options{AutoRotate: true})
+		img, aex, _, _, err := DecodeCodecImage(PicFmtAVIF, data, 0)
 		if err != nil {
 			return nil, ex, err
 		}
-		if ax, err := avif.DecodeExif(bytes.NewReader(data)); err == nil {
-			ex = ExifFromFields(ax.Make, ax.Model, ax.DateTime, ax.DateTimeOriginal, ax.ExposureTime, ax.FNumber, ax.ISOSpeed, ax.FocalLength)
-		}
-		return img, ex, nil
+		return img, aex, nil
 	case ".jxl":
-		img, err := jpegxl.Decode(bytes.NewReader(data))
+		img, jex, _, _, err := DecodeCodecImage(PicFmtJXL, data, 0)
 		if err != nil {
 			return nil, ex, err
 		}
-		if jx, err := jpegxl.DecodeExif(bytes.NewReader(data)); err == nil {
-			ex = ExifFromFields(jx.Make, jx.Model, jx.DateTime, jx.DateTimeOriginal, jx.ExposureTime, jx.FNumber, jx.ISOSpeed, jx.FocalLength)
-		}
-		return img, ex, nil
+		return img, jex, nil
 	}
 
 	if img, err := decodeWICRaw(path); err == nil {
@@ -175,7 +199,7 @@ func DecodeSpecial(data []byte, path string) (image.Image, ExifData, error) {
 		return img, rex, nil
 	}
 	if ext == ".cr3" {
-		if img, err := heic.Decode(bytes.NewReader(data)); err == nil {
+		if img, _, _, _, err := DecodeCodecImage(PicFmtHEIC, data, 0); err == nil {
 			return img, ex, nil
 		}
 	}
@@ -200,66 +224,18 @@ func DecodeAnimation(path string, maxDim, rotate int, flip bool) ([]*ui.Bitmap, 
 	switch ext {
 	case ".gif":
 		return DecodeGIF(data, maxDim, rotate, flip)
-	case ".heic", ".heif", ".hif":
-		h, err := heic.DecodeAll(bytes.NewReader(data))
-		if err != nil {
-			return nil, nil, nil, 0, 0, ExifData{Orientation: 1}, false, err
-		}
-		ex := ExifData{Orientation: 1}
-		if hx, e := heic.DecodeExif(bytes.NewReader(data)); e == nil {
-			ex = ExifFromFields(hx.Make, hx.Model, hx.DateTime, hx.DateTimeOriginal, hx.ExposureTime, hx.FNumber, hx.ISOSpeed, hx.FocalLength)
-		}
-		return ImagesToAnimation(h.Image, secondsDelays(h.Delay), maxDim, ex, rotate, flip)
-	case ".avif", ".avifs":
-		a, err := avif.DecodeAll(bytes.NewReader(data), avif.Options{AutoRotate: true})
-		if err != nil {
-			return nil, nil, nil, 0, 0, ExifData{Orientation: 1}, false, err
-		}
-		ex := ExifData{Orientation: 1}
-		if ax, e := avif.DecodeExif(bytes.NewReader(data)); e == nil {
-			ex = ExifFromFields(ax.Make, ax.Model, ax.DateTime, ax.DateTimeOriginal, ax.ExposureTime, ax.FNumber, ax.ISOSpeed, ax.FocalLength)
-		}
-		return ImagesToAnimation(a.Image, secondsDelays(a.Delay), maxDim, ex, rotate, flip)
-	case ".jxl":
-		j, err := jpegxl.DecodeAll(bytes.NewReader(data))
-		if err != nil {
-			return nil, nil, nil, 0, 0, ExifData{Orientation: 1}, false, err
-		}
-		ex := ExifData{Orientation: 1}
-		if jx, e := jpegxl.DecodeExif(bytes.NewReader(data)); e == nil {
-			ex = ExifFromFields(jx.Make, jx.Model, jx.DateTime, jx.DateTimeOriginal, jx.ExposureTime, jx.FNumber, jx.ISOSpeed, jx.FocalLength)
-		}
-		delays := make([]time.Duration, len(j.Delay))
-		for i, d := range j.Delay {
-			delays[i] = time.Duration(d) * time.Millisecond
-		}
-		return ImagesToAnimation(j.Image, delays, maxDim, ex, rotate, flip)
-	case ".webp":
-		w, err := webp.DecodeAll(bytes.NewReader(data), webp.Options{AutoRotate: true})
-		if err != nil {
-			return nil, nil, nil, 0, 0, ExifData{Orientation: 1}, false, err
-		}
-		ex := ExifData{Orientation: 1}
-		if wx, e := webp.DecodeExif(bytes.NewReader(data)); e == nil {
-			ex = ExifFromFields(wx.Make, wx.Model, wx.DateTime, wx.DateTimeOriginal, wx.ExposureTime, wx.FNumber, wx.ISOSpeed, wx.FocalLength)
-		}
-		delays := make([]time.Duration, len(w.Delay))
-		for i, d := range w.Delay {
-			delays[i] = time.Duration(d) * time.Millisecond
-		}
-		return ImagesToAnimation(w.Image, delays, maxDim, ex, rotate, flip)
 	case ".png":
 		return DecodeAPNG(data, maxDim, rotate, flip)
+	case ".heic", ".heif", ".hif", ".avif", ".avifs", ".jxl", ".webp":
+		if fmtID, ok := codecFormatForExt(ext); ok {
+			imgs, delays, ex, err := DecodeCodecAnimation(fmtID, data)
+			if err != nil {
+				return nil, nil, nil, 0, 0, ExifData{Orientation: 1}, false, err
+			}
+			return ImagesToAnimation(imgs, delays, maxDim, ex, rotate, flip)
+		}
 	}
 	return nil, nil, nil, 0, 0, ExifData{}, false, errUnsupportedAnimation
-}
-
-func secondsDelays(ds []float64) []time.Duration {
-	out := make([]time.Duration, len(ds))
-	for i, d := range ds {
-		out[i] = time.Duration(d * float64(time.Second))
-	}
-	return out
 }
 
 // ImagesToAnimation transforms and uploads animation frames as MyGo bitmaps.

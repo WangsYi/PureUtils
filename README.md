@@ -31,7 +31,7 @@
 |---|---|---|
 | **PureShot** | `capture` | 区域冻结框选、窗口智能锚点吸附、取色放大镜（按 `C` 静默复制色值）、9 种矢量标注（矩形/椭圆/直线/箭头/画笔/高亮/文字/马赛克/序号）、双击快速导出、桌面悬浮贴图 |
 | **PureClip** | `history` | 隔离 SQLite（WAL）与 SHA-1 内容寻址图片存储、内存预索引毫秒级多词即时搜索、异步缩略图与大图解码缓存、分类与收藏筛选、防敏进程忽略与回放粘贴、只读兼容旧库 |
-| **PureImage** | `viewer` | 支持 **40+ 图片格式**（JPG / PNG / GIF / WebP / HEIC / AVIF / JPEG XL / 24 种相机 RAW + 动图）、`libjpeg-turbo` 原生硬件级缩放、EXIF 详情面板、资源管理器**空格秒开预览**与 `P` 键贴图 |
+| **PureImage** | `viewer` | 支持 **40+ 图片格式**（JPG / PNG / GIF / WebP / HEIC / AVIF / JPEG XL / 24 种相机 RAW + 动图）、`pureimage_codecs.dll` 原生 SIMD 解码与 JPEG 硬件级缩放、EXIF 详情面板、资源管理器**空格秒开预览**与 `P` 键贴图 |
 | **PureVideo** | `video` | 内置精简裁剪版 **`libmpv` 硬件解码内核**，开箱支持 21 种视频格式（MP4 / MKV / MOV / HEVC / FLV / WebM 等）、外挂字幕、逐帧步进、倍速、循环播放与文件关联 |
 | **PureZip** | `zip` | 纯 Go 多格式压缩与解压管理（读写 `ZIP / 7Z / TAR / TAR.GZ / TAR.BZ2 / TAR.XZ / TAR.ZST`，只读 `RAR v4/v5` 及单文件 `GZ/BZ2/XZ/ZST`）、树形导航、智能解压、多线程压缩、AES-256 / `-mhe`、资源管理器右键级联菜单与文件关联 |
 | **PureMonitor** | `monitor` | 任务栏状态条与边缘收起迷你悬浮胶囊（支持自选指标）、硬件规格与实时传感器面板（含可选 PawnIO / 提权采集及 AMD ADL / NVML）以及零注入 ETW 游戏 FPS 悬浮层 |
@@ -66,8 +66,8 @@
 
 ## 下载与安装
 
-- 从 [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases) 下载模块化安装程序 `PureUtils-1.3.0-setup.exe`（已内置裁剪版 `libmpv-2.dll`）。
-- 基于 Inno Setup 的安装包采用单用户目录安装（无需管理员权限），可自由勾选 **完整套件 / PureShot+PureClip / 仅 PureImage / 仅 PureVideo / 仅 PureZip** 以及 `turbojpeg.dll` 加速、右键菜单和文件关联；卸载或取消勾选时自动清理对应注册表与快捷方式。
+- 从 [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases) 下载模块化安装程序 `PureUtils-1.3.0-setup.exe`（已内置裁剪版 `libmpv-2.dll` 与源码交叉编译的 `pureimage_codecs.dll`）。
+- 基于 Inno Setup 的安装包采用单用户目录安装（无需管理员权限），可自由勾选 **完整套件 / PureShot+PureClip / 仅 PureImage / 仅 PureVideo / 仅 PureZip** 以及 `PureMonitor`、右键菜单和文件关联；卸载或取消勾选时自动清理对应注册表、计划任务与快捷方式。
 
 ---
 
@@ -79,7 +79,7 @@
 # 编译完整版 PureUtils.exe（含全部六大插件）
 .\build.ps1 build
 
-# 编译精简版（排除 PureImage 及解码器与 turbojpeg.dll）
+# 编译裁剪版（排除 PureImage 看图模块）
 .\build.ps1 build -CoreOnly
 
 # 按插件名精确编译裁剪（支持 pureshot, pureclip, pureimage, purevideo, purezip, puremonitor）
@@ -146,7 +146,7 @@ pkg/purekit/                  可复用核心插件 SDK（Plugin/Host/Bus/Contra
 plugins/
   ├─ pureshot/                截图、9 种矢量标注（annotate/）与桌面贴图
   ├─ pureclip/                剪贴板监控、仓储与 Ditto 风格检索面板
-  ├─ pureimage/               40+ 格式解码、EXIF、TurboJPEG、空格预览与关联
+  ├─ pureimage/               40+ 格式解码、EXIF、pureimage_codecs.dll 原生加速、空格预览与关联
   ├─ purevideo/               内置 libmpv 硬件解码播放、交互控制与关联
   ├─ purezip/                 纯 Go 压缩引擎（archive/）、右键与关联（zipshell/）
   └─ puremonitor/             任务栏与悬浮监控、硬件传感器采集及 ETW 游戏帧率 HUD

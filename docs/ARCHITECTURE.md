@@ -15,7 +15,7 @@ main.go                       MyGo 单实例生命周期、crash.log 崩溃日�
        └─ plugins/<id>        完全独立的功能插件（零跨插件 import、零 internal/* import）
             ├─ pureshot       PureShot：区域/整屏截图、9 种矢量标注（pureshot/annotate）、悬浮贴图
             ├─ pureclip       PureClip：剪贴板历史监控、SQLite/Blob 仓储、Ditto 风格浮窗、只读 legacy fallback
-            ├─ pureimage      PureImage：40+ 格式与 RAW/动图解码、TurboJPEG、空格预览、系统打开方式关联
+            ├─ pureimage      PureImage：40+ 格式与 RAW/动图解码、`pureimage_codecs.dll` 原生 SIMD 解码、空格预览、系统打开方式关联
             ├─ purevideo      PureVideo：内置裁剪版 libmpv 硬件解码、21 种视频格式、字幕与系统打开方式关联
             ├─ purezip        PureZip：archive/ 纯 Go 压缩引擎、zipshell/ 右键与关联、管理器与进度窗口
             └─ puremonitor    PureMonitor：任务栏/边缘胶囊监控、ADL/NVML/PawnIO 传感器及 ETW 游戏帧率 HUD
@@ -42,7 +42,7 @@ main.go                       MyGo 单实例生命周期、crash.log 崩溃日�
 PureUtils 支持三层自由组合与裁剪：
 
 1. **编译期（Go Build Tags）**：
-   - `nofreeimage`（等价于 `nopureimage`）：完全排除 PureImage 及 AVIF/HEIC/JXL/WebP 解码与 `wazero` 依赖（体积缩减约 10 MB）；
+   - `nofreeimage`（等价于 `nopureimage`）：排除 PureImage 模块及 `pureimage_codecs.dll` 原生解码桥接（JPEG/WebP/AVIF/HEIC/JXL）；
    - `nopureshot`：排除 PureShot 截图、标注与贴图；
    - `nopureclip`：排除 PureClip 剪贴板历史；
    - `nopurevideo`：排除 PureVideo 视频浏览器及 `libmpv` 调用；

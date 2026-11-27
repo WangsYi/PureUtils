@@ -103,6 +103,19 @@ try {
         return $mpvDll
     }
 
+    function Ensure-PureImageCodecs {
+        $codecsDir = Join-Path $root 'libs\codecs'
+        $codecsDll = Join-Path $codecsDir 'pureimage_codecs.dll'
+        if (-not (Test-Path $codecsDll) -or ((Get-Item $codecsDll).Length -lt 1048576)) {
+            Write-Host '未检测到 libs\codecs\pureimage_codecs.dll，正在自动下载并解压...' -ForegroundColor Cyan
+            Invoke-Go @('run', './tools/fetchcodecs', '-out', $codecsDir) | Out-Host
+        }
+        if (-not (Test-Path $codecsDll)) {
+            throw "未找到 pureimage_codecs.dll：$codecsDll"
+        }
+        return $codecsDll
+    }
+
     function Copy-FileIfChanged([string]$Src, [string]$Dst) {
         $need = -not (Test-Path $Dst)
         if (-not $need) {
@@ -373,10 +386,8 @@ try {
             Copy-Item -Force (Join-Path $root 'resources\zip.png') (Join-Path $out 'resources\zip.png')
             Copy-Item -Force (Join-Path $root 'resources\monitor.ico') (Join-Path $out 'resources\monitor.ico')
             Copy-Item -Force (Join-Path $root 'resources\monitor.png') (Join-Path $out 'resources\monitor.png')
-            $turbo = Join-Path $root 'libs\turbojpeg\turbojpeg.dll'
-            if (Test-Path $turbo) {
-                Copy-Item -Force $turbo (Join-Path $out 'turbojpeg.dll')
-            }
+            $codecsDll = Ensure-PureImageCodecs
+            Copy-Item -Force $codecsDll (Join-Path $out 'pureimage_codecs.dll')
             $mpvDll = Ensure-LibMPV
             Copy-Item -Force $mpvDll (Join-Path $out 'libmpv-2.dll')
 
@@ -401,8 +412,7 @@ try {
             New-Item -ItemType Directory -Force -Path $resStage | Out-Null
             New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
-            Build-Binary (Join-Path $stage 'PureUtils-full.exe') $false
-            Build-Binary (Join-Path $stage 'PureUtils-core.exe') $true
+            Build-Binary (Join-Path $stage 'PureUtils.exe') $false
 
             Copy-Item -Force (Join-Path $root 'resources\icon.png') (Join-Path $resStage 'icon.png')
             Copy-Item -Force (Join-Path $root 'resources\icon.ico') (Join-Path $resStage 'icon.ico')
@@ -416,10 +426,8 @@ try {
             Copy-Item -Force (Join-Path $root 'resources\zip.png') (Join-Path $resStage 'zip.png')
             Copy-Item -Force (Join-Path $root 'resources\monitor.ico') (Join-Path $resStage 'monitor.ico')
             Copy-Item -Force (Join-Path $root 'resources\monitor.png') (Join-Path $resStage 'monitor.png')
-            $turbo = Join-Path $root 'libs\turbojpeg\turbojpeg.dll'
-            if (Test-Path $turbo) {
-                Copy-FileIfChanged $turbo (Join-Path $stage 'turbojpeg.dll')
-            }
+            $codecsDll = Ensure-PureImageCodecs
+            Copy-FileIfChanged $codecsDll (Join-Path $stage 'pureimage_codecs.dll')
             $mpvDll = Ensure-LibMPV
             Copy-FileIfChanged $mpvDll (Join-Path $stage 'libmpv-2.dll')
 

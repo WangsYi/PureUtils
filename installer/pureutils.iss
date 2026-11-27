@@ -131,7 +131,6 @@ chinesesimplified.CompCore=核心框架（必需）
 chinesesimplified.CompCapture=PureShot 截图贴图
 chinesesimplified.CompHistory=PureClip 剪贴板历史
 chinesesimplified.CompViewer=PureImage 看图与空格预览
-chinesesimplified.CompTurbo=JPEG 原生加速 (libjpeg-turbo)
 chinesesimplified.CompAssoc=关联图片格式
 chinesesimplified.CompVideo=PureVideo 视频播放
 chinesesimplified.CompVideoAssoc=关联视频格式
@@ -182,7 +181,6 @@ english.CompCore=Core Runtime (Required)
 english.CompCapture=PureShot — Screenshot & Pins
 english.CompHistory=PureClip — Clipboard History
 english.CompViewer=PureImage — Image Viewer & Space Preview
-english.CompTurbo=JPEG Acceleration (libjpeg-turbo)
 english.CompAssoc=Associate Image Formats
 english.CompVideo=PureVideo — Video Player
 english.CompVideoAssoc=Associate Video Formats
@@ -213,7 +211,6 @@ Name: "capture"; Description: "{cm:CompCapture}"; Types: full shotclip custom
 Name: "history"; Description: "{cm:CompHistory}"; Types: full shotclip custom
 Name: "monitor"; Description: "{cm:CompMonitor}"; Types: full custom
 Name: "viewer"; Description: "{cm:CompViewer}"; Types: full viewer custom
-Name: "viewer\turbo"; Description: "{cm:CompTurbo}"; Types: full viewer custom
 Name: "viewer\assoc"; Description: "{cm:CompAssoc}"; Types: full viewer custom
 Name: "video"; Description: "{cm:CompVideo}"; Types: full video custom
 Name: "video\assoc"; Description: "{cm:CompVideoAssoc}"; Types: full video custom
@@ -227,6 +224,7 @@ Name: "autostart"; Description: "{cm:TaskAutostart}"; Flags: unchecked
 
 [InstallDelete]
 Type: files; Name: "{app}\turbojpeg.dll"
+Type: files; Name: "{app}\pureimage_codecs.dll"
 Type: files; Name: "{app}\libmpv-2.dll"
 Type: files; Name: "{app}\resources\freeimage.ico"
 Type: files; Name: "{app}\resources\image.ico"
@@ -243,9 +241,8 @@ Type: files; Name: "{app}\ynm3000.exe"
 [Files]
 Source: "{#StageDir}\resources\icon.png"; Flags: dontcopy
 Source: "{#StageDir}\resources\btn-primary.png"; Flags: dontcopy
-Source: "{#StageDir}\PureUtils-full.exe"; DestDir: "{app}"; DestName: "PureUtils.exe"; Components: viewer; Flags: ignoreversion
-Source: "{#StageDir}\PureUtils-core.exe"; DestDir: "{app}"; DestName: "PureUtils.exe"; Components: not viewer; Flags: ignoreversion
-Source: "{#StageDir}\turbojpeg.dll"; DestDir: "{app}"; Components: viewer\turbo; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#StageDir}\PureUtils.exe"; DestDir: "{app}"; DestName: "PureUtils.exe"; Components: core; Flags: ignoreversion
+Source: "{#StageDir}\pureimage_codecs.dll"; DestDir: "{app}"; Components: viewer; Flags: ignoreversion skipifsourcedoesntexist
 Source: "{#StageDir}\libmpv-2.dll"; DestDir: "{app}"; Components: video; Flags: ignoreversion skipifsourcedoesntexist
 Source: "{#StageDir}\resources\icon.png"; DestDir: "{app}\resources"; Flags: ignoreversion
 Source: "{#StageDir}\resources\icon.ico"; DestDir: "{app}\resources"; Flags: ignoreversion

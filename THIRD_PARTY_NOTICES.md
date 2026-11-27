@@ -19,21 +19,16 @@ PureUtils builds upon and bundles the following third-party open-source packages
 | [`github.com/ulikunitz/xz`](https://github.com/ulikunitz/xz) | XZ/LZMA2 compression & decompression | BSD-3-Clause |
 | [`github.com/andybalholm/brotli`](https://github.com/andybalholm/brotli) | Brotli compression | MIT |
 | [`github.com/pierrec/lz4/v4`](https://github.com/pierrec/lz4) | LZ4 compression | BSD-3-Clause |
-| [`github.com/gen2brain/avif`](https://github.com/gen2brain/avif) | AVIF image decoder (WASM via wazero) | MIT / BSD-3-Clause |
-| [`github.com/gen2brain/heic`](https://github.com/gen2brain/heic) | HEIC/HEIF image decoder | MIT / LGPL / BSD |
-| [`github.com/gen2brain/jpegxl`](https://github.com/gen2brain/jpegxl) | JPEG XL decoder | BSD-3-Clause |
-| [`github.com/gen2brain/webp`](https://github.com/gen2brain/webp) | WebP decoder | BSD-3-Clause |
 | [`github.com/kettek/apng`](https://github.com/kettek/apng) | Animated PNG decoder | MIT |
-| [`github.com/tetratelabs/wazero`](https://github.com/tetratelabs/wazero) | Zero-dependency WebAssembly runtime | Apache-2.0 |
 | [`github.com/spf13/afero`](https://github.com/spf13/afero) | Filesystem abstraction | Apache-2.0 |
 | [`github.com/dustin/go-humanize`](https://github.com/dustin/go-humanize) | Human-readable sizes & formatting | MIT |
 | [`github.com/google/uuid`](https://github.com/google/uuid) | UUID generation | BSD-3-Clause |
 
 ## Prebuilt Native Libraries / 内置可选原生动态库
 
-- `turbojpeg.dll` (`libs/turbojpeg/turbojpeg.dll`) — **libjpeg-turbo** (<https://libjpeg-turbo.org>), optionally used at runtime by **PureImage** via pure-Go dynamic loading (`purego` / `syscall.LazyDLL`) for hardware-fast 1/2, 1/4, 1/8 DCT scaling of large JPEGs.
-  - Licensed under the **IJG (Independent JPEG Group) License**, the **Modified 3-clause BSD License**, and the **zlib License**.
-  - Users can omit `turbojpeg.dll` completely via the installer component checkbox or compile with `-CoreOnly` / `-tags nofreeimage`.
+- `pureimage_codecs.dll` (bundled when **PureImage** is installed, fetched into `libs/codecs/pureimage_codecs.dll`) — Unified Windows x64 decode-only native library loaded cleanly at runtime via pure-Go `syscall.LazyDLL` (`CGO_ENABLED=0`) for scaled JPEG and native SIMD decoding of WebP, AVIF, HEIC, and JPEG XL:
+  - Reproducible from source via [`tools/build-pureimage-codecs/build.sh`](tools/build-pureimage-codecs/build.sh) and [`.github/workflows/build-pureimage-codecs.yml`](.github/workflows/build-pureimage-codecs.yml).
+  - Statically links decode-only builds of **libjpeg-turbo** `3.2.1` (IJG / BSD-3-Clause / zlib), **libwebp** `v1.6.0` (BSD-3-Clause), **libavif** `v1.4.2` + **dav1d** `1.5.1` (BSD-2-Clause), **libheif** `v1.23.7` + **libde265** `v1.1.3` (GNU LGPL-3.0-or-later, zero GPL encoders/plugins), and **libjxl** `v0.13.0` + **highway** / **brotli** / **skcms** (BSD-3-Clause / Apache-2.0 / MIT), all compatible with PureUtils' GNU AGPL-3.0 release. Full upstream license texts are distributed alongside in `LICENSES-pureimage-codecs.txt`.
 
 - `libmpv-2.dll` (bundled when **PureVideo** is installed, fetched into `libs/mpv/libmpv-2.dll`) — **mpv / libmpv** (<https://mpv.io>) built in a Tier 1 trimmed Windows x64 configuration with static **FFmpeg**, **libass**, **libplacebo**, **dav1d**, and companion dependencies.
   - Used at runtime by **PureVideo** via pure-Go dynamic loading (`syscall.LoadLibrary`) for hardware-accelerated video playback, subtitles, and container demuxing.

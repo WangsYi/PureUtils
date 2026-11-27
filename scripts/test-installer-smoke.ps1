@@ -79,7 +79,7 @@ foreach ($rel in @(
     'PureUtils.exe',
     'modules.json',
     'libmpv-2.dll',
-    'turbojpeg.dll',
+    'pureimage_codecs.dll',
     'resources\icon.ico',
     'unins000.exe'
 )) {

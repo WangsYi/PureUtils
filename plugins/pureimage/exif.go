@@ -54,6 +54,24 @@ func ParseExif(data []byte) ExifData {
 	return e
 }
 
+// ParseExifRaw extracts EXIF metadata from container EXIF payloads (which may start with a
+// 4-byte ISOBMFF TIFF offset prefix, an "Exif\x00\x00" header, or directly with "II*" / "MM\x00*").
+func ParseExifRaw(raw []byte) ExifData {
+	e := ExifData{Orientation: 1}
+	if len(raw) < 8 {
+		return e
+	}
+	limit := min(len(raw)-8, 64)
+	for i := 0; i <= limit; i++ {
+		if (raw[i] == 'I' && raw[i+1] == 'I' && raw[i+2] == 0x2A && raw[i+3] == 0x00) ||
+			(raw[i] == 'M' && raw[i+1] == 'M' && raw[i+2] == 0x00 && raw[i+3] == 0x2A) {
+			parseTIFF(raw[i:], &e)
+			return e
+		}
+	}
+	return e
+}
+
 func parseTIFF(tiff []byte, e *ExifData) {
 	if len(tiff) < 8 {
 		return
