@@ -28,6 +28,8 @@ type HotkeyConfig struct {
 	TogglePins      string            `json:"togglePins"`
 	OpenViewer      string            `json:"openViewer,omitempty"`
 	OpenVideo       string            `json:"openVideo,omitempty"`
+	OpenMonitor     string            `json:"openMonitor,omitempty"`
+	ToggleGameHUD   string            `json:"toggleGameHud,omitempty"`
 	OpenZip         string            `json:"openZip,omitempty"`
 	Launcher        string            `json:"launcher,omitempty"`
 	TakeoverWinKeys bool              `json:"takeoverWinKeys"`
@@ -700,6 +702,341 @@ func LoadPureVideo(sec Section) PureVideoConfig {
 }
 
 func SavePureVideo(sec Section, cfg PureVideoConfig) error {
+	cfg.Normalize()
+	return sec.Save(cfg)
+}
+
+// PureMonitorConfig is the plugin-scoped configuration for PureMonitor (`plugins.puremonitor`).
+type PureMonitorConfig struct {
+	Enabled            bool    `json:"enabled"`
+	ShowTaskbar        bool    `json:"showTaskbar"`
+	ShowFloating       bool    `json:"showFloating"`
+	RefreshIntervalMs  int     `json:"refreshIntervalMs"`
+	Theme              string  `json:"theme"`
+	FontSize           int     `json:"fontSize"`
+	UnitSpeed          string  `json:"unitSpeed"`
+	TempUnit           string  `json:"tempUnit"`
+	SelectedNetAdapter string  `json:"selectedNetAdapter"`
+	WarnCPUPct         int     `json:"warnCpuPct"`
+	WarnRAMPct         int     `json:"warnRamPct"`
+	WarnTempC          int     `json:"warnTempC"`
+
+	TaskbarMode             string   `json:"taskbarMode"`
+	TaskbarAlign            string   `json:"taskbarAlign"`
+	TaskbarOffsetX          int      `json:"taskbarOffsetX"`
+	TaskbarLayout           string   `json:"taskbarLayout"`
+	TaskbarHideOnFullscreen bool     `json:"taskbarHideOnFullscreen"`
+	TaskbarMetrics          []string `json:"taskbarMetrics"`
+
+	FloatX                int      `json:"floatX"`
+	FloatY                int      `json:"floatY"`
+	FloatAutoDock         bool     `json:"floatAutoDock"`
+	FloatCollapsed        bool     `json:"floatCollapsed"`
+	FloatLocked           bool     `json:"floatLocked"`
+	FloatClickThrough     bool     `json:"floatClickThrough"`
+	FloatHideOnFullscreen bool     `json:"floatHideOnFullscreen"`
+	FloatOpacity          float64  `json:"floatOpacity"`
+	FloatHoverDetail      bool     `json:"floatHoverDetail"`
+	FloatMetrics          []string `json:"floatMetrics"`
+	FloatCollapsedMetrics []string `json:"floatCollapsedMetrics"`
+
+	GameFPSEnabled        bool     `json:"gameFpsEnabled"`
+	GameAutoDetect        bool     `json:"gameAutoDetect"`
+	GameHUDPosition       string   `json:"gameHudPosition"`
+	GameHUDStyle          string   `json:"gameHudStyle"`
+	GameHUDOpacity        float64  `json:"gameHudOpacity"`
+	GameHUDMetrics        []string `json:"gameHudMetrics"`
+	GameFPSPermissionMode string   `json:"gameFpsPermissionMode"`
+	GameWhitelist         []string `json:"gameWhitelist"`
+	GameBlacklist         []string `json:"gameBlacklist"`
+
+	PawnIOEnabled         bool   `json:"pawnIoEnabled"`
+	SensorDownloadSource  string `json:"sensorDownloadSource"`
+	SensorCustomMirrorURL string `json:"sensorCustomMirrorUrl"`
+}
+
+// DefaultPureMonitorConfig returns default settings for PureMonitor.
+func DefaultPureMonitorConfig() PureMonitorConfig {
+	return PureMonitorConfig{
+		Enabled:                 true,
+		ShowTaskbar:             true,
+		ShowFloating:            false,
+		RefreshIntervalMs:       1000,
+		Theme:                   "system",
+		FontSize:                11,
+		UnitSpeed:               "auto",
+		TempUnit:                "C",
+		SelectedNetAdapter:      "auto",
+		WarnCPUPct:              85,
+		WarnRAMPct:              85,
+		WarnTempC:               80,
+		TaskbarMode:             "auto",
+		TaskbarAlign:            "right",
+		TaskbarOffsetX:          0,
+		TaskbarLayout:           "compact_2row",
+		TaskbarHideOnFullscreen: true,
+		TaskbarMetrics:          []string{"cpu", "ram", "net_down", "net_up"},
+		FloatX:                  -1,
+		FloatY:                  -1,
+		FloatAutoDock:           true,
+		FloatCollapsed:          false,
+		FloatLocked:             false,
+		FloatClickThrough:       false,
+		FloatHideOnFullscreen:   true,
+		FloatOpacity:            0.90,
+		FloatHoverDetail:        true,
+		FloatMetrics:            []string{"cpu", "cpu_temp", "ram", "gpu", "gpu_temp", "net_down", "net_up"},
+		FloatCollapsedMetrics:   []string{"cpu", "ram"},
+		GameFPSEnabled:          true,
+		GameAutoDetect:          true,
+		GameHUDPosition:         "top_left",
+		GameHUDStyle:            "detailed",
+		GameHUDOpacity:          0.82,
+		GameHUDMetrics:          []string{"fps", "fps_1low", "frametime", "gpu", "gpu_temp", "cpu", "cpu_temp", "ram"},
+		GameFPSPermissionMode:   "auto",
+		PawnIOEnabled:           true,
+		SensorDownloadSource:    "auto",
+	}
+}
+
+// Clone returns a deep copy of PureMonitorConfig without shared slice backing arrays.
+func (c PureMonitorConfig) Clone() PureMonitorConfig {
+	out := c
+	out.TaskbarMetrics = append([]string(nil), c.TaskbarMetrics...)
+	out.FloatMetrics = append([]string(nil), c.FloatMetrics...)
+	out.FloatCollapsedMetrics = append([]string(nil), c.FloatCollapsedMetrics...)
+	out.GameHUDMetrics = append([]string(nil), c.GameHUDMetrics...)
+	out.GameWhitelist = append([]string(nil), c.GameWhitelist...)
+	out.GameBlacklist = append([]string(nil), c.GameBlacklist...)
+	return out
+}
+
+// Equal reports whether c and other have identical scalar and slice values.
+func (c PureMonitorConfig) Equal(other PureMonitorConfig) bool {
+	return c.Enabled == other.Enabled &&
+		c.ShowTaskbar == other.ShowTaskbar &&
+		c.ShowFloating == other.ShowFloating &&
+		c.RefreshIntervalMs == other.RefreshIntervalMs &&
+		c.Theme == other.Theme &&
+		c.FontSize == other.FontSize &&
+		c.UnitSpeed == other.UnitSpeed &&
+		c.TempUnit == other.TempUnit &&
+		c.SelectedNetAdapter == other.SelectedNetAdapter &&
+		c.WarnCPUPct == other.WarnCPUPct &&
+		c.WarnRAMPct == other.WarnRAMPct &&
+		c.WarnTempC == other.WarnTempC &&
+		c.TaskbarMode == other.TaskbarMode &&
+		c.TaskbarAlign == other.TaskbarAlign &&
+		c.TaskbarOffsetX == other.TaskbarOffsetX &&
+		c.TaskbarLayout == other.TaskbarLayout &&
+		c.TaskbarHideOnFullscreen == other.TaskbarHideOnFullscreen &&
+		slices.Equal(c.TaskbarMetrics, other.TaskbarMetrics) &&
+		c.FloatX == other.FloatX &&
+		c.FloatY == other.FloatY &&
+		c.FloatAutoDock == other.FloatAutoDock &&
+		c.FloatCollapsed == other.FloatCollapsed &&
+		c.FloatLocked == other.FloatLocked &&
+		c.FloatClickThrough == other.FloatClickThrough &&
+		c.FloatHideOnFullscreen == other.FloatHideOnFullscreen &&
+		c.FloatOpacity == other.FloatOpacity &&
+		c.FloatHoverDetail == other.FloatHoverDetail &&
+		slices.Equal(c.FloatMetrics, other.FloatMetrics) &&
+		slices.Equal(c.FloatCollapsedMetrics, other.FloatCollapsedMetrics) &&
+		c.GameFPSEnabled == other.GameFPSEnabled &&
+		c.GameAutoDetect == other.GameAutoDetect &&
+		c.GameHUDPosition == other.GameHUDPosition &&
+		c.GameHUDStyle == other.GameHUDStyle &&
+		c.GameHUDOpacity == other.GameHUDOpacity &&
+		slices.Equal(c.GameHUDMetrics, other.GameHUDMetrics) &&
+		c.GameFPSPermissionMode == other.GameFPSPermissionMode &&
+		slices.Equal(c.GameWhitelist, other.GameWhitelist) &&
+		slices.Equal(c.GameBlacklist, other.GameBlacklist) &&
+		c.PawnIOEnabled == other.PawnIOEnabled &&
+		c.SensorDownloadSource == other.SensorDownloadSource &&
+		c.SensorCustomMirrorURL == other.SensorCustomMirrorURL
+}
+
+func normalizeStringList(items []string, fallback []string, lower bool) []string {
+	seen := make(map[string]bool, len(items))
+	var out []string
+	for _, raw := range items {
+		s := strings.TrimSpace(raw)
+		if lower {
+			s = strings.ToLower(s)
+		}
+		if s == "" || seen[s] {
+			continue
+		}
+		seen[s] = true
+		out = append(out, s)
+	}
+	if len(out) == 0 && len(fallback) > 0 {
+		out = append([]string(nil), fallback...)
+	}
+	return out
+}
+
+// Normalize enforces valid bounds and choices on PureMonitorConfig.
+func (c *PureMonitorConfig) Normalize() {
+	d := DefaultPureMonitorConfig()
+	if c.RefreshIntervalMs <= 0 {
+		c.RefreshIntervalMs = d.RefreshIntervalMs
+	}
+	if c.RefreshIntervalMs < 500 {
+		c.RefreshIntervalMs = 500
+	}
+	if c.RefreshIntervalMs > 3000 {
+		c.RefreshIntervalMs = 3000
+	}
+	switch strings.ToLower(strings.TrimSpace(c.Theme)) {
+	case "light", "dark", "system":
+		c.Theme = strings.ToLower(strings.TrimSpace(c.Theme))
+	default:
+		c.Theme = d.Theme
+	}
+	if c.FontSize <= 0 {
+		c.FontSize = d.FontSize
+	}
+	if c.FontSize < 9 {
+		c.FontSize = 9
+	}
+	if c.FontSize > 16 {
+		c.FontSize = 16
+	}
+	switch strings.ToLower(strings.TrimSpace(c.UnitSpeed)) {
+	case "mbps", "auto":
+		c.UnitSpeed = strings.ToLower(strings.TrimSpace(c.UnitSpeed))
+	default:
+		c.UnitSpeed = d.UnitSpeed
+	}
+	switch strings.ToUpper(strings.TrimSpace(c.TempUnit)) {
+	case "F", "C":
+		c.TempUnit = strings.ToUpper(strings.TrimSpace(c.TempUnit))
+	default:
+		c.TempUnit = d.TempUnit
+	}
+	c.SelectedNetAdapter = strings.TrimSpace(c.SelectedNetAdapter)
+	if c.SelectedNetAdapter == "" {
+		c.SelectedNetAdapter = d.SelectedNetAdapter
+	}
+	if c.WarnCPUPct <= 0 {
+		c.WarnCPUPct = d.WarnCPUPct
+	}
+	if c.WarnCPUPct < 50 {
+		c.WarnCPUPct = 50
+	}
+	if c.WarnCPUPct > 99 {
+		c.WarnCPUPct = 99
+	}
+	if c.WarnRAMPct <= 0 {
+		c.WarnRAMPct = d.WarnRAMPct
+	}
+	if c.WarnRAMPct < 50 {
+		c.WarnRAMPct = 50
+	}
+	if c.WarnRAMPct > 99 {
+		c.WarnRAMPct = 99
+	}
+	if c.WarnTempC <= 0 {
+		c.WarnTempC = d.WarnTempC
+	}
+	if c.WarnTempC < 50 {
+		c.WarnTempC = 50
+	}
+	if c.WarnTempC > 105 {
+		c.WarnTempC = 105
+	}
+	switch strings.ToLower(strings.TrimSpace(c.TaskbarMode)) {
+	case "overlay", "embed", "auto":
+		c.TaskbarMode = strings.ToLower(strings.TrimSpace(c.TaskbarMode))
+	default:
+		c.TaskbarMode = d.TaskbarMode
+	}
+	switch strings.ToLower(strings.TrimSpace(c.TaskbarAlign)) {
+	case "left", "right":
+		c.TaskbarAlign = strings.ToLower(strings.TrimSpace(c.TaskbarAlign))
+	default:
+		c.TaskbarAlign = d.TaskbarAlign
+	}
+	if c.TaskbarOffsetX < -1200 {
+		c.TaskbarOffsetX = -1200
+	}
+	if c.TaskbarOffsetX > 1200 {
+		c.TaskbarOffsetX = 1200
+	}
+	switch strings.ToLower(strings.TrimSpace(c.TaskbarLayout)) {
+	case "single_row", "compact_2row":
+		c.TaskbarLayout = strings.ToLower(strings.TrimSpace(c.TaskbarLayout))
+	default:
+		c.TaskbarLayout = d.TaskbarLayout
+	}
+	c.TaskbarMetrics = normalizeStringList(c.TaskbarMetrics, d.TaskbarMetrics, true)
+
+	if c.FloatOpacity <= 0 {
+		c.FloatOpacity = d.FloatOpacity
+	}
+	if c.FloatOpacity < 0.35 {
+		c.FloatOpacity = 0.35
+	}
+	if c.FloatOpacity > 1.0 {
+		c.FloatOpacity = 1.0
+	}
+	c.FloatMetrics = normalizeStringList(c.FloatMetrics, d.FloatMetrics, true)
+	c.FloatCollapsedMetrics = normalizeStringList(c.FloatCollapsedMetrics, d.FloatCollapsedMetrics, true)
+	if len(c.FloatCollapsedMetrics) > 2 {
+		c.FloatCollapsedMetrics = append([]string(nil), c.FloatCollapsedMetrics[:2]...)
+	}
+
+	switch strings.ToLower(strings.TrimSpace(c.GameHUDPosition)) {
+	case "top_right", "bottom_left", "bottom_right", "top_left":
+		c.GameHUDPosition = strings.ToLower(strings.TrimSpace(c.GameHUDPosition))
+	default:
+		c.GameHUDPosition = d.GameHUDPosition
+	}
+	switch strings.ToLower(strings.TrimSpace(c.GameHUDStyle)) {
+	case "compact", "graph", "detailed":
+		c.GameHUDStyle = strings.ToLower(strings.TrimSpace(c.GameHUDStyle))
+	default:
+		c.GameHUDStyle = d.GameHUDStyle
+	}
+	if c.GameHUDOpacity <= 0 {
+		c.GameHUDOpacity = d.GameHUDOpacity
+	}
+	if c.GameHUDOpacity < 0.35 {
+		c.GameHUDOpacity = 0.35
+	}
+	if c.GameHUDOpacity > 1.0 {
+		c.GameHUDOpacity = 1.0
+	}
+	c.GameHUDMetrics = normalizeStringList(c.GameHUDMetrics, d.GameHUDMetrics, true)
+	switch strings.ToLower(strings.TrimSpace(c.GameFPSPermissionMode)) {
+	case "perflog_group", "temp_helper", "auto":
+		c.GameFPSPermissionMode = strings.ToLower(strings.TrimSpace(c.GameFPSPermissionMode))
+	default:
+		c.GameFPSPermissionMode = d.GameFPSPermissionMode
+	}
+	c.GameWhitelist = normalizeStringList(c.GameWhitelist, nil, true)
+	c.GameBlacklist = normalizeStringList(c.GameBlacklist, nil, true)
+
+	switch strings.ToLower(strings.TrimSpace(c.SensorDownloadSource)) {
+	case "ghproxy", "ghfast", "github", "auto":
+		c.SensorDownloadSource = strings.ToLower(strings.TrimSpace(c.SensorDownloadSource))
+	default:
+		c.SensorDownloadSource = d.SensorDownloadSource
+	}
+	c.SensorCustomMirrorURL = strings.TrimSpace(c.SensorCustomMirrorURL)
+}
+
+func LoadPureMonitor(sec Section) PureMonitorConfig {
+	cfg := DefaultPureMonitorConfig()
+	if sec != nil {
+		_ = sec.Load(&cfg)
+	}
+	cfg.Normalize()
+	return cfg
+}
+
+func SavePureMonitor(sec Section, cfg PureMonitorConfig) error {
 	cfg.Normalize()
 	return sec.Save(cfg)
 }

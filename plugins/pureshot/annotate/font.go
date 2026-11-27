@@ -57,19 +57,19 @@ func loadFonts() (*fontSet, error) {
 
 func loadFirst(paths []string) *sfnt.Font {
 	for _, p := range paths {
-		data, err := os.ReadFile(p)
+		f, err := os.Open(p)
 		if err != nil {
 			continue
 		}
-		if coll, err := sfnt.ParseCollection(data); err == nil && coll.NumFonts() > 0 {
-			if f, err := coll.Font(0); err == nil {
-				return f
+		if coll, err := sfnt.ParseCollectionReaderAt(f); err == nil && coll.NumFonts() > 0 {
+			if fontObj, err := coll.Font(0); err == nil {
+				return fontObj
 			}
-			continue
 		}
-		if f, err := sfnt.Parse(data); err == nil {
-			return f
+		if fontObj, err := sfnt.ParseReaderAt(f); err == nil {
+			return fontObj
 		}
+		_ = f.Close()
 	}
 	return nil
 }

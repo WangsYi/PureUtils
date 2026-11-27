@@ -548,7 +548,7 @@ func (p *Plugin) SettingsTab() *purekit.SettingsTab {
 	return &purekit.SettingsTab{
 		ID:       PluginID,
 		Title:    i18n.S("PureClip · 剪贴板", "PureClip · Clipboard"),
-		Subtitle: i18n.S("监听类型、保留策略、隐私保护与历史维护", "Capture rules, retention, privacy exclusions, and maintenance"),
+		Subtitle: "",
 		Icon:     pureui.IconClipboard,
 		Order:    20,
 		NewView: func(host purekit.Host) purekit.SettingsTabView {

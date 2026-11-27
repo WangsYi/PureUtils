@@ -16,6 +16,7 @@ const (
 	ModuleViewer  ModuleID = "viewer"
 	ModuleZip     ModuleID = "zip"
 	ModuleVideo   ModuleID = "video"
+	ModuleMonitor ModuleID = "monitor"
 )
 
 // ModuleConfig describes which optional modules are enabled for the
@@ -27,6 +28,7 @@ type ModuleConfig struct {
 	Viewer  bool `json:"viewer"`
 	Zip     bool `json:"zip"`
 	Video   bool `json:"video"`
+	Monitor bool `json:"monitor"`
 }
 
 // DefaultModules returns the default enabled modules for the current build.
@@ -37,6 +39,7 @@ func DefaultModules(viewerCompiled bool) ModuleConfig {
 		Viewer:  viewerCompiled,
 		Zip:     true,
 		Video:   true,
+		Monitor: true,
 	}
 }
 
@@ -53,6 +56,8 @@ func (m ModuleConfig) Enabled(id ModuleID) bool {
 		return m.Zip
 	case ModuleVideo:
 		return m.Video
+	case ModuleMonitor:
+		return m.Monitor
 	default:
 		return false
 	}
@@ -60,7 +65,7 @@ func (m ModuleConfig) Enabled(id ModuleID) bool {
 
 // Any reports whether at least one module is enabled.
 func (m ModuleConfig) Any() bool {
-	return m.Capture || m.History || m.Viewer || m.Zip || m.Video
+	return m.Capture || m.History || m.Viewer || m.Zip || m.Video || m.Monitor
 }
 
 // Normalize enforces compile-time constraints and falls back to defaults if a

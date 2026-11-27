@@ -9,7 +9,7 @@
   #define OutputDir "..\artifacts\installer"
 #endif
 #ifndef AppVersion
-  #define AppVersion "1.2.1"
+  #define AppVersion "1.3.0"
 #endif
 
 [Setup]
@@ -97,8 +97,8 @@ english.ComponentsDiskSpaceMBLabel=Required space: [mb] MB
 english.ComponentsDiskSpaceGBLabel=Required space: [gb] GB
 
 [CustomMessages]
-chinesesimplified.HeroTagline=轻量、原生的 Windows 五合一效率工具集
-chinesesimplified.HeroStatusNew=版本 {#AppVersion} · 截图 · 剪贴板 · 看图 · 视频 · 压缩
+chinesesimplified.HeroTagline=轻量、原生的 Windows 六合一效率工具集
+chinesesimplified.HeroStatusNew=版本 {#AppVersion} · 截图 · 剪贴板 · 看图 · 视频 · 压缩 · 监控
 chinesesimplified.HeroStatusUpgrade=将从版本 %1 升级到 {#AppVersion}
 chinesesimplified.HeroStatusSame=已安装版本 %1，重新安装可修复或修改组件
 chinesesimplified.BtnInstallNow=立即安装
@@ -138,6 +138,8 @@ chinesesimplified.CompVideoAssoc=关联视频格式
 chinesesimplified.CompZip=PureZip 压缩管理
 chinesesimplified.CompZipContext=资源管理器右键菜单
 chinesesimplified.CompZipAssoc=关联压缩格式
+chinesesimplified.CompMonitor=PureMonitor 硬件与系统监控
+chinesesimplified.LaunchMonitor=启动 PureMonitor
 chinesesimplified.TaskDesktopIcon=创建桌面快捷方式
 chinesesimplified.TaskAutostart=开机自动启动
 chinesesimplified.LaunchMain=启动 PureUtils
@@ -146,8 +148,8 @@ chinesesimplified.LaunchVideo=启动 PureVideo
 chinesesimplified.LaunchZip=启动 PureZip
 chinesesimplified.NeedModule=请至少选择一个功能组件。
 
-english.HeroTagline=A lightweight, native 5-in-1 Windows utility suite
-english.HeroStatusNew=Version {#AppVersion} · Shot · Clip · Image · Video · Zip
+english.HeroTagline=A lightweight, native 6-in-1 Windows utility suite
+english.HeroStatusNew=Version {#AppVersion} · Shot · Clip · Image · Video · Zip · Monitor
 english.HeroStatusUpgrade=Upgrading from %1 to {#AppVersion}
 english.HeroStatusSame=Version %1 installed · Reinstall or modify components
 english.BtnInstallNow=Install Now
@@ -187,6 +189,8 @@ english.CompVideoAssoc=Associate Video Formats
 english.CompZip=PureZip — Archive Manager
 english.CompZipContext=Explorer Context Menu
 english.CompZipAssoc=Associate Archive Formats
+english.CompMonitor=PureMonitor — System & Game FPS Monitor
+english.LaunchMonitor=Launch PureMonitor
 english.TaskDesktopIcon=Create desktop shortcut
 english.TaskAutostart=Run at sign-in
 english.LaunchMain=Launch PureUtils
@@ -207,6 +211,7 @@ Name: "custom"; Description: "{cm:TypeCustom}"; Flags: iscustom
 Name: "core"; Description: "{cm:CompCore}"; Types: full shotclip viewer video zip custom; Flags: fixed
 Name: "capture"; Description: "{cm:CompCapture}"; Types: full shotclip custom
 Name: "history"; Description: "{cm:CompHistory}"; Types: full shotclip custom
+Name: "monitor"; Description: "{cm:CompMonitor}"; Types: full custom
 Name: "viewer"; Description: "{cm:CompViewer}"; Types: full viewer custom
 Name: "viewer\turbo"; Description: "{cm:CompTurbo}"; Types: full viewer custom
 Name: "viewer\assoc"; Description: "{cm:CompAssoc}"; Types: full viewer custom
@@ -230,6 +235,8 @@ Type: files; Name: "{app}\resources\video.ico"
 Type: files; Name: "{app}\resources\video.png"
 Type: files; Name: "{app}\resources\zip.ico"
 Type: files; Name: "{app}\resources\zip.png"
+Type: files; Name: "{app}\resources\monitor.ico"
+Type: files; Name: "{app}\resources\monitor.png"
 Type: files; Name: "{app}\ShotClip.exe"
 Type: files; Name: "{app}\ynm3000.exe"
 
@@ -248,21 +255,24 @@ Source: "{#StageDir}\resources\video.ico"; DestDir: "{app}\resources"; Component
 Source: "{#StageDir}\resources\video.png"; DestDir: "{app}\resources"; Components: video; Flags: ignoreversion
 Source: "{#StageDir}\resources\zip.ico"; DestDir: "{app}\resources"; Components: zip; Flags: ignoreversion
 Source: "{#StageDir}\resources\zip.png"; DestDir: "{app}\resources"; Components: zip; Flags: ignoreversion
+Source: "{#StageDir}\resources\monitor.ico"; DestDir: "{app}\resources"; Components: monitor; Flags: ignoreversion
+Source: "{#StageDir}\resources\monitor.png"; DestDir: "{app}\resources"; Components: monitor; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\PureUtils"; Filename: "{app}\PureUtils.exe"; IconFilename: "{app}\resources\icon.ico"; Components: capture or history
 Name: "{group}\PureImage"; Filename: "{app}\PureUtils.exe"; Parameters: "--view"; IconFilename: "{app}\resources\image.ico"; AppUserModelID: "PureUtils.PureImage"; Components: viewer
 Name: "{group}\PureVideo"; Filename: "{app}\PureUtils.exe"; Parameters: "--video"; IconFilename: "{app}\resources\video.ico"; AppUserModelID: "PureUtils.PureVideo"; Components: video
 Name: "{group}\PureZip"; Filename: "{app}\PureUtils.exe"; Parameters: "--zip"; IconFilename: "{app}\resources\zip.ico"; AppUserModelID: "PureUtils.PureZip"; Components: zip
+Name: "{group}\PureMonitor"; Filename: "{app}\PureUtils.exe"; Parameters: "--monitor"; IconFilename: "{app}\resources\monitor.ico"; AppUserModelID: "PureUtils.PureMonitor"; Components: monitor
 Name: "{autodesktop}\PureUtils"; Filename: "{app}\PureUtils.exe"; IconFilename: "{app}\resources\icon.ico"; Tasks: desktopicon; Components: capture or history
 Name: "{autodesktop}\PureImage"; Filename: "{app}\PureUtils.exe"; Parameters: "--view"; IconFilename: "{app}\resources\image.ico"; AppUserModelID: "PureUtils.PureImage"; Tasks: desktopicon; Components: viewer and (not capture) and (not history)
 Name: "{autodesktop}\PureVideo"; Filename: "{app}\PureUtils.exe"; Parameters: "--video"; IconFilename: "{app}\resources\video.ico"; AppUserModelID: "PureUtils.PureVideo"; Tasks: desktopicon; Components: video and (not capture) and (not history) and (not viewer)
 Name: "{autodesktop}\PureZip"; Filename: "{app}\PureUtils.exe"; Parameters: "--zip"; IconFilename: "{app}\resources\zip.ico"; AppUserModelID: "PureUtils.PureZip"; Tasks: desktopicon; Components: zip and (not capture) and (not history) and (not viewer) and (not video)
 
 [Registry]
-; Optional autostart (standalone PureImage/PureVideo/PureZip installs launch to background tray without popping an empty window)
+; Optional autostart (standalone PureImage/PureVideo/PureZip/PureMonitor installs launch to background tray without popping an empty window)
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "PureUtils"; ValueData: """{app}\PureUtils.exe"""; Flags: uninsdeletevalue; Tasks: autostart; Components: capture or history
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "PureUtils"; ValueData: """{app}\PureUtils.exe"" --background"; Flags: uninsdeletevalue; Tasks: autostart; Components: (viewer or video or zip) and (not capture) and (not history)
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "PureUtils"; ValueData: """{app}\PureUtils.exe"" --background"; Flags: uninsdeletevalue; Tasks: autostart; Components: (viewer or video or zip or monitor) and (not capture) and (not history)
 
 ; Image file associations (HKCU) when viewer\assoc is checked
 Root: HKCU; Subkey: "Software\Classes\PureUtils.Image"; ValueType: string; ValueName: ""; ValueData: "PureImage"; Flags: uninsdeletekey; Components: viewer\assoc
@@ -1622,7 +1632,8 @@ begin
        (not WizardIsComponentSelected('history')) and
        (not WizardIsComponentSelected('viewer')) and
        (not WizardIsComponentSelected('video')) and
-       (not WizardIsComponentSelected('zip')) then
+       (not WizardIsComponentSelected('zip')) and
+       (not WizardIsComponentSelected('monitor')) then
     begin
       MsgBox(CustomMessage('NeedModule'), mbError, MB_OK);
       NavPending := False;
@@ -1642,7 +1653,8 @@ begin
       '  "history": ' + BoolToJson(WizardIsComponentSelected('history')) + ',' + #13#10 +
       '  "viewer": ' + BoolToJson(WizardIsComponentSelected('viewer')) + ',' + #13#10 +
       '  "video": ' + BoolToJson(WizardIsComponentSelected('video')) + ',' + #13#10 +
-      '  "zip": ' + BoolToJson(WizardIsComponentSelected('zip')) + #13#10 +
+      '  "zip": ' + BoolToJson(WizardIsComponentSelected('zip')) + ',' + #13#10 +
+      '  "monitor": ' + BoolToJson(WizardIsComponentSelected('monitor')) + #13#10 +
       '}' + #13#10;
     SaveStringToFile(ExpandConstant('{app}\modules.json'), Manifest, False);
     CleanupLegacyAssociations;

@@ -801,7 +801,7 @@ func (p *Plugin) SettingsTab() *purekit.SettingsTab {
 	return &purekit.SettingsTab{
 		ID:       PluginID,
 		Title:    i18n.S("PureZip · 压缩", "PureZip · Archive"),
-		Subtitle: i18n.S("PureZip 压缩、解压与右键集成", "PureZip compression, extraction, and shell integration"),
+		Subtitle: "",
 		Icon:     pureui.IconPackage,
 		Order:    40,
 		NewView: func(host purekit.Host) purekit.SettingsTabView {

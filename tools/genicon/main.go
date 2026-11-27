@@ -23,16 +23,20 @@ var iconSizes = []int{16, 24, 32, 48, 64, 128, 256}
 
 func main() {
 	videoOnly := flag.Bool("video-only", false, "generate only PureVideo icon assets without touching .syso")
+	monitorOnly := flag.Bool("monitor-only", false, "generate only PureMonitor icon assets without touching .syso")
 	flag.Parse()
-	if err := run(*videoOnly); err != nil {
+	if err := run(*videoOnly, *monitorOnly); err != nil {
 		fmt.Fprintf(os.Stderr, "genicon: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func run(videoOnly bool) error {
+func run(videoOnly, monitorOnly bool) error {
 	if videoOnly {
 		return generateVideoIcons()
+	}
+	if monitorOnly {
+		return generateMonitorIcons()
 	}
 
 	appMaster := renderAppIcon(1024)
@@ -66,6 +70,10 @@ func run(videoOnly bool) error {
 		return err
 	}
 
+	if err := generateMonitorIcons(); err != nil {
+		return err
+	}
+
 	if err := generateButtonArt(); err != nil {
 		return err
 	}
@@ -77,7 +85,7 @@ func run(videoOnly bool) error {
 	if err := os.WriteFile("rsrc_windows_amd64.syso", syso, 0o644); err != nil {
 		return err
 	}
-	fmt.Println("Generated resources/icon.{png,ico}, internal/host/icon.png, resources/setup.{png,ico}, resources/video.{png,ico}, plugins/purevideo/video.png, resources/btn-primary.png, rsrc_windows_amd64.syso")
+	fmt.Println("Generated resources/icon.{png,ico}, internal/host/icon.png, resources/setup.{png,ico}, resources/video.{png,ico}, resources/monitor.{png,ico}, plugins/purevideo/video.png, plugins/puremonitor/monitor.png, resources/btn-primary.png, rsrc_windows_amd64.syso")
 	return nil
 }
 
@@ -139,6 +147,109 @@ func generateVideoIcons() error {
 	}
 	fmt.Println("Generated resources/video.{png,ico} and plugins/purevideo/video.png")
 	return nil
+}
+
+func generateMonitorIcons() error {
+	monMaster := renderMonitorIcon(1024)
+	monPNGs, err := buildScaledPNGs(monMaster, iconSizes)
+	if err != nil {
+		return fmt.Errorf("scale monitor icon: %w", err)
+	}
+	if err := os.MkdirAll("resources", 0o755); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Join("plugins", "puremonitor"), 0o755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join("resources", "monitor.png"), monPNGs[256], 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join("plugins", "puremonitor", "monitor.png"), monPNGs[256], 0o644); err != nil {
+		return err
+	}
+	if err := writeICO(filepath.Join("resources", "monitor.ico"), iconSizes, monPNGs); err != nil {
+		return err
+	}
+	fmt.Println("Generated resources/monitor.{png,ico} and plugins/puremonitor/monitor.png")
+	return nil
+}
+
+func renderMonitorIcon(size int) *image.RGBA {
+	dc := gg.NewContext(size, size)
+	s := float64(size)
+	dc.Push()
+
+	radius := s * 0.22
+	dc.DrawRoundedRectangle(0, 0, s, s, radius)
+	dc.Clip()
+
+	// Emerald-Teal to Slate-Navy telemetry gradient using NRGBA stops.
+	bg := gg.NewLinearGradient(0, 0, s, s)
+	bg.AddColorStop(0.0, color.NRGBA{R: 15, G: 23, B: 42, A: 255})   // #0F172A
+	bg.AddColorStop(0.5, color.NRGBA{R: 13, G: 148, B: 136, A: 255}) // #0D9488
+	bg.AddColorStop(1.0, color.NRGBA{R: 16, G: 185, B: 129, A: 255}) // #10B981
+	dc.SetFillStyle(bg)
+	dc.DrawRectangle(0, 0, s, s)
+	dc.Fill()
+
+	glow := gg.NewRadialGradient(s*0.24, s*0.22, 0, s*0.24, s*0.22, s*0.66)
+	glow.AddColorStop(0.0, color.NRGBA{R: 255, G: 255, B: 255, A: 58})
+	glow.AddColorStop(1.0, color.NRGBA{R: 255, G: 255, B: 255, A: 0})
+	dc.SetFillStyle(glow)
+	dc.DrawRectangle(0, 0, s, s)
+	dc.Fill()
+
+	dc.SetRGBA255(255, 255, 255, 42)
+	dc.SetLineWidth(s * 0.014)
+	dc.DrawRoundedRectangle(s*0.007, s*0.007, s-s*0.014, s-s*0.014, radius-s*0.007)
+	dc.Stroke()
+
+	// Outer telemetry frame
+	fx, fy, fw, fh := s*0.17, s*0.22, s*0.66, s*0.56
+	dc.SetRGBA255(255, 255, 255, 46)
+	dc.SetLineWidth(s * 0.032)
+	dc.DrawRoundedRectangle(fx, fy, fw, fh, s*0.095)
+	dc.Stroke()
+
+	// Pulse waveform shadow + luminous stroke
+	pts := [][2]float64{
+		{s * 0.24, s * 0.54},
+		{s * 0.36, s * 0.54},
+		{s * 0.43, s * 0.34},
+		{s * 0.52, s * 0.68},
+		{s * 0.61, s * 0.40},
+		{s * 0.67, s * 0.54},
+		{s * 0.76, s * 0.54},
+	}
+	dc.SetLineCap(gg.LineCapRound)
+	dc.SetLineJoin(gg.LineJoinRound)
+	dc.SetRGBA255(15, 23, 42, 72)
+	dc.SetLineWidth(s * 0.056)
+	for i, pt := range pts {
+		if i == 0 {
+			dc.MoveTo(pt[0], pt[1]+s*0.022)
+		} else {
+			dc.LineTo(pt[0], pt[1]+s*0.022)
+		}
+	}
+	dc.Stroke()
+
+	waveGrad := gg.NewLinearGradient(s*0.24, s*0.34, s*0.76, s*0.68)
+	waveGrad.AddColorStop(0.0, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+	waveGrad.AddColorStop(1.0, color.NRGBA{R: 209, G: 250, B: 229, A: 255})
+	dc.SetStrokeStyle(waveGrad)
+	dc.SetLineWidth(s * 0.050)
+	for i, pt := range pts {
+		if i == 0 {
+			dc.MoveTo(pt[0], pt[1])
+		} else {
+			dc.LineTo(pt[0], pt[1])
+		}
+	}
+	dc.Stroke()
+
+	dc.Pop()
+	return imageToRGBA(dc.Image())
 }
 
 func renderVideoIcon(size int) *image.RGBA {
@@ -604,7 +715,7 @@ func sortedKeys[V any](m map[uint16]V) []uint16 {
 func buildManifest() string {
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity type="win32" name="com.pureutils.app" version="1.2.1.0" processorArchitecture="*"/>
+  <assemblyIdentity type="win32" name="com.pureutils.app" version="1.3.0.0" processorArchitecture="*"/>
   <dependency>
     <dependentAssembly>
       <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/>
@@ -631,8 +742,8 @@ func buildVersionInfo() []byte {
 	le := binary.LittleEndian
 	le.PutUint32(fixed[0:], 0xFEEF04BD)
 	le.PutUint32(fixed[4:], 0x00010000)
-	le.PutUint32(fixed[8:], uint32(1)<<16|uint32(2))
-	le.PutUint32(fixed[12:], uint32(1)<<16|uint32(0))
+	le.PutUint32(fixed[8:], uint32(1)<<16|uint32(3))
+	le.PutUint32(fixed[12:], uint32(0)<<16|uint32(0))
 	copy(fixed[16:24], fixed[8:16])
 	le.PutUint32(fixed[24:], 0x3F)
 	le.PutUint32(fixed[32:], 0x00040004)
@@ -642,12 +753,12 @@ func buildVersionInfo() []byte {
 	for _, s := range [][2]string{
 		{"CompanyName", "PureUtils"},
 		{"FileDescription", "PureUtils"},
-		{"FileVersion", "1.2.1"},
+		{"FileVersion", "1.3.0"},
 		{"InternalName", "PureUtils.exe"},
 		{"LegalCopyright", "© 2026 PureUtils"},
 		{"OriginalFilename", "PureUtils.exe"},
 		{"ProductName", "PureUtils"},
-		{"ProductVersion", "1.2.1"},
+		{"ProductVersion", "1.3.0"},
 		{"MyGoIdentifier", "com.pureutils.app"},
 	} {
 		text := utf16.Encode([]rune(s[1] + "\x00"))

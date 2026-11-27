@@ -6,6 +6,7 @@ import (
 	mygoui "github.com/egoist/mygo/ui"
 
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 )
 
 func TestPaletteAndComponentsRender(t *testing.T) {
@@ -62,6 +63,89 @@ func TestWrapTextLines(t *testing.T) {
 		_, _, trunc2 := WrapTextLines("1\n2\n3\n4", 13, 200, 2)
 		if !trunc2 {
 			t.Fatal("expected truncation when lines exceed maxLines")
+		}
+	}
+}
+
+func TestInfoTipAndSettingTipsHover(t *testing.T) {
+	prevPref := i18n.Preference()
+	prevLang := i18n.Current()
+	defer func() {
+		i18n.SetPreference(prevPref)
+		i18n.Set(prevLang)
+	}()
+	i18n.SetPreference(i18n.PrefEN)
+	i18n.Set(i18n.LangEN)
+
+	const cardTip = "Card explanation"
+	const rowTip = "Row explanation"
+	const blockTip = "Block explanation"
+
+	view := func(c *mygoui.Context) {
+		pal := ApplyTheme(c)
+		mygoui.Column(c).Padding(40, 20).Gap(12).Children(func() {
+			SettingCardTip(c, "Card Title", cardTip, pal, func() {
+				SettingRowTip(c, "Row Title", rowTip, pal, func() {
+					PillBadge(c, "On", pal.AccentText, pal.Accent)
+				})
+				SettingBlockTip(c, "Block Title", blockTip, pal, func() {
+					InfoTip(c, "", pal)
+					PillBadge(c, "Option", pal.Text, pal.ControlBg)
+				})
+			})
+		})
+	}
+
+	tt := mygoui.NewTester(view, 640, 480)
+	for _, dark := range []bool{true, false} {
+		tt.SetDark(dark)
+		tt.Move(0, 0)
+		tt.Frame()
+
+		for _, want := range []string{"Card Title", "Row Title", "Block Title"} {
+			if !tt.HasText(want) {
+				t.Fatalf("dark=%v missing %q; got %v", dark, want, tt.Texts())
+			}
+		}
+		if tt.HasText(cardTip) || tt.HasText(rowTip) || tt.HasText(blockTip) {
+			t.Fatalf("dark=%v tooltip should be hidden before hover; texts=%v", dark, tt.Texts())
+		}
+
+		// Empty tip must not add an extra "Info" button; find first Info icon (next to Card Title).
+		r, ok := tt.Find("Info")
+		if !ok {
+			t.Fatalf("dark=%v missing Info icon button", dark)
+		}
+		tt.Move(r.X+r.W/2, r.Y+r.H/2)
+		tt.Frame()
+		if !tt.HasText(cardTip) {
+			t.Fatalf("dark=%v expected hover tooltip %q to show; texts=%v", dark, cardTip, tt.Texts())
+		}
+
+		// Hover row and block InfoTips beside their titles.
+		if rRow, ok := tt.Find("Row Title"); ok {
+			tt.Move(rRow.X+rRow.W+14, rRow.Y+rRow.H/2)
+			tt.Frame()
+			if !tt.HasText(rowTip) {
+				t.Fatalf("dark=%v expected row hover tooltip %q to show; texts=%v", dark, rowTip, tt.Texts())
+			}
+		} else {
+			t.Fatalf("dark=%v missing Row Title bounds", dark)
+		}
+		if rBlock, ok := tt.Find("Block Title"); ok {
+			tt.Move(rBlock.X+rBlock.W+14, rBlock.Y+rBlock.H/2)
+			tt.Frame()
+			if !tt.HasText(blockTip) {
+				t.Fatalf("dark=%v expected block hover tooltip %q to show; texts=%v", dark, blockTip, tt.Texts())
+			}
+		} else {
+			t.Fatalf("dark=%v missing Block Title bounds", dark)
+		}
+
+		tt.Move(0, 0)
+		tt.Frame()
+		if tt.HasText(cardTip) || tt.HasText(rowTip) || tt.HasText(blockTip) {
+			t.Fatalf("dark=%v expected hover tooltips to hide after pointer leaves", dark)
 		}
 	}
 }

@@ -81,6 +81,9 @@ type App struct {
 	updateMu   sync.Mutex
 	updateStop chan struct{}
 
+	trimMu    sync.Mutex
+	trimTimer *time.Timer
+
 	quitHook     func()
 	started      atomic.Bool
 	shuttingDown atomic.Bool
@@ -136,6 +139,9 @@ func NewApp(opts Options) (*App, error) {
 	}
 	if !compiled.Video {
 		installed.Video = false
+	}
+	if !compiled.Monitor {
+		installed.Monitor = false
 	}
 	active := installed
 	if opts.Plugins == nil {
@@ -317,6 +323,9 @@ func applyDisabledModules(installed core.ModuleConfig, hc config.HostConfig) cor
 	if hc.IsModuleDisabled(core.ModuleVideo) {
 		out.Video = false
 	}
+	if hc.IsModuleDisabled(core.ModuleMonitor) {
+		out.Monitor = false
+	}
 	return out
 }
 
@@ -379,6 +388,9 @@ func (a *App) applyPluginModules(hc config.HostConfig) (bool, error) {
 		if !desired.Video {
 			stoppedMods.Video = false
 		}
+		if !desired.Monitor {
+			stoppedMods.Monitor = false
+		}
 		a.pluginMu.Lock()
 		a.plugins = kept
 		a.pluginByID = keptByID
@@ -438,6 +450,8 @@ func (a *App) applyPluginModules(hc config.HostConfig) (bool, error) {
 				actualMods.Zip = false
 			case core.ModuleVideo:
 				actualMods.Video = false
+			case core.ModuleMonitor:
+				actualMods.Monitor = false
 			}
 			continue
 		}
@@ -599,7 +613,28 @@ func (a *App) IsGlobalHookSuppressed() bool {
 func (a *App) NotifyWindowClosed() {
 	if !a.ShouldStayInTray() && !a.HasOpenWindows() {
 		a.Quit()
+		return
 	}
+	if !a.HasOpenWindows() {
+		a.scheduleIdleMemoryTrim()
+	}
+}
+
+func (a *App) scheduleIdleMemoryTrim() {
+	if a.headless || a.shuttingDown.Load() {
+		return
+	}
+	a.trimMu.Lock()
+	if a.trimTimer != nil {
+		a.trimTimer.Stop()
+	}
+	a.trimTimer = time.AfterFunc(2*time.Second, func() {
+		if a.shuttingDown.Load() || a.HasOpenWindows() {
+			return
+		}
+		platform.TrimWorkingSet()
+	})
+	a.trimMu.Unlock()
 }
 
 // Plugins returns a shallow copy of active plugins in registration order.
@@ -655,13 +690,14 @@ func (a *App) HasOpenWindows() bool {
 // Start boots active plugins, hotkeys, tray, and initial command-line launch action.
 func (a *App) Start(args []string) {
 	if a.log != nil {
-		a.log.Infof("PureUtils 启动，数据目录 %s，模块 shot=%v clip=%v image=%v video=%v zip=%v",
+		a.log.Infof("PureUtils 启动，数据目录 %s，模块 shot=%v clip=%v image=%v video=%v zip=%v monitor=%v",
 			a.paths.Home,
 			a.ModuleEnabled(core.ModuleCapture),
 			a.ModuleEnabled(core.ModuleHistory),
 			a.ModuleEnabled(core.ModuleViewer),
 			a.ModuleEnabled(core.ModuleVideo),
 			a.ModuleEnabled(core.ModuleZip),
+			a.ModuleEnabled(core.ModuleMonitor),
 		)
 	}
 
@@ -701,9 +737,14 @@ func (a *App) Start(args []string) {
 			a.ExecuteCommand(core.CmdOpenVideo)
 		case a.ModuleEnabled(core.ModuleZip):
 			a.ExecuteCommand(core.CmdOpenZip)
+		case a.ModuleEnabled(core.ModuleMonitor):
+			a.ExecuteCommand(core.CmdOpenMonitor)
 		case len(a.snapshotPlugins()) == 0:
 			a.ExecuteCommand(core.CmdShowSettings)
 		}
+	}
+	if (req.Background || a.ShouldStayInTray()) && !a.HasOpenWindows() {
+		a.scheduleIdleMemoryTrim()
 	}
 }
 
@@ -725,6 +766,8 @@ func (a *App) HandleArgs(args []string) {
 		a.ExecuteCommand(core.CmdOpenVideo)
 	case a.ModuleEnabled(core.ModuleZip):
 		a.ExecuteCommand(core.CmdOpenZip)
+	case a.ModuleEnabled(core.ModuleMonitor):
+		a.ExecuteCommand(core.CmdOpenMonitor)
 	default:
 		a.ExecuteCommand(core.CmdShowSettings)
 	}
@@ -845,7 +888,7 @@ func (a *App) applyStartupSetting() {
 	hc := a.HostConfig()
 	args := ""
 	if !a.ModuleEnabled(core.ModuleCapture) && !a.ModuleEnabled(core.ModuleHistory) &&
-		(a.ModuleEnabled(core.ModuleViewer) || a.ModuleEnabled(core.ModuleVideo) || a.ModuleEnabled(core.ModuleZip)) {
+		(a.ModuleEnabled(core.ModuleViewer) || a.ModuleEnabled(core.ModuleVideo) || a.ModuleEnabled(core.ModuleZip) || a.ModuleEnabled(core.ModuleMonitor)) {
 		args = "--background"
 	}
 	if err := platform.SetRunOnStartupWithArgs(hc.Advanced.RunOnStartup, args); err != nil && a.log != nil {
@@ -968,6 +1011,12 @@ func (a *App) Shutdown() {
 	if a.shuttingDown.Swap(true) {
 		return
 	}
+	a.trimMu.Lock()
+	if a.trimTimer != nil {
+		a.trimTimer.Stop()
+		a.trimTimer = nil
+	}
+	a.trimMu.Unlock()
 	a.stopUpdateScheduler()
 	if a.winTakeover != nil {
 		a.winTakeover.Close()

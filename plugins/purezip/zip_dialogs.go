@@ -355,11 +355,11 @@ func (d *compressDialog) view(c *ui.Context) {
 						ui.TextInput(c, &d.dest).Grow(1).Placeholder(i18n.S("压缩文件保存路径", "Output archive path")).Label(i18n.S("压缩文件名", "Archive filename")).Border(0, ui.Transparent).FocusRing(false)
 						ui.Button(c, i18n.S("浏览…", "Browse…")).OnClick(d.browse).Border(0, ui.Transparent)
 					})
-					pureui.SettingRow(c, i18n.S("格式", "Format"), i18n.S("ZIP 兼容性最好；7Z 压缩率更高；TAR 系列适合 Linux", "ZIP for best compatibility, 7Z for highest ratio, TAR for Linux"), pal, func() {
+					pureui.SettingRowTip(c, i18n.S("格式", "Format"), i18n.S("ZIP 兼容性最好；7Z 压缩率更高；TAR 系列适合 Linux", "ZIP for best compatibility, 7Z for highest ratio, TAR for Linux"), pal, func() {
 						ui.Select(c, &d.format, zipFormatLabels()).Width(130).Label(i18n.S("压缩格式", "Archive Format")).Border(0, ui.Transparent)
 					})
 					ui.Divider(c)
-					pureui.SettingBlock(c, i18n.S("压缩级别", "Compression Level"), i18n.S("级别越高文件越小、速度越慢", "Higher levels give smaller files but take longer"), pal, func() {
+					pureui.SettingBlockTip(c, i18n.S("压缩级别", "Compression Level"), i18n.S("级别越高文件越小、速度越慢", "Higher levels give smaller files but take longer"), pal, func() {
 						ui.Segmented(c, &d.levelIdx, zipLevelLabels()...).Label(i18n.S("压缩级别", "Compression Level")).Border(0, ui.Transparent)
 					})
 				})
@@ -386,22 +386,22 @@ func (d *compressDialog) view(c *ui.Context) {
 						}
 					})
 					if f == archive.FormatZip {
-						pureui.SettingRow(c, i18n.S("加密方式", "Encryption Method"), i18n.S("AES-256 更安全；ZipCrypto 兼容 Windows 自带解压", "AES-256 is stronger; ZipCrypto is compatible with Windows built-in extractor"), pal, func() {
+						pureui.SettingRowTip(c, i18n.S("加密方式", "Encryption Method"), i18n.S("AES-256 更安全；ZipCrypto 兼容 Windows 自带解压", "AES-256 is stronger; ZipCrypto is compatible with Windows built-in extractor"), pal, func() {
 							ui.Segmented(c, &d.encIdx, "AES-256", "ZipCrypto").Label(i18n.S("加密方式", "Encryption Method")).Border(0, ui.Transparent)
 						})
 					}
 					if f == archive.Format7z {
-						pureui.SettingRow(c, i18n.S("加密文件名", "Encrypt File Names"), i18n.S("未输入密码时无法查看压缩包内的文件列表", "Hide the file listing until the password is entered"), pal, func() {
+						pureui.SettingRowTip(c, i18n.S("加密文件名", "Encrypt File Names"), i18n.S("未输入密码时无法查看压缩包内的文件列表", "Hide the file listing until the password is entered"), pal, func() {
 							ui.Switch(c, &d.encryptNames).Label(i18n.S("开关：加密文件名", "Toggle: Encrypt File Names"))
 						})
 					}
 				})
 				pureui.SettingCard(c, i18n.S("其他选项", "Other Options"), "", pal, func() {
-					pureui.SettingRow(c, i18n.S("每个项目单独压缩", "Compress Each Item Separately"), i18n.S("为选中的每个文件 / 文件夹分别创建压缩文件", "Create a separate archive for each selected file or folder"), pal, func() {
+					pureui.SettingRow(c, i18n.S("每个项目单独压缩", "Compress Each Item Separately"), "", pal, func() {
 						ui.Switch(c, &d.separate).Label(i18n.S("开关：单独压缩", "Toggle: Separate Archives"))
 					})
 					ui.Divider(c)
-					pureui.SettingRow(c, i18n.S("压缩后删除源文件", "Delete Source Files After"), i18n.S("源文件移到回收站", "Move source files to Recycle Bin"), pal, func() {
+					pureui.SettingRowTip(c, i18n.S("压缩后删除源文件", "Delete Source Files After"), i18n.S("源文件移到回收站", "Move source files to Recycle Bin"), pal, func() {
 						ui.Switch(c, &d.deleteAfter).Label(i18n.S("开关：删除源文件", "Toggle: Delete Source Files"))
 					})
 					ui.Divider(c)
@@ -583,7 +583,7 @@ func (d *extractDialog) view(c *ui.Context) {
 					})
 					if len(d.paths) == 0 {
 						ui.Divider(c)
-						pureui.SettingRow(c, i18n.S("解压后删除压缩文件", "Delete Archive After Extract"), i18n.S("压缩文件移到回收站", "Move archive to Recycle Bin"), pal, func() {
+						pureui.SettingRowTip(c, i18n.S("解压后删除压缩文件", "Delete Archive After Extract"), i18n.S("压缩文件移到回收站", "Move archive to Recycle Bin"), pal, func() {
 							ui.Switch(c, &d.deleteAfter).Label(i18n.S("开关：解压后删除压缩文件", "Toggle: Delete Archive After Extract"))
 						})
 					}

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 
 	"github.com/egoist/mygo"
@@ -16,12 +17,13 @@ import (
 )
 
 func main() {
+	debug.SetGCPercent(50)
 	args := os.Args[1:]
 	if core.HasHelp(args) {
 		i18n.SetPreference(i18n.PrefAuto)
 		fmt.Println(i18n.S(
-			"PureUtils — PureShot 截图贴图 / PureClip 剪贴板历史 / PureImage 看图 / PureVideo 视频 / PureZip 压缩管理",
-			"PureUtils — PureShot Capture / PureClip Clipboard / PureImage Viewer / PureVideo Player / PureZip Archive",
+			"PureUtils — PureShot 截图贴图 / PureClip 剪贴板历史 / PureImage 看图 / PureVideo 视频 / PureZip 压缩管理 / PureMonitor 系统监控",
+			"PureUtils — PureShot Capture / PureClip Clipboard / PureImage Viewer / PureVideo Player / PureZip Archive / PureMonitor Monitor",
 		))
 		fmt.Println(i18n.S(
 			"用法: PureUtils [命令 | 图片或视频路径 | 压缩文件路径 | 目录路径]",
@@ -33,6 +35,9 @@ func main() {
 		}
 		fmt.Printf("  %-22s %s\n", "--background", i18n.S("仅在后台托盘驻留，不主动打开窗口", "Stay in system tray without opening a window"))
 		return
+	}
+	if handled, code := host.RunMonitorHelper(args); handled {
+		os.Exit(code)
 	}
 
 	i18n.SetPreference(i18n.PrefAuto)

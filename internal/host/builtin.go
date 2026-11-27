@@ -22,6 +22,7 @@ func CompiledModules() core.ModuleConfig {
 		Viewer:  pureimageCompiled,
 		Zip:     purezipCompiled,
 		Video:   purevideoCompiled,
+		Monitor: puremonitorCompiled,
 	}
 }
 
@@ -47,6 +48,9 @@ func BuiltinPlugins() []PluginFactory {
 		out = append(out, f)
 	}
 	if f, ok := builtinPureZip(); ok {
+		out = append(out, f)
+	}
+	if f, ok := builtinPureMonitor(); ok {
 		out = append(out, f)
 	}
 	return out

@@ -526,7 +526,7 @@ func (p *Plugin) SettingsTab() *purekit.SettingsTab {
 	return &purekit.SettingsTab{
 		ID:       PluginID,
 		Title:    i18n.S("PureImage · 看图", "PureImage · Viewer"),
-		Subtitle: i18n.S("PureImage 浏览、渲染与关联", "Image browsing, rendering & file associations"),
+		Subtitle: "",
 		Icon:     pureui.IconImage,
 		Order:    30,
 		NewView: func(host purekit.Host) purekit.SettingsTabView {

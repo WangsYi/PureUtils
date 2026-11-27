@@ -340,6 +340,18 @@ func TestE2EBinaryCLIHelpBilingual(t *testing.T) {
 			}
 		})
 	}
+
+	// Verify elevated helper CLI rejects missing --pipe cleanly with exit code 2.
+	cmd := exec.Command(bin, "--monitor-helper")
+	cmd.Dir = filepath.Dir(bin)
+	cmd.Env = buildIsolatedEnv(t.TempDir(), "helper-cli-check", "en-US")
+	err := cmd.Run()
+	if err == nil {
+		t.Fatal("expected --monitor-helper without --pipe to exit non-zero")
+	}
+	if ee, ok := err.(*exec.ExitError); !ok || ee.ExitCode() != 2 {
+		t.Fatalf("expected exit code 2 for --monitor-helper without --pipe, got %v", err)
+	}
 }
 
 func TestE2EBinaryLifecycleIPCAndWindows(t *testing.T) {
@@ -374,6 +386,9 @@ func TestE2EBinaryLifecycleIPCAndWindows(t *testing.T) {
 		{[]string{"--settings"}, "执行命令: show-settings"},
 		{[]string{"--launcher"}, "执行命令: open-launcher"},
 		{[]string{"--history"}, "执行命令: show-history"},
+		{[]string{"--monitor"}, "执行命令: open-monitor"},
+		{[]string{"--toggle-monitor"}, "执行命令: toggle-monitor"},
+		{[]string{"--toggle-game-hud"}, "执行命令: toggle-game-hud"},
 		{[]string{"--view", samplePNG}, "执行命令: open-viewer"},
 		{[]string{"--zip", sampleZip}, "执行命令: open-zip"},
 		{[]string{"--test-archive", sampleZip}, "执行命令: test-archive"},

@@ -12,11 +12,12 @@ import (
 )
 
 const (
-	PluginPureShot  = "pureshot"
-	PluginPureClip  = "pureclip"
-	PluginPureImage = "pureimage"
-	PluginPureZip   = "purezip"
-	PluginPureVideo = "purevideo"
+	PluginPureShot    = "pureshot"
+	PluginPureClip    = "pureclip"
+	PluginPureImage   = "pureimage"
+	PluginPureZip     = "purezip"
+	PluginPureVideo   = "purevideo"
+	PluginPureMonitor = "puremonitor"
 
 	CurrentSchemaVersion = 2
 )

@@ -25,7 +25,7 @@
 
 ## 核心特性
 
-### 五大独立插件（零跨插件依赖）
+### 六大独立插件（零跨插件依赖）
 
 | 插件 | 模块标识 | 核心能力 |
 |---|---|---|
@@ -34,12 +34,13 @@
 | **PureImage** | `viewer` | 支持 **40+ 图片格式**（JPG / PNG / GIF / WebP / HEIC / AVIF / JPEG XL / 24 种相机 RAW + 动图）、`libjpeg-turbo` 原生硬件级缩放、EXIF 详情面板、资源管理器**空格秒开预览**与 `P` 键贴图 |
 | **PureVideo** | `video` | 内置精简裁剪版 **`libmpv` 硬件解码内核**，开箱支持 21 种视频格式（MP4 / MKV / MOV / HEVC / FLV / WebM 等）、外挂字幕、逐帧步进、倍速、循环播放与文件关联 |
 | **PureZip** | `zip` | 纯 Go 多格式压缩与解压管理（读写 `ZIP / 7Z / TAR / TAR.GZ / TAR.BZ2 / TAR.XZ / TAR.ZST`，只读 `RAR v4/v5` 及单文件 `GZ/BZ2/XZ/ZST`）、树形导航、智能解压、多线程压缩、AES-256 / `-mhe`、资源管理器右键级联菜单与文件关联 |
+| **PureMonitor** | `monitor` | 任务栏状态条与边缘收起迷你悬浮胶囊（支持自选指标）、硬件规格与实时传感器面板（含可选 PawnIO / 提权采集及 AMD ADL / NVML）以及零注入 ETW 游戏 FPS 悬浮层 |
 
 ### 全局快捷启动器与平台能力
 
 - **`Alt+Space` 全局快捷启动器**：毫秒级呼出并自动捕获前景 Windows 资源管理器选中文件与当前剪贴板内容，上下文直达「智能解压 / 用 PureImage 查看 / 贴到桌面」，并支持跨插件功能与 PureClip 历史即时搜索（`Ctrl+1–9` 快捷执行）。
 - **设置页实时热启停 & `Win+` 底层接管**：支持在统一设置中按模块运行时启用/停用插件并动态刷新托盘、热键、启动器与 Bus 能力代次；可选底层键盘钩子（`WH_KEYBOARD_LL`）接管 `Win+...` 组合键并抑制开始菜单弹出。
-- **全套中英双语国际化（实时切换）**：支持简体中文（`zh-CN`）、英文（`en-US`）与系统语言自动识别（`Auto`），覆盖托盘菜单、启动器、设置中心与全部五大插件界面，保存后无需重启立即生效。
+- **全套中英双语国际化（实时切换）**：支持简体中文（`zh-CN`）、英文（`en-US`）与系统语言自动识别（`Auto`），覆盖托盘菜单、启动器、设置中心与全部六大插件界面，保存后无需重启立即生效。
 - **跨插件零耦合协作**：通过 `pkg/purekit` Capability Bus（`clipboard.history` / `image.preview` / `image.pin`）与来源感知剪贴板总线按需联动，任意禁用或裁剪组件均自动优雅降级。
 
 ---
@@ -65,7 +66,7 @@
 
 ## 下载与安装
 
-- 从 [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases) 下载模块化安装程序 `PureUtils-1.2.1-setup.exe`（已内置裁剪版 `libmpv-2.dll`）。
+- 从 [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases) 下载模块化安装程序 `PureUtils-1.3.0-setup.exe`（已内置裁剪版 `libmpv-2.dll`）。
 - 基于 Inno Setup 的安装包采用单用户目录安装（无需管理员权限），可自由勾选 **完整套件 / PureShot+PureClip / 仅 PureImage / 仅 PureVideo / 仅 PureZip** 以及 `turbojpeg.dll` 加速、右键菜单和文件关联；卸载或取消勾选时自动清理对应注册表与快捷方式。
 
 ---
@@ -75,13 +76,13 @@
 环境要求：Windows 10/11 (x64) + **Go 1.27.3+**（零 cgo、零 Node / WebView2）；如需打包安装程序需本机安装 Inno Setup 6/7（`ISCC.exe`）。
 
 ```powershell
-# 编译完整版 PureUtils.exe（含全部五大插件）
+# 编译完整版 PureUtils.exe（含全部六大插件）
 .\build.ps1 build
 
 # 编译精简版（排除 PureImage 及解码器与 turbojpeg.dll）
 .\build.ps1 build -CoreOnly
 
-# 按插件名精确编译裁剪（支持 pureshot, pureclip, pureimage, purevideo, purezip）
+# 按插件名精确编译裁剪（支持 pureshot, pureclip, pureimage, purevideo, purezip, puremonitor）
 .\build.ps1 build -Exclude purezip,pureimage
 
 # 运行全部测试（含 AST 架构/i18n 审计、无头 UI 与 UI/E2E/覆盖率门禁）
@@ -114,6 +115,7 @@
 | 按需配置 | 打开 PureImage 看图 / 切换空格预览 | `--view [路径]` / `--toggle-space-preview` |
 | 按需配置 | 打开 PureVideo 极速视频浏览 | `--video [路径]` |
 | 按需配置 | 打开 PureZip / 压缩与解压命令 | `--zip [路径]` / `--extract-smart <文件>` |
+| 按需配置 | 打开 PureMonitor 硬件与系统监控 | `--monitor` |
 
 其他常用参数：`--settings`、`--toggle-monitoring`、`--extract-here`、`--extract-to`、`--extract-dialog`、`--compress`、`--compress-zip`、`--compress-7z`、`--test-archive`、`--background`、`--perf`、`--exit`；直接传入文件或目录路径也可自动路由打开。
 
@@ -146,7 +148,8 @@ plugins/
   ├─ pureclip/                剪贴板监控、仓储与 Ditto 风格检索面板
   ├─ pureimage/               40+ 格式解码、EXIF、TurboJPEG、空格预览与关联
   ├─ purevideo/               内置 libmpv 硬件解码播放、交互控制与关联
-  └─ purezip/                 纯 Go 压缩引擎（archive/）、右键与关联（zipshell/）
+  ├─ purezip/                 纯 Go 压缩引擎（archive/）、右键与关联（zipshell/）
+  └─ puremonitor/             任务栏与悬浮监控、硬件传感器采集及 ETW 游戏帧率 HUD
 internal/host/                薄宿主外壳（条件编译注册桥 builtin_*.go、托盘、热键、启动器、统一设置与架构测试）
 installer/pureutils.iss       Inno Setup 模块化安装脚本
 docs/                         宣传主页（GitHub Pages）、中英文架构文档与截图资源

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"syscall"
@@ -265,4 +267,14 @@ func RevealInFolder(path string) error {
 
 func Beep() {
 	procMessageBeep.Call(0)
+}
+
+// TrimWorkingSet runs a GC pass, returns unused Go heap spans to Windows, and trims process working set pages.
+func TrimWorkingSet() {
+	runtime.GC()
+	debug.FreeOSMemory()
+	h, _, _ := procGetCurrentProcess.Call()
+	if h != 0 {
+		procSetProcessWorkingSetSize.Call(h, ^uintptr(0), ^uintptr(0))
+	}
 }

@@ -31,3 +31,6 @@ TestResults/
 *.user
 .DS_Store
 Thumbs.db
+
+# Local handoff notes
+HANDOFF.md

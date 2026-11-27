@@ -24,6 +24,9 @@ const (
 	CmdOpenViewer            Command = "open-viewer"
 	CmdToggleSpacePreview    Command = "toggle-space-preview"
 	CmdOpenVideo             Command = "open-video"
+	CmdOpenMonitor           Command = "open-monitor"
+	CmdToggleMonitorOverlay  Command = "toggle-monitor"
+	CmdToggleGameHUD         Command = "toggle-game-hud"
 	CmdOpenZip               Command = "open-zip"
 	CmdExtractSmart          Command = "extract-smart"
 	CmdExtractHere           Command = "extract-here"
@@ -57,6 +60,9 @@ var Verbs = []Verb{
 	{"--toggle-monitoring", CmdToggleMonitoring, "Pause or resume clipboard monitoring"},
 	{"--view", CmdOpenViewer, "Open PureImage viewer (optional image or folder path)"},
 	{"--video", CmdOpenVideo, "Open PureVideo player (optional video or folder path)"},
+	{"--monitor", CmdOpenMonitor, "Open PureMonitor hardware and system dashboard"},
+	{"--toggle-monitor", CmdToggleMonitorOverlay, "Show or hide system monitor overlays"},
+	{"--toggle-game-hud", CmdToggleGameHUD, "Show or hide in-game FPS HUD"},
 	{"--toggle-space-preview", CmdToggleSpacePreview, "Toggle Explorer spacebar preview"},
 	{"--zip", CmdOpenZip, "Open PureZip archive manager (optional archive path)"},
 	{"--extract-smart", CmdExtractSmart, "Smart extract: auto-detect root folder"},
@@ -95,6 +101,12 @@ func (v Verb) LocalizedDescription() string {
 		return i18n.S("打开 PureImage 看图器（可后接图片或目录路径）", "Open PureImage viewer (optional image or folder path)")
 	case CmdOpenVideo:
 		return i18n.S("打开 PureVideo 极速视频浏览（可后接视频或目录路径）", "Open PureVideo player (optional video or folder path)")
+	case CmdOpenMonitor:
+		return i18n.S("打开 PureMonitor 硬件信息与系统监控面板", "Open PureMonitor hardware and system dashboard")
+	case CmdToggleMonitorOverlay:
+		return i18n.S("显示/隐藏任务栏与悬浮系统监控", "Show or hide system monitor overlays")
+	case CmdToggleGameHUD:
+		return i18n.S("显示/隐藏游戏帧率 HUD", "Show or hide in-game FPS HUD")
 	case CmdToggleSpacePreview:
 		return i18n.S("开启/关闭资源管理器空格预览", "Toggle Explorer spacebar preview")
 	case CmdOpenZip:

@@ -4,9 +4,9 @@ param(
     [string]$Command = 'build',
     [ValidateSet('Release', 'Debug')]
     [string]$Configuration = 'Release',
-    [string]$Version = '1.2.1',
+    [string]$Version = '1.3.0',
     [switch]$CoreOnly,
-    [ValidateSet('pureshot', 'pureclip', 'pureimage', 'purevideo', 'purezip')]
+    [ValidateSet('pureshot', 'pureclip', 'pureimage', 'purevideo', 'purezip', 'puremonitor')]
     [string[]]$Exclude = @(),
     [string]$ShotDir = '',
     [string]$CovDir = '',
@@ -151,6 +151,7 @@ try {
             Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './plugins/pureimage', '-run', '^(TestEnglishPureImageLayout|TestChinesePureImageLayout|TestViewerHeadlessEmptyMenusToolbarAndPin)$')
             Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './plugins/purevideo', '-run', '^(TestEnglishPureVideoLayout|TestChinesePureVideoLayout|TestPlayer|TestPureVideoPluginContractAndSettingsUI)')
             Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './plugins/purezip', '-run', '^(TestEnglishPureZipLayout|TestChinesePureZipLayout|TestZipView|TestCompressAndExtractDialogsHeadless|TestZipJobViewsAndSettingsTabPersistence)')
+            Invoke-Go @('test', '-buildvcs=false', '-count=1', '-v', './plugins/puremonitor', '-run', '^(TestEnglishPureMonitorLayout|TestChinesePureMonitorLayout|TestPureMonitorPluginContractAndSettingsUI)')
 
             $enPngs = @(Get-ChildItem -LiteralPath $enDir -Filter '*.png' -File)
             $zhPngs = @(Get-ChildItem -LiteralPath $zhDir -Filter '*.png' -File)
@@ -370,6 +371,8 @@ try {
             Copy-Item -Force (Join-Path $root 'resources\video.png') (Join-Path $out 'resources\video.png')
             Copy-Item -Force (Join-Path $root 'resources\zip.ico') (Join-Path $out 'resources\zip.ico')
             Copy-Item -Force (Join-Path $root 'resources\zip.png') (Join-Path $out 'resources\zip.png')
+            Copy-Item -Force (Join-Path $root 'resources\monitor.ico') (Join-Path $out 'resources\monitor.ico')
+            Copy-Item -Force (Join-Path $root 'resources\monitor.png') (Join-Path $out 'resources\monitor.png')
             $turbo = Join-Path $root 'libs\turbojpeg\turbojpeg.dll'
             if (Test-Path $turbo) {
                 Copy-Item -Force $turbo (Join-Path $out 'turbojpeg.dll')
@@ -384,8 +387,10 @@ try {
             Copy-Item -Force (Join-Path $root 'resources\video.png') (Join-Path $outCore 'resources\video.png')
             Copy-Item -Force (Join-Path $root 'resources\zip.ico') (Join-Path $outCore 'resources\zip.ico')
             Copy-Item -Force (Join-Path $root 'resources\zip.png') (Join-Path $outCore 'resources\zip.png')
+            Copy-Item -Force (Join-Path $root 'resources\monitor.ico') (Join-Path $outCore 'resources\monitor.ico')
+            Copy-Item -Force (Join-Path $root 'resources\monitor.png') (Join-Path $outCore 'resources\monitor.png')
             Copy-Item -Force $mpvDll (Join-Path $outCore 'libmpv-2.dll')
-            Set-Content -Encoding UTF8 (Join-Path $outCore 'modules.json') "{`n  `"capture`": true,`n  `"history`": true,`n  `"viewer`": false,`n  `"video`": true,`n  `"zip`": true`n}"
+            Set-Content -Encoding UTF8 (Join-Path $outCore 'modules.json') "{`n  `"capture`": true,`n  `"history`": true,`n  `"viewer`": false,`n  `"video`": true,`n  `"zip`": true,`n  `"monitor`": true`n}"
 
             Write-Host "已发布完整版到 $out，精简版到 $outCore" -ForegroundColor Green
         }
@@ -409,6 +414,8 @@ try {
             Copy-Item -Force (Join-Path $root 'resources\video.png') (Join-Path $resStage 'video.png')
             Copy-Item -Force (Join-Path $root 'resources\zip.ico') (Join-Path $resStage 'zip.ico')
             Copy-Item -Force (Join-Path $root 'resources\zip.png') (Join-Path $resStage 'zip.png')
+            Copy-Item -Force (Join-Path $root 'resources\monitor.ico') (Join-Path $resStage 'monitor.ico')
+            Copy-Item -Force (Join-Path $root 'resources\monitor.png') (Join-Path $resStage 'monitor.png')
             $turbo = Join-Path $root 'libs\turbojpeg\turbojpeg.dll'
             if (Test-Path $turbo) {
                 Copy-FileIfChanged $turbo (Join-Path $stage 'turbojpeg.dll')
@@ -438,7 +445,7 @@ try {
             Write-Host '已清理构建产物' -ForegroundColor Green
         }
         'help' {
-            Write-Host '用法: .\build.ps1 [-Command build|test|ui|e2e|coverage|ci|run|publish|pack|clean] [-Version 1.2.1] [-CoreOnly] [-Exclude pureshot,pureclip,pureimage,purevideo,purezip] [-ShotDir ...] [-CovDir ...] [-MinCoverage 50] [-AppArgs ...]'
+            Write-Host '用法: .\build.ps1 [-Command build|test|ui|e2e|coverage|ci|run|publish|pack|clean] [-Version 1.3.0] [-CoreOnly] [-Exclude pureshot,pureclip,pureimage,purevideo,purezip,puremonitor] [-ShotDir ...] [-CovDir ...] [-MinCoverage 50] [-AppArgs ...]'
             Write-Host '  build     编译 PureUtils.exe（加 -CoreOnly 不含 PureImage 看图，或用 -Exclude 裁剪指定插件）'
             Write-Host '  test      运行 go test -count=1 ./...（支持 -CoreOnly 与 -Exclude）'
             Write-Host '  ui        运行中英文/深浅色 UI 布局、交互与 i18n 审计测试并导出截图'

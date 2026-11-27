@@ -55,6 +55,15 @@ func TestRoundTripPluginAndHostSections(t *testing.T) {
 		t.Fatalf("SavePureZip: %v", err)
 	}
 
+	mon := DefaultPureMonitorConfig()
+	mon.ShowFloating = true
+	mon.RefreshIntervalMs = 500
+	mon.FloatCollapsedMetrics = []string{"net_down", "net_up", "cpu"}
+	mon.GameWhitelist = []string{"eldenring"}
+	if err := SavePureMonitor(mgr.Section(PluginPureMonitor), mon); err != nil {
+		t.Fatalf("SavePureMonitor: %v", err)
+	}
+
 	reloaded, err := Open(path)
 	if err != nil {
 		t.Fatalf("Open reload: %v", err)
@@ -93,6 +102,11 @@ func TestRoundTripPluginAndHostSections(t *testing.T) {
 	}
 	if got := LoadPureZip(reloaded.Section(PluginPureZip)); got.DefaultFormat != "7z" || len(got.RecentArchives) != 1 || got.RecentArchives[0] != `D:\a.7z` {
 		t.Fatalf("PureZip reload = %+v", got)
+	}
+	if got := LoadPureMonitor(reloaded.Section(PluginPureMonitor)); !got.ShowFloating || got.RefreshIntervalMs != 500 ||
+		len(got.FloatCollapsedMetrics) != 2 || got.FloatCollapsedMetrics[0] != "net_down" || got.FloatCollapsedMetrics[1] != "net_up" ||
+		len(got.GameWhitelist) != 1 || got.GameWhitelist[0] != "eldenring" {
+		t.Fatalf("PureMonitor reload = %+v", got)
 	}
 }
 

@@ -69,3 +69,7 @@ func TestEnsureICOFromPNG(t *testing.T) {
 		t.Fatalf("expected empty path for invalid PNG, got %q", bad)
 	}
 }
+
+func TestTrimWorkingSet(t *testing.T) {
+	TrimWorkingSet()
+}

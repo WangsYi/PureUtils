@@ -4,6 +4,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"pureutils/pkg/purekit/core"
+	"pureutils/pkg/purekit/i18n"
 )
 
 // KindVisual maps a ClipboardKind to its icon, localized label, foreground
@@ -176,6 +177,55 @@ func HudKeycap(c *ui.Context, text string, pal Palette) ui.Element {
 	})
 }
 
+// InfoTip renders an inline info icon button that shows tip in a floating hover tooltip.
+func InfoTip(c *ui.Context, tip string, pal Palette) ui.Element {
+	if tip == "" {
+		return ui.Element{}
+	}
+	b := ui.ButtonBase(c).Size(18, 18).Radius(9).Center().Shrink(0).
+		Label(i18n.S("说明", "Info")).Description(tip).FocusRing(false)
+	hovered := b.Hovered()
+	bg := ui.Transparent
+	fg := pal.TextMuted
+	if hovered {
+		bg = pal.CardHover
+		fg = pal.Accent
+	}
+	b.Background(bg)
+	b.Children(func() {
+		ui.Icon(c, IconInfo).Size(13, 13).TextColor(fg)
+	})
+	if hovered {
+		fill := pal.CardActive
+		textCol := pal.Text
+		borderCol := pal.BorderStrong
+		if !pal.Dark {
+			fill = ui.Hex("#181A20")
+			textCol = ui.Hex("#F9FAFB")
+			borderCol = ui.RGBA(255, 255, 255, 0.12)
+		}
+		ui.Overlay(c, func() {
+			ui.Box(c).Absolute().PassThrough().Role(ui.RoleTooltip).
+				MaxWidth(320).Padding(6, 10).Radius(7).
+				Background(fill).Border(1, borderCol).
+				Shadow(0, 4, 14, 0, ui.RGBA(0, 0, 0, 0.24)).
+				AttachTo(b, ui.AnchorTop, ui.AnchorBottom).Margin(0, 0, 6, 0).
+				Children(func() {
+					ui.Text(c, tip).FontSize(11.5).LineHeight(1.45).TextColor(textCol)
+				})
+		})
+	}
+	return b
+}
+
+func settingCardBody(c *ui.Context, pal Palette, body func()) {
+	card := ui.Column(c).Padding(12, 14).Gap(7).Radius(12).Background(pal.CardBg)
+	if !pal.Dark {
+		card.Shadow(0, 1, 4, 0, ui.RGBA(15, 23, 42, 0.045))
+	}
+	card.Children(body)
+}
+
 // SettingCard renders a titled card section with soft tonal elevation.
 func SettingCard(c *ui.Context, title, subtitle string, pal Palette, body func()) {
 	ui.Column(c).Gap(5).Children(func() {
@@ -185,11 +235,18 @@ func SettingCard(c *ui.Context, title, subtitle string, pal Palette, body func()
 				ui.Text(c, subtitle).FontSize(11).TextColor(pal.TextMuted)
 			}
 		})
-		card := ui.Column(c).Padding(12, 14).Gap(7).Radius(12).Background(pal.CardBg)
-		if !pal.Dark {
-			card.Shadow(0, 1, 4, 0, ui.RGBA(15, 23, 42, 0.045))
-		}
-		card.Children(body)
+		settingCardBody(c, pal, body)
+	})
+}
+
+// SettingCardTip renders a titled card section with an inline InfoTip hover tooltip.
+func SettingCardTip(c *ui.Context, title, tip string, pal Palette, body func()) {
+	ui.Column(c).Gap(5).Children(func() {
+		ui.Row(c).Gap(5).Padding(0, 2).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, title).FontSize(13).FontWeight(600).TextColor(pal.Text).Shrink(1).MinWidth(0)
+			InfoTip(c, tip, pal)
+		})
+		settingCardBody(c, pal, body)
 	})
 }
 
@@ -206,6 +263,17 @@ func SettingRow(c *ui.Context, title, desc string, pal Palette, control func()) 
 	})
 }
 
+// SettingRowTip renders a left-label with inline InfoTip hover tooltip + right-control setting row.
+func SettingRowTip(c *ui.Context, title, tip string, pal Palette, control func()) {
+	ui.Row(c).AlignItems(ui.Center).Gap(12).Padding(1, 0).Children(func() {
+		ui.Row(c).Grow(1).MinWidth(0).Gap(5).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, title).FontSize(13).FontWeight(500).TextColor(pal.Text).Shrink(1).MinWidth(0)
+			InfoTip(c, tip, pal)
+		})
+		ui.Row(c).AlignItems(ui.Center).Gap(8).Shrink(0).Children(control)
+	})
+}
+
 // SettingBlock renders a vertical setting block with title/description above a full-width control row,
 // suited for multi-option segmented controls that would squeeze SettingRow labels at narrow window widths.
 func SettingBlock(c *ui.Context, title, desc string, pal Palette, control func()) {
@@ -215,6 +283,17 @@ func SettingBlock(c *ui.Context, title, desc string, pal Palette, control func()
 			if desc != "" {
 				ui.Text(c, desc).FontSize(11).TextColor(pal.TextMuted)
 			}
+		})
+		ui.Row(c).AlignItems(ui.Center).Gap(8).Children(control)
+	})
+}
+
+// SettingBlockTip renders a vertical setting block with an inline InfoTip hover tooltip beside the title.
+func SettingBlockTip(c *ui.Context, title, tip string, pal Palette, control func()) {
+	ui.Column(c).Gap(6).Padding(1, 0).Children(func() {
+		ui.Row(c).Gap(5).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, title).FontSize(13).FontWeight(500).TextColor(pal.Text).Shrink(1).MinWidth(0)
+			InfoTip(c, tip, pal)
 		})
 		ui.Row(c).AlignItems(ui.Center).Gap(8).Children(control)
 	})

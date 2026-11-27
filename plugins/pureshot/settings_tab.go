@@ -92,8 +92,8 @@ func (v *settingsTabView) ResetDefaults() {
 }
 
 func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
-	pureui.SettingCard(c, i18n.S("默认操作与文件保存", "Default Action & File Saving"), i18n.S("配置双击 / Enter 确认截图时的默认动作、默认保存目录与文件名模板", "Configure the default action on double-click / Enter, save folder, and filename template"), pal, func() {
-		pureui.SettingBlock(c, i18n.S("双击 / Enter 默认操作", "Default Finish Action (Double-Click / Enter)"), i18n.S("在截图选区内双击、按 Enter 或点击“完成”时执行的默认动作", "Action performed on double-click, Enter, or clicking Done"), pal, func() {
+	pureui.SettingCard(c, i18n.S("默认操作与文件保存", "Default Action & File Saving"), "", pal, func() {
+		pureui.SettingBlock(c, i18n.S("双击 / Enter 默认操作", "Default Finish Action (Double-Click / Enter)"), "", pal, func() {
 			seg := ui.Segmented(c, &v.captureActionIdx, i18n.S("复制到剪贴板", "Copy"), i18n.S("保存到文件", "Save"), i18n.S("复制并保存", "Copy & Save"), i18n.S("贴到桌面", "Pin")).Label(i18n.S("截图默认完成操作", "Default capture action"))
 			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
@@ -141,47 +141,48 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 
 		ui.Column(c).Gap(6).Children(func() {
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, i18n.S("文件名模板", "Filename Template")).FontSize(13).FontWeight(500).TextColor(pal.Text).Grow(1).MinWidth(0)
+				ui.Row(c).Gap(5).AlignItems(ui.Center).Grow(1).MinWidth(0).Children(func() {
+					ui.Text(c, i18n.S("文件名模板", "Filename Template")).FontSize(13).FontWeight(500).TextColor(pal.Text).Shrink(1).MinWidth(0)
+					pureui.InfoTip(c, i18n.S("支持占位符：%yyyyMMdd、%HHmmss、%yyyy、%MM、%dd、%HH、%mm、%ss、%counter", "Tokens: %yyyyMMdd, %HHmmss, %yyyy, %MM, %dd, %HH, %mm, %ss, %counter"), pal)
+				})
 				pureui.PillBadge(c, i18n.S("预览: ", "Preview: ")+previewFileName(v.draft.Capture.FileNamePattern), pal.Accent, pal.AccentSoft)
 			})
 			ui.TextInput(c, &v.draft.Capture.FileNamePattern).Label(i18n.S("文件名模板", "Filename Template")).Border(0, ui.Transparent).FocusRing(false)
-			ui.Text(c, i18n.S("支持占位符：%yyyyMMdd、%HHmmss、%yyyy、%MM、%dd、%HH、%mm、%ss、%counter", "Tokens: %yyyyMMdd, %HHmmss, %yyyy, %MM, %dd, %HH, %mm, %ss, %counter")).
-				FontSize(11).TextColor(pal.TextMuted)
 		})
 	})
 
-	pureui.SettingCard(c, i18n.S("行为与框选辅助", "Behavior & Selection Helpers"), i18n.S("区域截图在光标所在显示器铺开冻结帧；整屏截图直接复制并记录", "Region capture freezes the monitor under cursor; full-screen capture copies immediately"), pal, func() {
-		pureui.SettingRow(c, i18n.S("截图后复制到剪贴板", "Copy to Clipboard After Capture"), i18n.S("完成或复制选区时将结果写入系统剪贴板", "Write result to clipboard when finishing or copying"), pal, func() {
+	pureui.SettingCardTip(c, i18n.S("行为与框选辅助", "Behavior & Selection Helpers"), i18n.S("区域截图在光标所在显示器铺开冻结帧；整屏截图直接复制并记录", "Region capture freezes the monitor under cursor; full-screen capture copies immediately"), pal, func() {
+		pureui.SettingRow(c, i18n.S("截图后复制到剪贴板", "Copy to Clipboard After Capture"), "", pal, func() {
 			ui.Switch(c, &v.draft.Capture.CopyToClipboard).Label(i18n.S("开关：截图后复制到剪贴板", "Toggle: Copy to clipboard"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("截图后自动保存到目录", "Auto-Save to Folder"), i18n.S("每次完成截图自动落盘一份 PNG 到上方保存目录", "Automatically save a PNG copy to the save folder"), pal, func() {
+		pureui.SettingRow(c, i18n.S("截图后自动保存到目录", "Auto-Save to Folder"), "", pal, func() {
 			ui.Switch(c, &v.draft.Capture.AutoSave).Label(i18n.S("开关：截图后自动保存到目录", "Toggle: Auto-save capture"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("整屏截图包含鼠标指针", "Include Cursor in Fullscreen Shot"), i18n.S("执行截取当前显示器时绘制鼠标光标", "Draw mouse pointer when capturing active display"), pal, func() {
+		pureui.SettingRow(c, i18n.S("整屏截图包含鼠标指针", "Include Cursor in Fullscreen Shot"), "", pal, func() {
 			ui.Switch(c, &v.draft.Capture.IncludeCursor).Label(i18n.S("开关：整屏截图包含鼠标指针", "Toggle: Include cursor"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("框选时吸附窗口边缘", "Snap Selection to Window Edges"), i18n.S("拖拽框选自动对齐桌面可见窗口边界，单击可快速捕获窗口", "Align drag handles to visible window edges; click to select window"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("框选时吸附窗口边缘", "Snap Selection to Window Edges"), i18n.S("拖拽框选自动对齐桌面可见窗口边界，单击可快速捕获窗口", "Align drag handles to visible window edges; click to select window"), pal, func() {
 			ui.Switch(c, &v.draft.Capture.SnapToWindows).Label(i18n.S("开关：框选时吸附窗口边缘", "Toggle: Snap to windows"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("显示放大镜与取色", "Show Magnifier & Color Picker"), i18n.S("光标旁展示像素放大镜、RGB/HEX 色值，按 C 复制色值", "Show pixel loupe with RGB/HEX near cursor; press C to copy color"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("显示放大镜与取色", "Show Magnifier & Color Picker"), i18n.S("光标旁展示像素放大镜、RGB/HEX 色值，按 C 复制色值", "Show pixel loupe with RGB/HEX near cursor; press C to copy color"), pal, func() {
 			ui.Switch(c, &v.draft.Capture.ShowMagnifier).Label(i18n.S("开关：显示放大镜与取色", "Toggle: Show magnifier"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("显示选区尺寸", "Show Selection Dimensions"), i18n.S("在选区边角显示实时宽高像素尺寸标尺", "Show live width × height badge next to the selection"), pal, func() {
+		pureui.SettingRow(c, i18n.S("显示选区尺寸", "Show Selection Dimensions"), "", pal, func() {
 			ui.Switch(c, &v.draft.Capture.ShowRuler).Label(i18n.S("开关：显示选区尺寸", "Toggle: Show dimensions"))
 		})
 	})
 
-	pureui.SettingCard(c, i18n.S("悬浮贴图设置", "Floating Pin Settings"), i18n.S("支持滚轮缩放及 Alt+滚轮微调单个贴图透明度", "Scroll to zoom pins; Alt+Scroll to adjust opacity"), pal, func() {
-		pureui.SettingRow(c, i18n.S("新贴图默认置顶", "Always on Top by Default"), i18n.S("新建悬浮贴图时自动处于其他窗口上方", "Keep new pin windows above other windows"), pal, func() {
+	pureui.SettingCardTip(c, i18n.S("悬浮贴图设置", "Floating Pin Settings"), i18n.S("支持滚轮缩放及 Alt+滚轮微调单个贴图透明度", "Scroll to zoom pins; Alt+Scroll to adjust opacity"), pal, func() {
+		pureui.SettingRow(c, i18n.S("新贴图默认置顶", "Always on Top by Default"), "", pal, func() {
 			ui.Switch(c, &v.draft.Pins.AlwaysOnTop).Label(i18n.S("开关：新贴图默认置顶", "Toggle: Pins always on top"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("默认不透明度", "Default Opacity"), i18n.S("新建贴图窗口的初始不透明度（20%–100%）", "Initial opacity for newly created pins (20%–100%)"), pal, func() {
+		pureui.SettingRow(c, i18n.S("默认不透明度", "Default Opacity"), "", pal, func() {
 			ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 				if ui.Slider(c, &v.opacity, 0.2, 1).Width(150).Label(i18n.S("滑块：默认不透明度", "Slider: Default opacity")).Changed() {
 					v.draft.Pins.Opacity = v.opacity
@@ -190,13 +191,13 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 			})
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("边框宽度", "Border Width"), i18n.S("贴图窗口外框线像素宽度（0 表示无边框）", "Outer border thickness in pixels (0 for borderless)"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("边框宽度", "Border Width"), i18n.S("贴图窗口外框线像素宽度（0 表示无边框）", "Outer border thickness in pixels (0 for borderless)"), pal, func() {
 			if ui.NumberInput(c, &v.borderThickness, 0, 10, 1).Label(i18n.S("数值：边框宽度", "Number: Border width")).Changed() {
 				v.draft.Pins.BorderThickness = int(v.borderThickness)
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("边框颜色", "Border Color"), i18n.S("点击色块呼出取色器，或直接输入十六进制色值", "Click swatch to pick a color or enter a hex value"), pal, func() {
+		pureui.SettingRow(c, i18n.S("边框颜色", "Border Color"), "", pal, func() {
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 				well := ui.ColorWell(c, &v.borderUIColor).Label(i18n.S("边框颜色选择器", "Border color picker"))
 				if well.Changed() {
@@ -215,7 +216,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 		})
 	})
 
-	pureui.SettingCard(c, i18n.S("实时效果预览", "Live Pin Preview"), i18n.S("按当前不透明度、边框宽度与颜色实时渲染悬浮贴图外观", "Live preview of floating pin appearance with current opacity and border"), pal, func() {
+	pureui.SettingCard(c, i18n.S("实时效果预览", "Live Pin Preview"), "", pal, func() {
 		ui.Box(c).Height(112).FillWidth().Radius(10).Clip().Draw(func(p *ui.Painter, r ui.Rect) {
 			tile := float32(14)
 			c1 := ui.RGB(28, 32, 42)

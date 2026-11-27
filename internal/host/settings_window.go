@@ -178,7 +178,7 @@ func (h *settingsView) buildSections() {
 			id:    "general",
 			label: i18n.S("常规", "General"),
 			title: i18n.S("常规与外观", "General & Appearance"),
-			sub:   i18n.S("主题外观、界面语言与全局快捷键", "Theme, language, and global hotkeys"),
+			sub:   "",
 			icon:  pureui.IconSliders,
 		},
 	}
@@ -198,7 +198,7 @@ func (h *settingsView) buildSections() {
 		id:    "advanced",
 		label: i18n.S("高级", "Advanced"),
 		title: i18n.S("高级与维护", "Advanced & Updates"),
-		sub:   i18n.S("自动更新、开机自启、日志诊断与已安装模块", "Updates, startup, logs, and installed modules"),
+		sub:   "",
 		icon:  pureui.IconWrench,
 	})
 	h.sections = secs
@@ -358,9 +358,15 @@ func (h *settingsView) renderSidebarStatus(c *ui.Context, pal pureui.Palette) {
 func (h *settingsView) contentPane(c *ui.Context, pal pureui.Palette) {
 	sec := h.sections[clampInt(h.tab, 0, len(h.sections)-1)]
 	ui.Column(c).Grow(1).FillHeight().Background(pal.Bg).Children(func() {
-		ui.Column(c).Padding(14, 22, 10, 22).Gap(2).Children(func() {
+		hdr := ui.Column(c).Padding(14, 22, 10, 22).Gap(2)
+		if sec.sub == "" {
+			hdr = ui.Column(c).Padding(14, 22, 12, 22)
+		}
+		hdr.Children(func() {
 			ui.Text(c, sec.title).FontSize(19).FontWeight(700).TextColor(pal.Text)
-			ui.Text(c, sec.sub).FontSize(12).TextColor(pal.TextMuted)
+			if sec.sub != "" {
+				ui.Text(c, sec.sub).FontSize(12).TextColor(pal.TextMuted)
+			}
 		})
 		ui.Box(c).Height(1).FillWidth().Background(pal.Border)
 
@@ -429,8 +435,8 @@ func (h *settingsView) bottomSaveBar(c *ui.Context, pal pureui.Palette) {
 }
 
 func (h *settingsView) general(c *ui.Context, pal pureui.Palette) {
-	pureui.SettingCard(c, i18n.S("外观与显示", "Appearance & Display"), i18n.S("调整应用全局色彩主题与界面显示语言", "Configure global color theme and display language"), pal, func() {
-		pureui.SettingRow(c, i18n.S("主题模式", "Theme"), i18n.S("支持跟随 Windows 深浅色或手动指定", "Follow Windows light/dark mode or choose manually"), pal, func() {
+	pureui.SettingCard(c, i18n.S("外观与显示", "Appearance & Display"), "", pal, func() {
+		pureui.SettingRow(c, i18n.S("主题模式", "Theme"), "", pal, func() {
 			seg := ui.Segmented(c, &h.themeIdx, i18n.S("跟随系统", "System"), i18n.S("浅色", "Light"), i18n.S("深色", "Dark")).Label(i18n.S("主题", "Theme"))
 			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
@@ -438,7 +444,7 @@ func (h *settingsView) general(c *ui.Context, pal pureui.Palette) {
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("界面语言", "Language"), i18n.S("跟随系统自动切换或手动指定中英文（保存后立即生效）", "Follow OS language or choose Chinese / English"), pal, func() {
+		pureui.SettingRow(c, i18n.S("界面语言", "Language"), "", pal, func() {
 			seg := ui.Segmented(c, &h.langIdx, i18n.S("跟随系统", "Auto"), "简体中文", "English").Label(i18n.S("界面语言", "Language"))
 			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
@@ -447,7 +453,7 @@ func (h *settingsView) general(c *ui.Context, pal pureui.Palette) {
 		})
 	})
 
-	pureui.SettingCard(c, i18n.S("全局热键", "Global Hotkeys"), i18n.S("触发冲突或无效热键会在对应行下方显示原因，保存后立即生效", "Conflicts or invalid shortcuts appear below each row and take effect on Save"), pal, func() {
+	pureui.SettingCardTip(c, i18n.S("全局热键", "Global Hotkeys"), i18n.S("冲突或无效热键会在对应行下方提示，保存后立即生效", "Conflicts or invalid shortcuts appear below each row and take effect on Save"), pal, func() {
 		if len(h.hotkeys) == 0 {
 			ui.Text(c, i18n.S("当前没有启用提供全局热键的功能插件", "No enabled modules provide global hotkeys")).FontSize(12).TextColor(pal.TextMuted)
 			return
@@ -459,17 +465,17 @@ func (h *settingsView) general(c *ui.Context, pal pureui.Palette) {
 			h.hotkeyRow(c, i, pal)
 		}
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("接管系统 Win 组合键", "Take Over System Win Hotkeys"), i18n.S("当 Win+V、Win+Shift+S、Win+Space 等被系统占用时，自动通过底层键盘钩子接管并屏蔽开始菜单（不支持 Win+L）", "Intercept reserved Win shortcuts like Win+V or Win+Shift+S via low-level hook (Win+L excluded)"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("接管系统 Win 组合键", "Take Over System Win Hotkeys"), i18n.S("当 Win+V、Win+Shift+S、Win+Space 等被系统占用时，自动通过底层键盘钩子接管并屏蔽开始菜单（不支持 Win+L）", "Intercept reserved Win shortcuts like Win+V or Win+Shift+S via low-level hook (Win+L excluded)"), pal, func() {
 			ui.Switch(c, &h.hostDraft.Hotkeys.TakeoverWinKeys).Label(i18n.S("开关：接管系统 Win 组合键", "Toggle: Take over system Win hotkeys"))
 		})
 	})
 
-	pureui.SettingCard(c, i18n.S("快捷启动器", "Quick Launcher"), i18n.S("按下全局热键（默认 Alt+Space）快速搜索插件能力并自动识别当前剪贴板或资源管理器选中项", "Search all plugin actions, clipboard history, and Explorer selections (default Alt+Space)"), pal, func() {
-		pureui.SettingRow(c, i18n.S("启用快捷启动器", "Enable Quick Launcher"), i18n.S("注册启动器全局快捷键并在系统托盘显示入口", "Register launcher hotkey and add entry to system tray"), pal, func() {
+	pureui.SettingCardTip(c, i18n.S("快捷启动器", "Quick Launcher"), i18n.S("按下全局热键（默认 Alt+Space）快速搜索插件能力并自动识别当前剪贴板或资源管理器选中项", "Search all plugin actions, clipboard history, and Explorer selections (default Alt+Space)"), pal, func() {
+		pureui.SettingRow(c, i18n.S("启用快捷启动器", "Enable Quick Launcher"), "", pal, func() {
 			ui.Switch(c, &h.hostDraft.Launcher.Enabled).Label(i18n.S("开关：启用快捷启动器", "Toggle: Enable Quick Launcher"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("最多显示结果数", "Max Results"), i18n.S("控制启动器列表单次展示的最大匹配条数（4–30）", "Maximum number of results displayed in the launcher (4–30)"), pal, func() {
+		pureui.SettingRow(c, i18n.S("最多显示结果数", "Max Results"), "", pal, func() {
 			if ui.NumberInput(c, &h.launcherMax, 4, 30, 1).Label(i18n.S("数值：启动器最大结果数", "Number: Launcher max results")).Changed() {
 				h.hostDraft.Launcher.MaxResults = int(h.launcherMax)
 			}
@@ -566,12 +572,12 @@ func (h *settingsView) hotkeyError(idx int) string {
 func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 	h.renderUpdateCard(c, pal)
 
-	pureui.SettingCard(c, i18n.S("系统与日志", "System & Logs"), i18n.S("管理开机自启与诊断日志级别", "Manage startup launch and diagnostic logging"), pal, func() {
-		pureui.SettingRow(c, i18n.S("开机自动启动", "Launch on Startup"), i18n.S("登录 Windows 时在系统托盘后台自动启动 PureUtils", "Automatically start PureUtils in tray when signing in to Windows"), pal, func() {
+	pureui.SettingCard(c, i18n.S("系统与日志", "System & Logs"), "", pal, func() {
+		pureui.SettingRow(c, i18n.S("开机自动启动", "Launch on Startup"), "", pal, func() {
 			ui.Switch(c, &h.hostDraft.Advanced.RunOnStartup).Label(i18n.S("开关：开机自动启动", "Toggle: Launch on Startup"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("记录详细日志", "Verbose Logging"), i18n.S("写入更多调试上下文到每日日志文件以便排查问题", "Write detailed diagnostic context to daily log files"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("记录详细日志", "Verbose Logging"), i18n.S("写入更多调试上下文到每日日志文件以便排查问题", "Write detailed diagnostic context to daily log files"), pal, func() {
 			ui.Switch(c, &h.hostDraft.Advanced.VerboseLogging).Label(i18n.S("开关：记录详细日志", "Toggle: Verbose Logging"))
 		})
 	})
@@ -588,7 +594,7 @@ func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 		})
 	})
 
-	pureui.SettingCard(c, i18n.S("已安装模块", "Installed Modules"), i18n.S("可实时开启或关闭已安装的组件，保存后立即生效（无需重启）；精简构建未包含的组件无法开启", "Enable or disable modules live without restarting; excluded modules in Core builds cannot be enabled"), pal, func() {
+	pureui.SettingCardTip(c, i18n.S("已安装模块", "Installed Modules"), i18n.S("可实时开启或关闭已安装的组件，保存后立即生效（无需重启）；精简构建未包含的组件无法开启", "Enable or disable modules live without restarting; excluded modules in Core builds cannot be enabled"), pal, func() {
 		type builtinRow struct {
 			id        string
 			shortName string
@@ -599,11 +605,12 @@ func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 			draftPtr  *bool
 		}
 		builtins := []builtinRow{
-			{"pureshot", "PureShot", core.ModuleCapture, i18n.S("PureShot（截图、标注与悬浮贴图）", "PureShot (Capture & Pins)"), i18n.S("区域/整屏截图、9 种标注与置顶悬浮贴图", "Region/full-screen capture, 9 annotations & always-on-top pins"), h.app.compiled.Capture, &h.modDraft.Capture},
-			{"pureclip", "PureClip", core.ModuleHistory, i18n.S("PureClip（剪贴板历史）", "PureClip (Clipboard History)"), i18n.S("自动监听文本/富文本/图片/文件并持久化检索", "Auto-capture text/rich text/images/files with instant search"), h.app.compiled.History, &h.modDraft.History},
-			{"pureimage", "PureImage", core.ModuleViewer, i18n.S("PureImage（看图与空格预览）", "PureImage (Image Viewer)"), i18n.S("支持 JPEG Turbo/HEIC/AVIF/JXL/RAW、动图与资源管理器空格预览", "JPEG Turbo/HEIC/AVIF/JXL/RAW, animations & Explorer space preview"), h.app.compiled.Viewer, &h.modDraft.Viewer},
-			{"purevideo", "PureVideo", core.ModuleVideo, i18n.S("PureVideo（极速视频浏览）", "PureVideo (Video Player)"), i18n.S("内置 libmpv 硬件解码，支持 21 种常见视频格式与外挂字幕", "Built-in libmpv hardware decoding for 21 formats & external subtitles"), h.app.compiled.Video, &h.modDraft.Video},
-			{"purezip", "PureZip", core.ModuleZip, i18n.S("PureZip（压缩与解压管理）", "PureZip (Archive Manager)"), i18n.S("浏览/智能解压/多线程压缩/加密/右键菜单与文件关联", "Browse, smart extract, multi-threaded compress, encrypt & shell integration"), h.app.compiled.Zip, &h.modDraft.Zip},
+			{"pureshot", "PureShot", core.ModuleCapture, "PureShot", i18n.S("区域/整屏截图、9 种标注与置顶悬浮贴图", "Region/full-screen capture, 9 annotations & always-on-top pins"), h.app.compiled.Capture, &h.modDraft.Capture},
+			{"pureclip", "PureClip", core.ModuleHistory, "PureClip", i18n.S("自动监听文本/富文本/图片/文件并持久化检索", "Auto-capture text/rich text/images/files with instant search"), h.app.compiled.History, &h.modDraft.History},
+			{"pureimage", "PureImage", core.ModuleViewer, "PureImage", i18n.S("支持 JPEG Turbo/HEIC/AVIF/JXL/RAW、动图与资源管理器空格预览", "JPEG Turbo/HEIC/AVIF/JXL/RAW, animations & Explorer space preview"), h.app.compiled.Viewer, &h.modDraft.Viewer},
+			{"purevideo", "PureVideo", core.ModuleVideo, "PureVideo", i18n.S("内置 libmpv 硬件解码，支持 21 种常见视频格式与外挂字幕", "Built-in libmpv hardware decoding for 21 formats & external subtitles"), h.app.compiled.Video, &h.modDraft.Video},
+			{"purezip", "PureZip", core.ModuleZip, "PureZip", i18n.S("浏览/智能解压/多线程压缩/加密/右键菜单与文件关联", "Browse, smart extract, multi-threaded compress, encrypt & shell integration"), h.app.compiled.Zip, &h.modDraft.Zip},
+			{"puremonitor", "PureMonitor", core.ModuleMonitor, "PureMonitor", i18n.S("任务栏/悬浮窗系统状态监控、硬件配置详情与游戏帧率 HUD", "Taskbar/floating system monitor, hardware specs & game FPS HUD"), h.app.compiled.Monitor, &h.modDraft.Monitor},
 		}
 		installed := h.app.InstalledModules()
 		seen := map[string]bool{}
@@ -654,7 +661,7 @@ func (h *settingsView) renderUpdateCard(c *ui.Context, pal pureui.Palette) {
 		}
 	}
 
-	sub := i18n.F("当前版本 v%s（数据源 GitHub: %s/%s）", "Current v%s (GitHub: %s/%s)", core.ShortVersion(snap.CurrentVersion), core.DefaultRepoOwner, core.DefaultRepoName)
+	sub := i18n.F("当前版本 v%s", "Current v%s", core.ShortVersion(snap.CurrentVersion))
 	if !snap.LastCheck.IsZero() {
 		sub += i18n.S(" · 上次检查 ", " · Last checked ") + snap.LastCheck.Format("01-02 15:04")
 	}
@@ -663,7 +670,7 @@ func (h *settingsView) renderUpdateCard(c *ui.Context, pal pureui.Palette) {
 		badgeLabel := i18n.S("未检查", "Not Checked")
 		badgeFg, badgeBg := pal.TextMuted, pal.Bg
 		statusTitle := i18n.S("版本状态", "Version Status")
-		statusDesc := i18n.S("点击「检查更新」获取最新正式版本与更新日志", "Click Check for Updates to fetch the latest release and changelog")
+		statusDesc := ""
 		switch snap.Status {
 		case UpdateChecking:
 			badgeLabel = i18n.S("检查中…", "Checking…")
@@ -809,17 +816,17 @@ func (h *settingsView) renderUpdateCard(c *ui.Context, pal pureui.Palette) {
 		})
 
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("自动检查更新", "Auto-Check Updates"), i18n.S("定期在后台静默检查 GitHub Releases 新版本（仅在有新版本时提醒）", "Silently check GitHub Releases on schedule and notify only when a new version appears"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("自动检查更新", "Auto-Check Updates"), i18n.S("定期在后台静默检查 GitHub Releases 新版本（仅在有新版本时提醒）", "Silently check GitHub Releases on schedule and notify only when a new version appears"), pal, func() {
 			ui.Switch(c, &h.hostDraft.Update.AutoCheck).Label(i18n.S("开关：自动检查更新", "Toggle: Auto-Check Updates"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("发现新版本后自动下载", "Auto-Download Updates"), i18n.S("在后台通过所选镜像提前下载并校验安装包，待您点击安装时一键升级", "Pre-download and verify installers in the background for one-click install"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("发现新版本后自动下载", "Auto-Download Updates"), i18n.S("在后台通过所选镜像提前下载并校验安装包，待您点击安装时一键升级", "Pre-download and verify installers in the background for one-click install"), pal, func() {
 			ui.Switch(c, &h.hostDraft.Update.AutoDownload).Label(i18n.S("开关：自动下载更新", "Toggle: Auto-Download Updates"))
 		})
 		ui.Divider(c)
 		opts := UpdateDownloadSourceLabels()
 		curSourceLabel := UpdateSourceLabel(h.hostDraft.Update.DownloadSource)
-		pureui.SettingRow(c, i18n.S("更新下载源", "Download Source"), i18n.S("推荐保持「自动优选」，依次尝试加速镜像与 GitHub 官方源", "Auto tries mirrors before official GitHub"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("更新下载源", "Download Source"), i18n.S("推荐保持「自动优选」，依次尝试加速镜像与 GitHub 官方源", "Auto tries mirrors before official GitHub"), pal, func() {
 			sel := ui.Select(c, &curSourceLabel, opts).Width(220).Label(i18n.S("更新下载源", "Download Source"))
 			sel.Border(0, ui.Transparent)
 			if sel.Changed() {
@@ -827,7 +834,7 @@ func (h *settingsView) renderUpdateCard(c *ui.Context, pal pureui.Palette) {
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("检查频率", "Check Interval"), i18n.S("自动后台检查新版本的最小时间间隔", "Minimum interval between background update checks"), pal, func() {
+		pureui.SettingRow(c, i18n.S("检查频率", "Check Interval"), "", pal, func() {
 			seg := ui.Segmented(c, &h.updateIntervalIdx, i18n.S("6 小时", "6h"), i18n.S("每天", "Daily"), i18n.S("3 天", "3d"), i18n.S("每周", "Weekly")).Label(i18n.S("更新检查频率", "Update Check Interval"))
 			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
@@ -1045,7 +1052,7 @@ func (h *settingsView) save(c *ui.Context) {
 	nextHost.Update.DownloadSource = h.hostDraft.Update.DownloadSource
 	if !h.app.custom {
 		installed := h.app.InstalledModules()
-		for _, mod := range []core.ModuleID{core.ModuleCapture, core.ModuleHistory, core.ModuleViewer, core.ModuleVideo, core.ModuleZip} {
+		for _, mod := range []core.ModuleID{core.ModuleCapture, core.ModuleHistory, core.ModuleViewer, core.ModuleVideo, core.ModuleZip, core.ModuleMonitor} {
 			if installed.Enabled(mod) {
 				nextHost.SetModuleDisabled(mod, !h.modDraft.Enabled(mod))
 			}

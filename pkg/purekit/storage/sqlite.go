@@ -45,13 +45,13 @@ func OpenSQLite(path string, opts ...DBOption) (*DB, error) {
 		return nil, err
 	}
 	dsn := "file:" + filepath.ToSlash(abs) +
-		"?_pragma=busy_timeout(2000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(0)"
+		"?_pragma=busy_timeout(2000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(0)&_pragma=cache_size(-1024)"
 	sqlDB, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
 	sqlDB.SetMaxOpenConns(4)
-	sqlDB.SetMaxIdleConns(2)
+	sqlDB.SetMaxIdleConns(1)
 	if err := sqlDB.Ping(); err != nil {
 		_ = sqlDB.Close()
 		return nil, err

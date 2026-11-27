@@ -210,6 +210,25 @@ func TestDecouplingPureVideoAlone(t *testing.T) {
 	}
 }
 
+func TestDecouplingPureMonitorAlone(t *testing.T) {
+	if !CompiledModules().Monitor {
+		t.Skip("requires PureMonitor compiled")
+	}
+	a := testHostWithModules(t, core.ModuleConfig{Monitor: true}, nil, nil)
+	a.Start([]string{"--background"})
+
+	if a.Bus().Has(purekit.CapImagePreview) || a.Bus().Has(purekit.CapImagePin) || a.Bus().Has(purekit.CapClipboardHistory) || a.Bus().Has(purekit.CapVideoPreview) {
+		t.Fatalf("unexpected sibling capabilities when running PureMonitor alone: %v", a.Bus().List())
+	}
+	if a.PluginByID("puremonitor") == nil {
+		t.Fatal("expected puremonitor plugin initialized")
+	}
+	if !a.ShouldStayInTray() {
+		t.Error("expected ShouldStayInTray=true for PureMonitor alone with default overlays enabled")
+	}
+	a.Shutdown()
+}
+
 func TestDecouplingAllCompiledPluginsAndShutdown(t *testing.T) {
 	compiled := CompiledModules()
 	_, _, clip := newMockClipboard(t)

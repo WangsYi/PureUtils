@@ -314,7 +314,7 @@ func TestLauncherSettingsPersistenceAndTrayToggle(t *testing.T) {
 	v := newSettingsView(a, "")
 	tt := ui.NewTester(v.view, 860, 640)
 	tt.Frame()
-	tt.Scroll(450, 300, 0, 300)
+	tt.Scroll(450, 300, 0, 600)
 	tt.Frame()
 	if err := tt.Click("开关：启用快捷启动器"); err != nil {
 		t.Fatalf("click launcher toggle: %v", err)

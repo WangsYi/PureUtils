@@ -766,7 +766,7 @@ func (p *Plugin) SettingsTab() *purekit.SettingsTab {
 	return &purekit.SettingsTab{
 		ID:       PluginID,
 		Title:    i18n.S("PureShot · 截图贴图", "PureShot · Capture"),
-		Subtitle: i18n.S("截图保存、框选辅助与悬浮贴图", "Capture saving, snap helpers, and floating pins"),
+		Subtitle: "",
 		Icon:     pureui.IconCrop,
 		Order:    10,
 		NewView: func(host purekit.Host) purekit.SettingsTabView {

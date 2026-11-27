@@ -125,42 +125,42 @@ func (v *settingsTabView) ResetDefaults() {
 }
 
 func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
-	pureui.SettingCard(c, i18n.S("默认压缩设置", "Default Compression"), i18n.S("新建压缩包与快速右键压缩的默认格式、级别及加密方式", "Default format, level, and encryption for new archives and context actions"), pal, func() {
-		pureui.SettingRow(c, i18n.S("默认压缩格式", "Default Format"), i18n.S("ZIP 兼容性最好；7Z 压缩率更高；TAR 系列适合 Linux", "ZIP for best compatibility, 7Z for highest ratio, TAR for Linux"), pal, func() {
+	pureui.SettingCard(c, i18n.S("默认压缩设置", "Default Compression"), "", pal, func() {
+		pureui.SettingRowTip(c, i18n.S("默认压缩格式", "Default Format"), i18n.S("ZIP 兼容性最好；7Z 压缩率更高；TAR 系列适合 Linux", "ZIP for best compatibility, 7Z for highest ratio, TAR for Linux"), pal, func() {
 			ui.Select(c, &v.zipFormat, zipFormatLabels()).Width(130).Label(i18n.S("默认压缩格式", "Default Format")).Border(0, ui.Transparent)
 		})
 		ui.Divider(c)
-		pureui.SettingBlock(c, i18n.S("默认压缩级别", "Default Compression Level"), i18n.S("级别越高体积越小但耗时更久", "Higher levels yield smaller files but take longer"), pal, func() {
+		pureui.SettingBlockTip(c, i18n.S("默认压缩级别", "Default Compression Level"), i18n.S("级别越高体积越小但耗时更久", "Higher levels yield smaller files but take longer"), pal, func() {
 			ui.Segmented(c, &v.zipLevelIdx, zipLevelLabels()...).Label(i18n.S("默认压缩级别", "Default Compression Level")).Border(0, ui.Transparent)
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("ZIP 默认加密方式", "Default ZIP Encryption"), i18n.S("AES-256 安全性更高；ZipCrypto 兼容 Windows 自带解压", "AES-256 is stronger; ZipCrypto is compatible with Windows built-in extractor"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("ZIP 默认加密方式", "Default ZIP Encryption"), i18n.S("AES-256 安全性更高；ZipCrypto 兼容 Windows 自带解压", "AES-256 is stronger; ZipCrypto is compatible with Windows built-in extractor"), pal, func() {
 			ui.Segmented(c, &v.zipEncIdx, "AES-256", "ZipCrypto").Label(i18n.S("ZIP 默认加密", "Default ZIP Encryption")).Border(0, ui.Transparent)
 		})
 	})
 
-	pureui.SettingCard(c, i18n.S("解压与浏览", "Extraction & Browsing"), i18n.S("配置冲突处理策略、非 UTF-8 压缩包文件名编码与浏览行为", "Configure overwrite policy, legacy filename encoding, and preview behavior"), pal, func() {
-		pureui.SettingBlock(c, i18n.S("文件冲突处理", "File Conflict Policy"), i18n.S("解压目标已存在同名文件时的默认动作", "Default action when destination files already exist"), pal, func() {
+	pureui.SettingCard(c, i18n.S("解压与浏览", "Extraction & Browsing"), "", pal, func() {
+		pureui.SettingBlock(c, i18n.S("文件冲突处理", "File Conflict Policy"), "", pal, func() {
 			ui.Segmented(c, &v.zipOverIdx, zipOverwriteLabels()...).Label(i18n.S("默认覆盖方式", "Default Overwrite Mode")).Border(0, ui.Transparent)
 		})
 		ui.Divider(c)
 		v.zipEncLabel = zipEncodingLabel(v.draft.NameEncoding)
-		pureui.SettingRow(c, i18n.S("默认文件名编码", "Default Filename Encoding"), i18n.S("打开无 UTF-8 标记的旧版 ZIP 时使用的编码", "Encoding used for legacy ZIP archives without UTF-8 flags"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("默认文件名编码", "Default Filename Encoding"), i18n.S("打开无 UTF-8 标记的旧版 ZIP 时使用的编码", "Encoding used for legacy ZIP archives without UTF-8 flags"), pal, func() {
 			sel := ui.Select(c, &v.zipEncLabel, zipEncodingLabels()).Width(200).Label(i18n.S("默认文件名编码", "Default Filename Encoding")).Border(0, ui.Transparent)
 			if sel.Changed() {
 				v.draft.NameEncoding = zipEncodingCode(v.zipEncLabel)
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("解压后打开文件夹", "Open Folder After Extract"), i18n.S("快速解压或对话框解压完成后在资源管理器中显示结果", "Reveal extracted items in Explorer after completion"), pal, func() {
+		pureui.SettingRow(c, i18n.S("解压后打开文件夹", "Open Folder After Extract"), "", pal, func() {
 			ui.Switch(c, &v.draft.OpenFolderAfterExtract).Label(i18n.S("开关：解压后打开文件夹", "Toggle: Open Folder After Extract"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("包内图片用 PureImage 查看", "Open Archive Images in PureImage"), i18n.S("在压缩管理器中双击图片时使用 PureImage 看图窗口打开", "Open images inside archives with PureImage when double-clicked"), pal, func() {
+		pureui.SettingRow(c, i18n.S("包内图片用 PureImage 查看", "Open Archive Images in PureImage"), "", pal, func() {
 			ui.Switch(c, &v.draft.ImagePreview).Label(i18n.S("开关：包内图片用 PureImage 查看", "Toggle: Open Archive Images in PureImage"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("PureZip 压缩管理器", "PureZip Archive Manager"), i18n.S("管理压缩包内容、智能解压或批量创建压缩文件", "Browse archive contents, smart-extract, or create archives"), pal, func() {
+		pureui.SettingRow(c, i18n.S("PureZip 压缩管理器", "PureZip Archive Manager"), "", pal, func() {
 			ui.Button(c, i18n.S("打开 PureZip 压缩管理器", "Open Archive Manager")).OnClick(func() {
 				if !v.headless() {
 					v.plugin.OpenZipManager("")
@@ -169,8 +169,8 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 		})
 	})
 
-	pureui.SettingCard(c, i18n.S("资源管理器集成与文件关联", "Explorer Integration & Associations"), i18n.S("在资源管理器右键提供经典级联压缩/解压菜单，并将 13 种压缩格式注册到系统默认应用（HKCU 无需管理员权限）", "Adds PureZip submenu to Explorer context menu and registers 13 archive formats in HKCU (no admin required)"), pal, func() {
-		pureui.SettingRow(c, i18n.S("右键菜单集成", "Explorer Context Menu"), i18n.S("在文件、文件夹及压缩包右键菜单中显示「PureZip」", "Show the PureZip submenu on files, folders, and archives"), pal, func() {
+	pureui.SettingCardTip(c, i18n.S("资源管理器集成与文件关联", "Explorer Integration & Associations"), i18n.S("在资源管理器右键提供经典级联压缩/解压菜单，并将 13 种压缩格式注册到系统默认应用（HKCU 无需管理员权限）", "Adds PureZip submenu to Explorer context menu and registers 13 archive formats in HKCU (no admin required)"), pal, func() {
+		pureui.SettingRow(c, i18n.S("右键菜单集成", "Explorer Context Menu"), "", pal, func() {
 			if v.zipCtxRegistered {
 				pureui.PillBadge(c, i18n.S("已注册", "Registered"), pal.Success, pal.SuccessSoft)
 			} else {
@@ -202,7 +202,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 			}).Border(0, ui.Transparent)
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("压缩文件关联状态", "File Association Status"), i18n.S("将 zip、7z、rar、tar 等格式加入系统“打开方式”与默认应用", "Registers zip, 7z, rar, tar, and more in Windows Open With & Default Apps"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("压缩文件关联状态", "File Association Status"), i18n.S("将 zip、7z、rar、tar 等格式加入系统“打开方式”与默认应用", "Registers zip, 7z, rar, tar, and more in Windows Open With & Default Apps"), pal, func() {
 			if v.zipAssocRegistered {
 				pureui.PillBadge(c, i18n.S("已注册", "Registered"), pal.Success, pal.SuccessSoft)
 			} else {

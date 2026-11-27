@@ -322,7 +322,7 @@ func (p *Plugin) SettingsTab() *purekit.SettingsTab {
 	return &purekit.SettingsTab{
 		ID:       PluginID,
 		Title:    i18n.S("PureVideo · 视频", "PureVideo · Video"),
-		Subtitle: i18n.S("libmpv 解码内核状态、播放体验与视频文件关联", "libmpv decoder status, playback experience, and file associations"),
+		Subtitle: "",
 		Icon:     pureui.IconFilm,
 		Order:    35,
 		NewView: func(host purekit.Host) purekit.SettingsTabView {

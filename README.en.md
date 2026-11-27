@@ -25,7 +25,7 @@ Screenshot & Pinning · Clipboard History · Fast Image & Video Browser · Archi
 
 ## Key Features
 
-### Five Decoupled Built-in Plugins (Zero Cross-Plugin Imports)
+### Six Decoupled Built-in Plugins (Zero Cross-Plugin Imports)
 
 | Plugin | Module ID | Capabilities |
 |---|---|---|
@@ -34,12 +34,13 @@ Screenshot & Pinning · Clipboard History · Fast Image & Video Browser · Archi
 | **PureImage** | `viewer` | **40+ formats** (JPG, PNG, GIF, WebP, HEIC, AVIF, JPEG XL, 24 camera RAW formats & animations), native `libjpeg-turbo` DCT scaling, EXIF inspector, Windows Explorer **Spacebar quick preview** & `P` desktop pin |
 | **PureVideo** | `video` | Bundled Tier 1 trimmed **`libmpv` hardware decoding engine**, supporting 21 video formats (MP4, MKV, MOV, HEVC, FLV, WebM, etc.), external subtitles, frame-step, speed/loop controls, and HKCU file associations |
 | **PureZip** | `zip` | Pure-Go archive manager (read/write `ZIP, 7Z, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, TAR.ZST`; read `RAR v4/v5` & single-file `GZ/BZ2/XZ/ZST`), folder tree, smart extract, AES-256 / `-mhe`, codepage switcher, Explorer cascading context menu & file associations |
+| **PureMonitor** | `monitor` | Taskbar strip & edge-docked collapsible floating pill (selectable metrics), full hardware & sensor dashboard (optional PawnIO/elevated helper, AMD ADL & NVML), and zero-injection ETW game FPS overlay |
 
 ### Platform Capabilities
 
 - **Global Context-Aware Launcher (`Alt+Space`)**: Instantly captures selected Windows Explorer items and clipboard contents to surface relevant actions (*Smart Extract*, *Open in PureImage*, *Pin to Desktop*) alongside full plugin & clipboard history search (`Ctrl+1–9` quick run).
 - **Live Component Hot-Toggle & Low-Level `Win+` Hotkey Takeover**: Enable/disable built-in modules cleanly in Settings without restarting—dynamically rebuilding tray items, hotkeys, launcher matchers, and Capability Bus registrations. Optional `WH_KEYBOARD_LL` takeover suppresses the Windows Start menu when rebinding `Win+...` chords.
-- **Full Bilingual i18n (`zh-CN` / `en-US`)**: Supports Simplified Chinese, English, and automatic OS language detection (`Auto`) across tray menus, Launcher, Settings, and all five plugins—applying live without restart.
+- **Full Bilingual i18n (`zh-CN` / `en-US`)**: Supports Simplified Chinese, English, and automatic OS language detection (`Auto`) across tray menus, Launcher, Settings, and all six plugins—applying live without restart.
 - **Zero-Coupling Capability Bus (`pkg/purekit`)**: Plugins interact solely via strongly typed bus contracts (`clipboard.history`, `image.preview`, `image.pin`) and source-aware clipboard events, degrading gracefully whenever a sibling module is disabled or omitted.
 
 ---
@@ -65,7 +66,7 @@ Screenshot & Pinning · Clipboard History · Fast Image & Video Browser · Archi
 
 ## Installation
 
-- Download the modular installer `PureUtils-1.2.1-setup.exe` (with built-in trimmed `libmpv-2.dll`) from [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases).
+- Download the modular installer `PureUtils-1.3.0-setup.exe` (with built-in trimmed `libmpv-2.dll`) from [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases).
 - Installs per-user (`%LOCALAPPDATA%\Programs\PureUtils`, no UAC required) with customizable components: **Full Suite / PureShot+PureClip / PureImage only / PureVideo only / PureZip only**, optional `turbojpeg.dll`, Explorer context menus, and HKCU file associations.
 
 ---
@@ -75,13 +76,13 @@ Screenshot & Pinning · Clipboard History · Fast Image & Video Browser · Archi
 Prerequisites: Windows 10/11 (x64) + **Go 1.27.3+** (no cgo, no Node, no WebView2). Optional: Inno Setup 6/7 (`ISCC.exe`) for installer packaging.
 
 ```powershell
-# Build full binary with all 5 plugins
+# Build full binary with all 6 plugins
 .\build.ps1 build
 
 # Build slim core binary without PureImage / turbojpeg.dll (-tags nofreeimage)
 .\build.ps1 build -CoreOnly
 
-# Selectively exclude specific plugins at compile time (supports pureshot, pureclip, pureimage, purevideo, purezip)
+# Selectively exclude specific plugins at compile time (supports pureshot, pureclip, pureimage, purevideo, purezip, puremonitor)
 .\build.ps1 build -Exclude purezip,pureimage
 
 # Run full tests, bilingual UI/layout checks, E2E, and merged coverage report
@@ -114,6 +115,7 @@ Prerequisites: Windows 10/11 (x64) + **Go 1.27.3+** (no cgo, no Node, no WebView
 | Configurable | Open PureImage / Toggle Explorer Spacebar Preview | `--view [path]` / `--toggle-space-preview` |
 | Configurable | Open PureVideo Fast Video Browser | `--video [path]` |
 | Configurable | Open PureZip / Archive Operations | `--zip [path]` / `--extract-smart <file>` |
+| Configurable | Open PureMonitor Hardware Dashboard | `--monitor` |
 
 Additional CLI flags: `--settings`, `--toggle-monitoring`, `--extract-here`, `--extract-to`, `--extract-dialog`, `--compress`, `--compress-zip`, `--compress-7z`, `--test-archive`, `--background`, `--perf`, `--exit`, or pass an image/archive/folder path directly.
 
@@ -146,7 +148,8 @@ plugins/
   ├─ pureclip/                Clipboard watcher, SQLite/blob storage, and fast search history UI
   ├─ pureimage/               40+ image/RAW codecs, EXIF, TurboJPEG, Spacebar preview & HKCU associations
   ├─ purevideo/               Bundled libmpv hardware playback, controls & HKCU associations
-  └─ purezip/                 Pure-Go archive engine (archive/), Explorer shell integration (zipshell/)
+  ├─ purezip/                 Pure-Go archive engine (archive/), Explorer shell integration (zipshell/)
+  └─ puremonitor/             Taskbar & floating overlays, hardware sensors & ETW game FPS HUD
 internal/host/                Thin host shell (conditional builtin_*.go bridges, tray, hotkeys, launcher, settings, AST tests)
 installer/pureutils.iss       Inno Setup modular installer script
 docs/                         GitHub Pages showcase website, bilingual architecture docs & screenshots

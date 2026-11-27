@@ -85,26 +85,26 @@ func (v *settingsTabView) ResetDefaults() {
 }
 
 func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
-	pureui.SettingCard(c, i18n.S("浏览与渲染", "Browsing & Rendering"), i18n.S("控制 PureImage 看图窗口的缩放、透明棋盘格与目录遍历行为", "Configure zooming, transparency checkerboard, and folder scanning"), pal, func() {
-		pureui.SettingRow(c, i18n.S("滚轮缩放", "Mouse Wheel Zoom"), i18n.S("开启时滚轮缩放图片，关闭时滚轮切换上/下一张（Ctrl+滚轮恒为缩放）", "Scroll wheel zooms when on, or switches images when off (Ctrl+Wheel always zooms)"), pal, func() {
+	pureui.SettingCard(c, i18n.S("浏览与渲染", "Browsing & Rendering"), "", pal, func() {
+		pureui.SettingRowTip(c, i18n.S("滚轮缩放", "Mouse Wheel Zoom"), i18n.S("开启时滚轮缩放图片，关闭时滚轮切换上/下一张（Ctrl+滚轮恒为缩放）", "Scroll wheel zooms when on, or switches images when off (Ctrl+Wheel always zooms)"), pal, func() {
 			ui.Switch(c, &v.draft.WheelZoom).Label(i18n.S("开关：滚轮缩放", "Toggle: Wheel zoom"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("透明区域棋盘格", "Transparency Checkerboard"), i18n.S("为带有透明通道的 PNG/WebP 等图片显示深灰棋盘格背景", "Show checkerboard backdrop behind transparent PNG/WebP images"), pal, func() {
+		pureui.SettingRow(c, i18n.S("透明区域棋盘格", "Transparency Checkerboard"), "", pal, func() {
 			ui.Switch(c, &v.draft.Checkerboard).Label(i18n.S("开关：透明区域棋盘格", "Toggle: Checkerboard"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("包含子目录递归", "Include Subfolders"), i18n.S("浏览目录时递归扫描所有子文件夹中的图片", "Recursively scan subfolders when browsing a folder"), pal, func() {
+		pureui.SettingRow(c, i18n.S("包含子目录递归", "Include Subfolders"), "", pal, func() {
 			ui.Switch(c, &v.draft.Recursive).Label(i18n.S("开关：包含子目录递归", "Toggle: Recursive"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("显示图片详细信息", "Show Image Details HUD"), i18n.S("在看图窗口左上角常驻显示尺寸、拍摄参数与 EXIF 信息", "Always display resolution, camera settings, and EXIF info in the top-left overlay"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("显示图片详细信息", "Show Image Details HUD"), i18n.S("在看图窗口左上角常驻显示尺寸、拍摄参数与 EXIF 信息", "Always display resolution, camera settings, and EXIF info in the top-left overlay"), pal, func() {
 			ui.Switch(c, &v.draft.ShowDetails).Label(i18n.S("开关：显示图片详细信息", "Toggle: Show details"))
 		})
 	})
 
-	pureui.SettingCard(c, i18n.S("性能与幻灯片", "Performance & Slideshow"), i18n.S("配置幻灯片播放速度、相邻图片预读数量及原生 JPEG 解码状态", "Configure slideshow interval, neighbor preloading, and native JPEG decode"), pal, func() {
-		pureui.SettingRow(c, i18n.S("幻灯片间隔", "Slideshow Interval"), i18n.S("按 S 开启幻灯片播放时每张图片的停留时间", "Delay per image when slideshow mode (S) is active"), pal, func() {
+	pureui.SettingCard(c, i18n.S("性能与幻灯片", "Performance & Slideshow"), "", pal, func() {
+		pureui.SettingRowTip(c, i18n.S("幻灯片间隔", "Slideshow Interval"), i18n.S("按 S 开启幻灯片播放时每张图片的停留时间", "Delay per image when slideshow mode (S) is active"), pal, func() {
 			seg := ui.Segmented(c, &v.slideIdx, i18n.S("2 秒", "2s"), i18n.S("4 秒", "4s"), i18n.S("6 秒", "6s"), i18n.S("10 秒", "10s")).Label(i18n.S("看图幻灯片间隔", "Slideshow interval"))
 			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
@@ -112,7 +112,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("预读数量", "Preload Count"), i18n.S("后台提前解码后续图片，翻页更顺滑但会占用适量内存", "Decode upcoming images in background for smoother paging"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("预读数量", "Preload Count"), i18n.S("后台提前解码后续图片，翻页更顺滑但会占用适量内存", "Decode upcoming images in background for smoother paging"), pal, func() {
 			seg := ui.Segmented(c, &v.preloadIdx, i18n.S("关闭", "Off"), i18n.S("1 张", "1"), i18n.S("2 张", "2"), i18n.S("3 张", "3")).Label(i18n.S("看图预读数量", "Preload count"))
 			seg.Border(0, ui.Transparent)
 			if seg.Changed() {
@@ -120,7 +120,7 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 			}
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("JPEG 原生加速 (libjpeg-turbo)", "Native JPEG Acceleration"), i18n.S("利用同目录 turbojpeg.dll 实现 1/2·1/4·1/8 硬件级缩放解码", "Use bundled turbojpeg.dll for fast 1/2·1/4·1/8 scaled decoding"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("JPEG 原生加速 (libjpeg-turbo)", "Native JPEG Acceleration"), i18n.S("利用同目录 turbojpeg.dll 实现 1/2·1/4·1/8 硬件级缩放解码", "Use bundled turbojpeg.dll for fast 1/2·1/4·1/8 scaled decoding"), pal, func() {
 			if v.turboAvailable {
 				pureui.PillBadge(c, i18n.S("已启用 turbojpeg.dll", "turbojpeg.dll active"), pal.Success, pal.SuccessSoft)
 			} else {
@@ -129,12 +129,12 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 		})
 	})
 
-	pureui.SettingCard(c, i18n.S("资源管理器空格预览", "Explorer Spacebar Preview"), i18n.S("在 Windows 资源管理器选中图片后按空格即可快速悬浮预览（保存后生效）", "Press Spacebar on a selected image in Explorer for instant preview (saves on Save)"), pal, func() {
-		pureui.SettingRow(c, i18n.S("启用空格预览", "Enable Space Preview"), i18n.S("拦截资源管理器选图时的空格键并弹出居中悬浮预览窗", "Intercept Spacebar in Explorer to toggle centered floating preview"), pal, func() {
+	pureui.SettingCardTip(c, i18n.S("资源管理器空格预览", "Explorer Spacebar Preview"), i18n.S("在 Windows 资源管理器选中图片后按空格即可快速悬浮预览（保存后生效）", "Press Spacebar on a selected image in Explorer for instant preview (saves on Save)"), pal, func() {
+		pureui.SettingRow(c, i18n.S("启用空格预览", "Enable Space Preview"), "", pal, func() {
 			ui.Switch(c, &v.draft.SpacePreview).Label(i18n.S("开关：资源管理器空格预览", "Toggle: Explorer Space Preview"))
 		})
 		ui.Divider(c)
-		pureui.SettingRow(c, i18n.S("快速预览快捷键", "Quick Preview Shortcut"), i18n.S("在看图窗口内触发 PureImage 当前图片的快速预览浮窗", "Trigger the floating quick preview for the current image"), pal, func() {
+		pureui.SettingRowTip(c, i18n.S("快速预览快捷键", "Quick Preview Shortcut"), i18n.S("在看图窗口内触发 PureImage 当前图片的快速预览浮窗", "Trigger the floating quick preview for the current image"), pal, func() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				pureui.Keycap(c, "Ctrl+Shift+Space", pal)
 				ui.Button(c, i18n.S("打开看图窗口", "Open Viewer")).OnClick(func() {
@@ -146,8 +146,8 @@ func (v *settingsTabView) Render(c *ui.Context, pal pureui.Palette) {
 		})
 	})
 
-	pureui.SettingCard(c, i18n.S("系统文件关联与默认应用", "File Associations & Default Apps"), i18n.S("将 40 种图片与 RAW 格式注册到系统；受 Windows 10/11 保护机制限制，设为默认双击打开需在“系统默认应用”中一键确认", "Register 40 image & RAW formats to HKCU; set as default via Windows Default Apps"), pal, func() {
-		pureui.SettingRow(c, i18n.S("打开方式注册状态", "Registration Status"), i18n.S("在文件右键“打开方式”与 Windows 默认应用列表中可见", "Visible in Explorer Open With menu and Windows Default Apps"), pal, func() {
+	pureui.SettingCardTip(c, i18n.S("系统文件关联与默认应用", "File Associations & Default Apps"), i18n.S("将 40 种图片与 RAW 格式注册到系统；受 Windows 10/11 保护机制限制，设为默认双击打开需在“系统默认应用”中一键确认", "Register 40 image & RAW formats to HKCU; set as default via Windows Default Apps"), pal, func() {
+		pureui.SettingRow(c, i18n.S("打开方式注册状态", "Registration Status"), "", pal, func() {
 			if v.assocRegistered {
 				pureui.PillBadge(c, i18n.S("已注册", "Registered"), pal.Success, pal.SuccessSoft)
 			} else {
