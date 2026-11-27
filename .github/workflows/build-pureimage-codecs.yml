@@ -1,0 +1,134 @@
+name: Build pureimage_codecs.dll (Windows x64)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-codecs:
+    name: Cross-compile unified pureimage_codecs.dll
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install cross-compile toolchain & fixture generators
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            mingw-w64 \
+            gcc-mingw-w64-x86-64-posix \
+            g++-mingw-w64-x86-64-posix \
+            cmake \
+            meson \
+            ninja-build \
+            nasm \
+            pkg-config \
+            p7zip-full \
+            curl \
+            git \
+            ca-certificates \
+            python3 \
+            python3-pil \
+            libavif-bin \
+            libheif-examples \
+            libjxl-tools
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+          x86_64-w64-mingw32-g++ -v
+
+      - name: Cross-compile pureimage_codecs.dll and smoke_test.exe
+        run: |
+          chmod +x tools/build-pureimage-codecs/build.sh
+          OUT_DIR="$GITHUB_WORKSPACE/dist" ./tools/build-pureimage-codecs/build.sh
+
+      - name: Generate multi-format smoke test fixtures
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/dist/fixtures"
+          python3 - "$GITHUB_WORKSPACE/dist/fixtures" <<'PYEOF'
+          import pathlib, sys
+          from PIL import Image
+
+          out = pathlib.Path(sys.argv[1])
+          img1 = Image.new("RGBA", (64, 48), (40, 120, 220, 255))
+          img2 = Image.new("RGBA", (64, 48), (220, 80, 60, 255))
+          img1.convert("RGB").save(out / "test.jpg", quality=90)
+          img1.save(out / "test.png")
+          img1.save(out / "test.webp")
+          img1.save(out / "test_anim.webp", save_all=True, append_images=[img2], duration=[60, 80], loop=0)
+          PYEOF
+          avifenc -q 70 "$GITHUB_WORKSPACE/dist/fixtures/test.png" "$GITHUB_WORKSPACE/dist/fixtures/test.avif"
+          heif-enc -q 70 "$GITHUB_WORKSPACE/dist/fixtures/test.png" -o "$GITHUB_WORKSPACE/dist/fixtures/test.heic"
+          cjxl "$GITHUB_WORKSPACE/dist/fixtures/test.png" "$GITHUB_WORKSPACE/dist/fixtures/test.jxl" -q 85
+          ls -lh "$GITHUB_WORKSPACE/dist/fixtures"
+
+      - name: Upload pureimage-codecs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pureimage-codecs-win64
+          path: |
+            dist/pureimage_codecs.dll
+            dist/pureimage-codecs-x64.7z
+            dist/SHA256SUMS.txt
+            dist/LICENSES-pureimage-codecs.txt
+            dist/smoke_test.exe
+            dist/fixtures
+          if-no-files-found: error
+          retention-days: 30
+
+  verify-windows:
+    name: Verify pureimage_codecs.dll on Windows x64
+    needs: [build-codecs]
+    runs-on: windows-latest
+    steps:
+      - name: Download built DLL & smoke fixtures
+        uses: actions/download-artifact@v4
+        with:
+          name: pureimage-codecs-win64
+          path: dist
+
+      - name: Run native Windows DLL smoke test across JPEG/WebP/AVIF/HEIC/JXL
+        shell: pwsh
+        working-directory: dist
+        run: |
+          .\smoke_test.exe `
+            fixtures\test.jpg `
+            fixtures\test.webp `
+            fixtures\test_anim.webp `
+            fixtures\test.avif `
+            fixtures\test.heic `
+            fixtures\test.jxl
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  publish-release:
+    name: Publish pureimage-codecs pre-release asset
+    needs: [build-codecs, verify-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pureimage-codecs-win64
+          path: dist
+
+      - name: Create or update pureimage-codecs pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view pureimage-codecs >/dev/null 2>&1; then
+            gh release upload pureimage-codecs \
+              dist/pureimage-codecs-x64.7z \
+              dist/SHA256SUMS.txt \
+              dist/LICENSES-pureimage-codecs.txt \
+              --clobber
+          else
+            gh release create pureimage-codecs \
+              dist/pureimage-codecs-x64.7z \
+              dist/SHA256SUMS.txt \
+              dist/LICENSES-pureimage-codecs.txt \
+              --prerelease --latest=false \
+              --title "PureImage Native Codecs (pureimage_codecs.dll x64)" \
+              --notes "Unified Windows x64 decode-only DLL bundling libjpeg-turbo, libwebp, libavif+dav1d, libheif+libde265 (LGPL-3.0-or-later), and libjxl. Marked prerelease so in-app auto-updater ignores it. See LICENSES-pureimage-codecs.txt for full license notices."
+          fi
