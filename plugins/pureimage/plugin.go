@@ -82,6 +82,16 @@ func (p *Plugin) Init(host purekit.Host) error {
 				mygo.Clipboard.WriteText(text)
 			}
 		},
+		OnCopyImage: func(pngBytes []byte) {
+			if cb := host.Clipboard(); cb != nil {
+				_ = cb.WriteImage(pngBytes, PluginID)
+			} else {
+				mygo.Clipboard.WriteImage(pngBytes)
+			}
+		},
+		OnOpenSettings: func() {
+			host.OpenSettings(PluginID)
+		},
 		OnAllClosed: func() {
 			host.NotifyWindowClosed()
 		},

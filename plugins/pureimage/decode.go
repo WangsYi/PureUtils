@@ -35,6 +35,10 @@ var errUnsupportedAnimation = &animationError{"unsupported animation"}
 // DecodePreview decodes path scaled to fit maxDim (or full size if maxDim <= 0)
 // and returns both the MyGo bitmap and raw transformed RGBA/image alongside metadata.
 func DecodePreview(path string, maxDim, rotate int, flip bool) (*ui.Bitmap, image.Image, int, int, ExifData, bool, error) {
+	return decodePreviewEx(path, maxDim, rotate, flip, false)
+}
+
+func decodePreviewEx(path string, maxDim, rotate int, flipH, flipV bool) (*ui.Bitmap, image.Image, int, int, ExifData, bool, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, 0, 0, ExifData{}, false, err
@@ -43,7 +47,7 @@ func DecodePreview(path string, maxDim, rotate int, flip bool) (*ui.Bitmap, imag
 	if err != nil {
 		return nil, nil, 0, 0, ex, false, err
 	}
-	img = TransformImage(img, ex.Orientation, rotate, flip)
+	img = TransformImageEx(img, ex.Orientation, rotate, flipH, flipV)
 	sw, sh := TransformedDims(srcW, srcH, ex.Orientation, rotate)
 	if sw <= 0 || sh <= 0 {
 		return nil, nil, 0, 0, ex, false, fmt.Errorf("empty image")
@@ -57,6 +61,10 @@ func DecodePreview(path string, maxDim, rotate int, flip bool) (*ui.Bitmap, imag
 
 // DecodeFull decodes path at full native resolution and transforms it.
 func DecodeFull(path string, rotate int, flip bool) (*ui.Bitmap, image.Image, int, int, ExifData, bool, error) {
+	return decodeFullEx(path, rotate, flip, false)
+}
+
+func decodeFullEx(path string, rotate int, flipH, flipV bool) (*ui.Bitmap, image.Image, int, int, ExifData, bool, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, 0, 0, ExifData{}, false, err
@@ -65,7 +73,7 @@ func DecodeFull(path string, rotate int, flip bool) (*ui.Bitmap, image.Image, in
 	if err != nil {
 		return nil, nil, 0, 0, ex, false, err
 	}
-	img = TransformImage(img, ex.Orientation, rotate, flip)
+	img = TransformImageEx(img, ex.Orientation, rotate, flipH, flipV)
 	b := img.Bounds()
 	sw, sh := b.Dx(), b.Dy()
 	if sw <= 0 || sh <= 0 {
@@ -216,6 +224,10 @@ func DecodeSpecial(data []byte, path string) (image.Image, ExifData, error) {
 
 // DecodeAnimation decodes multi-frame GIF, APNG, WebP, HEIC, AVIF, or JXL files.
 func DecodeAnimation(path string, maxDim, rotate int, flip bool) ([]*ui.Bitmap, image.Image, []time.Duration, int, int, ExifData, bool, error) {
+	return decodeAnimationEx(path, maxDim, rotate, flip, false)
+}
+
+func decodeAnimationEx(path string, maxDim, rotate int, flipH, flipV bool) ([]*ui.Bitmap, image.Image, []time.Duration, int, int, ExifData, bool, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, nil, 0, 0, ExifData{}, false, err
@@ -223,16 +235,16 @@ func DecodeAnimation(path string, maxDim, rotate int, flip bool) ([]*ui.Bitmap, 
 	ext := strings.ToLower(filepath.Ext(path))
 	switch ext {
 	case ".gif":
-		return DecodeGIF(data, maxDim, rotate, flip)
+		return decodeGIFEx(data, maxDim, rotate, flipH, flipV)
 	case ".png":
-		return DecodeAPNG(data, maxDim, rotate, flip)
+		return decodeAPNGEx(data, maxDim, rotate, flipH, flipV)
 	case ".heic", ".heif", ".hif", ".avif", ".avifs", ".jxl", ".webp":
 		if fmtID, ok := codecFormatForExt(ext); ok {
 			imgs, delays, ex, err := DecodeCodecAnimation(fmtID, data)
 			if err != nil {
 				return nil, nil, nil, 0, 0, ExifData{Orientation: 1}, false, err
 			}
-			return ImagesToAnimation(imgs, delays, maxDim, ex, rotate, flip)
+			return imagesToAnimationEx(imgs, delays, maxDim, ex, rotate, flipH, flipV)
 		}
 	}
 	return nil, nil, nil, 0, 0, ExifData{}, false, errUnsupportedAnimation
@@ -240,13 +252,17 @@ func DecodeAnimation(path string, maxDim, rotate int, flip bool) ([]*ui.Bitmap, 
 
 // ImagesToAnimation transforms and uploads animation frames as MyGo bitmaps.
 func ImagesToAnimation(images []image.Image, delays []time.Duration, maxDim int, ex ExifData, rotate int, flip bool) ([]*ui.Bitmap, image.Image, []time.Duration, int, int, ExifData, bool, error) {
+	return imagesToAnimationEx(images, delays, maxDim, ex, rotate, flip, false)
+}
+
+func imagesToAnimationEx(images []image.Image, delays []time.Duration, maxDim int, ex ExifData, rotate int, flipH, flipV bool) ([]*ui.Bitmap, image.Image, []time.Duration, int, int, ExifData, bool, error) {
 	if len(images) == 0 {
 		return nil, nil, nil, 0, 0, ex, false, errUnsupportedAnimation
 	}
 	frames := make([]*ui.Bitmap, 0, len(images))
 	var firstImg image.Image
 	for i, src := range images {
-		img := TransformImage(src, ex.Orientation, rotate, flip)
+		img := TransformImageEx(src, ex.Orientation, rotate, flipH, flipV)
 		b := img.Bounds()
 		w, h := b.Dx(), b.Dy()
 		if maxDim > 0 && max(w, h) > maxDim {
@@ -271,6 +287,10 @@ func ImagesToAnimation(images []image.Image, delays []time.Duration, maxDim int,
 
 // DecodeGIF decodes an animated or static GIF with frame disposal composition.
 func DecodeGIF(data []byte, maxDim, rotate int, flip bool) ([]*ui.Bitmap, image.Image, []time.Duration, int, int, ExifData, bool, error) {
+	return decodeGIFEx(data, maxDim, rotate, flip, false)
+}
+
+func decodeGIFEx(data []byte, maxDim, rotate int, flipH, flipV bool) ([]*ui.Bitmap, image.Image, []time.Duration, int, int, ExifData, bool, error) {
 	g, err := gif.DecodeAll(bytes.NewReader(data))
 	if err != nil {
 		return nil, nil, nil, 0, 0, ExifData{Orientation: 1}, false, err
@@ -303,7 +323,7 @@ func DecodeGIF(data []byte, maxDim, rotate int, flip bool) ([]*ui.Bitmap, image.
 	for i, d := range g.Delay {
 		delays[i] = time.Duration(d) * 10 * time.Millisecond
 	}
-	return ImagesToAnimation(images, delays, maxDim, ExifData{Orientation: 1}, rotate, flip)
+	return imagesToAnimationEx(images, delays, maxDim, ExifData{Orientation: 1}, rotate, flipH, flipV)
 }
 
 func cloneRGBA(src *image.RGBA) *image.RGBA {
@@ -314,6 +334,10 @@ func cloneRGBA(src *image.RGBA) *image.RGBA {
 
 // DecodeAPNG decodes an animated PNG with disposal and blending composition.
 func DecodeAPNG(data []byte, maxDim, rotate int, flip bool) ([]*ui.Bitmap, image.Image, []time.Duration, int, int, ExifData, bool, error) {
+	return decodeAPNGEx(data, maxDim, rotate, flip, false)
+}
+
+func decodeAPNGEx(data []byte, maxDim, rotate int, flipH, flipV bool) ([]*ui.Bitmap, image.Image, []time.Duration, int, int, ExifData, bool, error) {
 	a, err := apng.DecodeAll(bytes.NewReader(data))
 	if err != nil {
 		return nil, nil, nil, 0, 0, ExifData{Orientation: 1}, false, err
@@ -368,5 +392,5 @@ func DecodeAPNG(data []byte, maxDim, rotate int, flip bool) ([]*ui.Bitmap, image
 	if len(images) == 0 {
 		return nil, nil, nil, 0, 0, ExifData{Orientation: 1}, false, errUnsupportedAnimation
 	}
-	return ImagesToAnimation(images, delays, maxDim, ExifData{Orientation: 1}, rotate, flip)
+	return imagesToAnimationEx(images, delays, maxDim, ExifData{Orientation: 1}, rotate, flipH, flipV)
 }

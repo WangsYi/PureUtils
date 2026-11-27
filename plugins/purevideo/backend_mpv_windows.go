@@ -3,7 +3,10 @@
 package purevideo
 
 import (
+	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
 	"math"
 	"os"
 	"path/filepath"
@@ -22,9 +25,15 @@ import (
 )
 
 const (
-	mpvFormatFlag   int32 = 3
-	mpvFormatInt64  int32 = 4
-	mpvFormatDouble int32 = 5
+	mpvFormatNone      int32 = 0
+	mpvFormatString    int32 = 1
+	mpvFormatFlag      int32 = 3
+	mpvFormatInt64     int32 = 4
+	mpvFormatDouble    int32 = 5
+	mpvFormatNode      int32 = 6
+	mpvFormatNodeArray int32 = 7
+	mpvFormatNodeMap   int32 = 8
+	mpvFormatByteArray int32 = 9
 
 	mpvEventShutdown   int32 = 1
 	mpvEventEndFile    int32 = 7
@@ -33,6 +42,24 @@ const (
 	mpvEndReasonEOF   int32 = 0
 	mpvEndReasonError int32 = 4
 )
+
+type mpvNode struct {
+	u      uintptr
+	format int32
+	_pad   int32
+}
+
+type mpvNodeList struct {
+	num    int32
+	_pad   int32
+	values uintptr
+	keys   uintptr
+}
+
+type mpvByteArray struct {
+	data uintptr
+	size uintptr
+}
 
 type mpvEventRaw struct {
 	EventID       int32
@@ -103,16 +130,21 @@ func ProbeLibMPV(dllPath string) (uint32, error) {
 }
 
 type mpvProcs struct {
-	create           uintptr
-	initialize       uintptr
-	terminateDestroy uintptr
-	setOptionString  uintptr
-	command          uintptr
-	setProperty      uintptr
-	getProperty      uintptr
-	waitEvent        uintptr
-	wakeup           uintptr
-	errorString      uintptr
+	create            uintptr
+	initialize        uintptr
+	terminateDestroy  uintptr
+	setOptionString   uintptr
+	command           uintptr
+	commandNode       uintptr
+	freeNodeContents  uintptr
+	setProperty       uintptr
+	setPropertyString uintptr
+	getProperty       uintptr
+	getPropertyString uintptr
+	free              uintptr
+	waitEvent         uintptr
+	wakeup            uintptr
+	errorString       uintptr
 }
 
 type mpvBackend struct {
@@ -154,6 +186,21 @@ func resolveMPVProcs(h windows.Handle) (mpvProcs, error) {
 			return mpvProcs{}, fmt.Errorf("%s", i18n.F("libmpv-2.dll 缺少导出符号 %s", "libmpv-2.dll is missing exported symbol %s", n.name))
 		}
 		*n.dst = addr
+	}
+	opt := []struct {
+		name string
+		dst  *uintptr
+	}{
+		{"mpv_command_node", &p.commandNode},
+		{"mpv_free_node_contents", &p.freeNodeContents},
+		{"mpv_set_property_string", &p.setPropertyString},
+		{"mpv_get_property_string", &p.getPropertyString},
+		{"mpv_free", &p.free},
+	}
+	for _, o := range opt {
+		if addr, err := windows.GetProcAddress(h, o.name); err == nil {
+			*o.dst = addr
+		}
 	}
 	return p, nil
 }
@@ -580,6 +627,346 @@ func (b *mpvBackend) State() PlaybackState {
 
 func (b *mpvBackend) Resize(_, _ int) {}
 func (b *mpvBackend) Repaint()         {}
+
+func goStringFromCStrAlloc(ptr uintptr) string {
+	if ptr == 0 {
+		return ""
+	}
+	const maxLen = 1 << 20
+	out := make([]byte, 0, 256)
+	for n := 0; n < maxLen; n++ {
+		ch := *(*byte)(unsafe.Pointer(ptr + uintptr(n)))
+		if ch == 0 {
+			break
+		}
+		out = append(out, ch)
+	}
+	return string(out)
+}
+
+func (b *mpvBackend) getStringProp(name string) (string, bool) {
+	if b.closed.Load() {
+		return "", false
+	}
+	b.mu.Lock()
+	ctx, fn, freeFn := b.ctx, b.procs.getPropertyString, b.procs.free
+	b.mu.Unlock()
+	if ctx == 0 || fn == 0 || freeFn == 0 {
+		return "", false
+	}
+	kb, kp := cstr(name)
+	ptr, _, _ := syscall.SyscallN(fn, ctx, kp)
+	runtime.KeepAlive(kb)
+	if ptr == 0 {
+		return "", false
+	}
+	s := goStringFromCStrAlloc(ptr)
+	_, _, _ = syscall.SyscallN(freeFn, ptr)
+	return s, true
+}
+
+func (b *mpvBackend) setStringProp(name, val string) error {
+	if b.closed.Load() {
+		return nil
+	}
+	b.mu.Lock()
+	ctx, fn := b.ctx, b.procs.setPropertyString
+	b.mu.Unlock()
+	if ctx == 0 || fn == 0 {
+		return nil
+	}
+	kb, kp := cstr(name)
+	vb, vp := cstr(val)
+	rc, _, _ := syscall.SyscallN(fn, ctx, kp, vp)
+	runtime.KeepAlive(kb)
+	runtime.KeepAlive(vb)
+	if int32(rc) < 0 {
+		return fmt.Errorf("%s", b.errStr(int32(rc)))
+	}
+	return nil
+}
+
+func (b *mpvBackend) getBoolProp(name string) (bool, bool) {
+	if b.closed.Load() {
+		return false, false
+	}
+	b.mu.Lock()
+	ctx, fn := b.ctx, b.procs.getProperty
+	b.mu.Unlock()
+	if ctx == 0 || fn == 0 {
+		return false, false
+	}
+	kb, kp := cstr(name)
+	var flag int32
+	rc, _, _ := syscall.SyscallN(fn, ctx, kp, uintptr(mpvFormatFlag), uintptr(unsafe.Pointer(&flag)))
+	runtime.KeepAlive(kb)
+	return flag != 0, int32(rc) >= 0
+}
+
+func (b *mpvBackend) FrameBackStep() error {
+	if err := b.execCommand("frame-back-step"); err != nil {
+		return err
+	}
+	b.setState(StatePaused)
+	return nil
+}
+
+func (b *mpvBackend) Tracks() []MediaTrack {
+	raw, ok := b.getStringProp("track-list")
+	if !ok || strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	var tracks []MediaTrack
+	if err := json.Unmarshal([]byte(raw), &tracks); err != nil {
+		return nil
+	}
+	return tracks
+}
+
+func (b *mpvBackend) SetAudioTrack(id int) error {
+	if id <= 0 {
+		return b.setStringProp("aid", "no")
+	}
+	return b.setStringProp("aid", strconv.Itoa(id))
+}
+
+func (b *mpvBackend) SetSubtitleTrack(id int) error {
+	if id <= 0 {
+		return b.setStringProp("sid", "no")
+	}
+	return b.setStringProp("sid", strconv.Itoa(id))
+}
+
+func (b *mpvBackend) AddSubtitle(path string) error {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return fmt.Errorf("%s", i18n.S("字幕路径为空", "Subtitle path is empty"))
+	}
+	return b.execCommand("sub-add", path, "select")
+}
+
+func (b *mpvBackend) SubtitleVisible() bool {
+	v, ok := b.getBoolProp("sub-visibility")
+	if !ok {
+		return true
+	}
+	return v
+}
+
+func (b *mpvBackend) SetSubtitleVisible(v bool) error {
+	return b.setBoolProp("sub-visibility", v)
+}
+
+func (b *mpvBackend) AudioDelay() float64 {
+	v, _ := b.getDoubleProp("audio-delay")
+	return v
+}
+
+func (b *mpvBackend) SetAudioDelay(sec float64) error {
+	return b.setDoubleProp("audio-delay", sec)
+}
+
+func (b *mpvBackend) SubtitleDelay() float64 {
+	v, _ := b.getDoubleProp("sub-delay")
+	return v
+}
+
+func (b *mpvBackend) SetSubtitleDelay(sec float64) error {
+	return b.setDoubleProp("sub-delay", sec)
+}
+
+func (b *mpvBackend) SetAspectRatio(ratio string) error {
+	ratio = strings.TrimSpace(ratio)
+	if ratio == "" || strings.EqualFold(ratio, "auto") {
+		ratio = "-1"
+	}
+	return b.setStringProp("video-aspect-override", ratio)
+}
+
+func (b *mpvBackend) SetRotate(deg int) error {
+	deg = ((deg % 360) + 360) % 360
+	return b.setStringProp("video-rotate", strconv.Itoa(deg))
+}
+
+func (b *mpvBackend) SetVideoFlip(hflip, vflip bool) error {
+	var filters []string
+	if hflip {
+		filters = append(filters, "hflip")
+	}
+	if vflip {
+		filters = append(filters, "vflip")
+	}
+	return b.setStringProp("vf", strings.Join(filters, ","))
+}
+
+func (b *mpvBackend) SetZoom(zoom float64) error {
+	return b.setDoubleProp("video-zoom", zoom)
+}
+
+func (b *mpvBackend) SetDeinterlace(on bool) error {
+	return b.setBoolProp("deinterlace", on)
+}
+
+func (b *mpvBackend) SetABLoop(a, bLoop float64) error {
+	setPoint := func(prop string, sec float64) error {
+		if sec < 0 {
+			return b.setStringProp(prop, "no")
+		}
+		return b.setDoubleProp(prop, sec)
+	}
+	if err := setPoint("ab-loop-a", a); err != nil {
+		return err
+	}
+	return setPoint("ab-loop-b", bLoop)
+}
+
+func (b *mpvBackend) SetHWDec(enabled bool) error {
+	mode := "no"
+	if enabled {
+		mode = "auto-safe"
+	}
+	return b.setStringProp("hwdec", mode)
+}
+
+func (b *mpvBackend) CaptureFrame() (image.Image, error) {
+	if img, err := b.captureRaw("subtitles"); err == nil && img != nil {
+		return img, nil
+	}
+	return b.captureRaw("video")
+}
+
+func (b *mpvBackend) captureRaw(mode string) (image.Image, error) {
+	if b.closed.Load() {
+		return nil, fmt.Errorf("%s", i18n.S("播放器已关闭", "Player is closed"))
+	}
+	b.mu.Lock()
+	ctx, cmdNodeFn, freeNodeFn := b.ctx, b.procs.commandNode, b.procs.freeNodeContents
+	b.mu.Unlock()
+	if ctx == 0 || cmdNodeFn == 0 || freeNodeFn == 0 {
+		return nil, fmt.Errorf("%s", i18n.S("当前 libmpv 不支持原生截图接口", "libmpv does not support screenshot-raw"))
+	}
+
+	bCmd, pCmd := cstr("screenshot-raw")
+	bMode, pMode := cstr(mode)
+	argNodes := [2]mpvNode{
+		{u: pCmd, format: mpvFormatString},
+		{u: pMode, format: mpvFormatString},
+	}
+	argList := mpvNodeList{
+		num:    2,
+		values: uintptr(unsafe.Pointer(&argNodes[0])),
+	}
+	cmdNode := mpvNode{
+		u:      uintptr(unsafe.Pointer(&argList)),
+		format: mpvFormatNodeArray,
+	}
+	var res mpvNode
+	rc, _, _ := syscall.SyscallN(cmdNodeFn, ctx, uintptr(unsafe.Pointer(&cmdNode)), uintptr(unsafe.Pointer(&res)))
+	runtime.KeepAlive(bCmd)
+	runtime.KeepAlive(bMode)
+	runtime.KeepAlive(argNodes)
+	runtime.KeepAlive(argList)
+	runtime.KeepAlive(cmdNode)
+
+	if res.format != mpvFormatNone {
+		defer syscall.SyscallN(freeNodeFn, uintptr(unsafe.Pointer(&res)))
+	}
+	if int32(rc) < 0 {
+		return nil, fmt.Errorf("%s", b.errStr(int32(rc)))
+	}
+	if res.format != mpvFormatNodeMap || res.u == 0 {
+		return nil, fmt.Errorf("%s", i18n.S("截图数据格式无效", "Invalid screenshot frame data"))
+	}
+
+	nl := (*mpvNodeList)(unsafe.Pointer(res.u))
+	var w, h, stride int
+	var pixFmt string
+	var ba *mpvByteArray
+	for i := 0; i < int(nl.num); i++ {
+		keyPtr := *(*uintptr)(unsafe.Pointer(nl.keys + uintptr(i)*unsafe.Sizeof(uintptr(0))))
+		key := goStringFromCStr(keyPtr)
+		val := *(*mpvNode)(unsafe.Pointer(nl.values + uintptr(i)*unsafe.Sizeof(mpvNode{})))
+		switch key {
+		case "w":
+			if val.format == mpvFormatInt64 {
+				w = int(int64(val.u))
+			}
+		case "h":
+			if val.format == mpvFormatInt64 {
+				h = int(int64(val.u))
+			}
+		case "stride":
+			if val.format == mpvFormatInt64 {
+				stride = int(int64(val.u))
+			}
+		case "format":
+			if val.format == mpvFormatString {
+				pixFmt = goStringFromCStr(val.u)
+			}
+		case "data":
+			if val.format == mpvFormatByteArray && val.u != 0 {
+				ba = (*mpvByteArray)(unsafe.Pointer(val.u))
+			}
+		}
+	}
+	if w <= 0 || h <= 0 || stride < w*4 || ba == nil || ba.data == 0 || int(ba.size) < stride*h {
+		return nil, fmt.Errorf("%s", i18n.S("无法读取当前视频画面帧", "Unable to read video frame pixels"))
+	}
+	if pixFmt != "" && pixFmt != "bgr0" && pixFmt != "bgra" {
+		return nil, fmt.Errorf("%s", i18n.F("不支持的画面像素格式: %s", "Unsupported frame pixel format: %s", pixFmt))
+	}
+	src := unsafe.Slice((*byte)(unsafe.Pointer(ba.data)), int(ba.size))
+	return bgr0ToRGBA(src, w, h, stride), nil
+}
+
+func bgr0ToRGBA(src []byte, w, h, stride int) *image.RGBA {
+	dst := image.NewRGBA(image.Rect(0, 0, w, h))
+	if w <= 0 || h <= 0 || stride < w*4 || len(src) < stride*(h-1)+w*4 {
+		return dst
+	}
+	for y := 0; y < h; y++ {
+		sRow := src[y*stride : y*stride+w*4]
+		dRow := dst.Pix[y*dst.Stride : y*dst.Stride+w*4]
+		for x := 0; x < w; x++ {
+			si := x * 4
+			di := x * 4
+			_ = color.RGBA{}
+			dRow[di+0] = sRow[si+2]
+			dRow[di+1] = sRow[si+1]
+			dRow[di+2] = sRow[si+0]
+			dRow[di+3] = 255
+		}
+	}
+	return dst
+}
+
+func (b *mpvBackend) MediaInfo() MediaInfo {
+	w, h := b.NativeSize()
+	var info MediaInfo
+	info.Width = w
+	info.Height = h
+	if vc, ok := b.getStringProp("video-codec"); ok {
+		info.VideoCodec = vc
+	}
+	if ac, ok := b.getStringProp("audio-codec-name"); ok {
+		info.AudioCodec = ac
+	}
+	if fps, ok := b.getDoubleProp("estimated-vf-fps"); ok && fps > 0 {
+		info.FPS = fps
+	} else if fps, ok := b.getDoubleProp("container-fps"); ok && fps > 0 {
+		info.FPS = fps
+	}
+	if br, ok := b.getInt64Prop("video-bitrate"); ok && br > 0 {
+		info.VideoBitrate = br
+	}
+	if sr, ok := b.getInt64Prop("audio-params/samplerate"); ok && sr > 0 {
+		info.AudioRate = int(sr)
+	}
+	if ch, ok := b.getInt64Prop("audio-params/channel-count"); ok && ch > 0 {
+		info.AudioChannels = int(ch)
+	}
+	return info
+}
 
 func (b *mpvBackend) Close() {
 	if b.closed.Swap(true) {

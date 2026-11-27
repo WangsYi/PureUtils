@@ -31,10 +31,13 @@ const (
 	wmSize        = 0x0005
 	wmPaint       = 0x000F
 	wmEraseBkgnd  = 0x0014
+	wmContextMenu = 0x007B
 	wmKeyDown     = 0x0100
 	wmLButtonDown = 0x0201
 	wmLButtonUp   = 0x0202
 	wmLButtonDbl  = 0x0203
+	wmRButtonDown = 0x0204
+	wmRButtonUp   = 0x0205
 	wmMouseWheel  = 0x020A
 
 	idcArrow      = 32512
@@ -111,13 +114,14 @@ var (
 )
 
 type stageCallbacks struct {
-	ParentHWND uintptr
-	OnRepaint  func()
-	OnResize   func(w, h int)
-	OnPlayPause func()
-	OnFullScreen func()
-	OnWheel      func(steps int)
-	OnKey        func(key ui.Key, mods ui.Modifiers)
+	ParentHWND    uintptr
+	OnRepaint     func()
+	OnResize      func(w, h int)
+	OnPlayPause   func()
+	OnFullScreen  func()
+	OnContextMenu func()
+	OnWheel       func(steps int)
+	OnKey         func(key ui.Key, mods ui.Modifiers)
 }
 
 type winStage struct {
@@ -336,6 +340,27 @@ func stageWndProc(hwnd, msg, wParam, lParam uintptr) uintptr {
 			mygo.RunOnMain(st.cb.OnFullScreen)
 		}
 		return 0
+	case wmRButtonDown:
+		if st.parent != 0 {
+			_, _, _ = procSetFocus.Call(st.parent)
+		}
+		return 0
+	case wmRButtonUp:
+		st.mu.Lock()
+		if st.clickTmr != nil {
+			st.clickTmr.Stop()
+			st.clickTmr = nil
+		}
+		st.mu.Unlock()
+		if st.cb.OnContextMenu != nil {
+			go func() { mygo.RunOnMain(st.cb.OnContextMenu) }()
+		}
+		return 0
+	case wmContextMenu:
+		if lParam == ^uintptr(0) && st.cb.OnContextMenu != nil {
+			go func() { mygo.RunOnMain(st.cb.OnContextMenu) }()
+			return 0
+		}
 	case wmMouseWheel:
 		delta := int16(uint16((wParam >> 16) & 0xFFFF))
 		steps := int(delta) / 120
@@ -385,10 +410,18 @@ func mapVirtualKey(vk uint32) (ui.Key, ui.Modifiers, bool) {
 		mods |= ui.Alt
 	}
 	switch vk {
+	case 0x08:
+		return ui.KeyBackspace, mods, true
+	case 0x0D:
+		return ui.KeyEnter, mods, true
 	case 0x20:
 		return ui.KeySpace, mods, true
 	case 0x1B:
 		return ui.KeyEscape, mods, true
+	case 0x23:
+		return ui.KeyEnd, mods, true
+	case 0x24:
+		return ui.KeyHome, mods, true
 	case 0x25:
 		return ui.KeyLeft, mods, true
 	case 0x27:
@@ -401,16 +434,44 @@ func mapVirtualKey(vk uint32) (ui.Key, ui.Modifiers, bool) {
 		return ui.KeyPageUp, mods, true
 	case 0x22:
 		return ui.KeyPageDown, mods, true
+	case 0x2E:
+		return ui.KeyDelete, mods, true
 	case 0x7A:
 		return ui.KeyF11, mods, true
+	case 'A':
+		return ui.KeyA, mods, true
+	case 'B':
+		return ui.KeyB, mods, true
+	case 'C':
+		return ui.KeyC, mods, true
+	case 'E':
+		return ui.KeyE, mods, true
 	case 'F':
 		return ui.KeyF, mods, true
-	case 'M':
-		return ui.KeyM, mods, true
+	case 'I':
+		return ui.KeyI, mods, true
 	case 'L':
 		return ui.KeyL, mods, true
+	case 'M':
+		return ui.KeyM, mods, true
 	case 'O':
 		return ui.KeyO, mods, true
+	case 'R':
+		return ui.KeyR, mods, true
+	case 'S':
+		return ui.KeyS, mods, true
+	case 'T':
+		return ui.KeyT, mods, true
+	case 'V':
+		return ui.KeyV, mods, true
+	case '0':
+		return ui.Key0, mods, true
+	case 0xBB: // '=' / '+'
+		return ui.KeyEqual, mods, true
+	case 0xBC: // ','
+		return ui.KeyComma, mods, true
+	case 0xBD: // '-'
+		return ui.KeyMinus, mods, true
 	case 0xBE: // '.'
 		return ui.KeyPeriod, mods, true
 	case 0xDB: // '['

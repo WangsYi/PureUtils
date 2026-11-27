@@ -11,10 +11,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"unicode"
 
 	"github.com/egoist/mygo/ui"
 
 	"pureutils/pkg/purekit/config"
+	"pureutils/pkg/purekit/i18n"
 )
 
 func TestNaturalLessAndFormatPredicates(t *testing.T) {
@@ -356,5 +358,322 @@ func TestViewerHeadlessEmptyMenusToolbarAndPin(t *testing.T) {
 	tt.Frame()
 	if v.srcW != 32 || v.srcH != 64 {
 		t.Fatalf("rotated in-memory dims = %dx%d, want 32x64", v.srcW, v.srcH)
+	}
+}
+
+func TestFlipVerticalTransformExAndSaveImage(t *testing.T) {
+	src := image.NewRGBA(image.Rect(0, 0, 3, 2))
+	red := color.RGBA{R: 255, A: 255}
+	blue := color.RGBA{B: 255, A: 255}
+	src.SetRGBA(0, 0, red)
+	src.SetRGBA(2, 1, blue)
+
+	flipped := FlipVertical(src)
+	if flipped.At(0, 1) != red || flipped.At(2, 0) != blue {
+		t.Fatalf("FlipVertical unexpected pixels: (0,1)=%v (2,0)=%v", flipped.At(0, 1), flipped.At(2, 0))
+	}
+
+	rot180 := TransformImageEx(src, 1, 180, false, false)
+	if rot180.At(2, 1) != red || rot180.At(0, 0) != blue {
+		t.Fatalf("TransformImageEx(180) unexpected pixels: (2,1)=%v (0,0)=%v", rot180.At(2, 1), rot180.At(0, 0))
+	}
+
+	combo := TransformImageEx(src, 1, 90, true, true)
+	if combo.Bounds().Dx() != 2 || combo.Bounds().Dy() != 3 {
+		t.Fatalf("combo bounds = %v, want 2x3", combo.Bounds())
+	}
+	if combo.At(0, 2) != red {
+		t.Fatalf("combo(90+flipH+flipV) expected red at (0,2), got %v", combo.At(0, 2))
+	}
+
+	dir := t.TempDir()
+	pngPath := filepath.Join(dir, "out.png")
+	if err := saveImageToFile(pngPath, combo); err != nil {
+		t.Fatalf("saveImageToFile png: %v", err)
+	}
+	if raw, err := os.ReadFile(pngPath); err != nil {
+		t.Fatal(err)
+	} else if dec, err := png.Decode(bytes.NewReader(raw)); err != nil || dec.Bounds().Dx() != 2 {
+		t.Fatalf("decoded png = (%v, %v)", dec, err)
+	}
+	jpgPath := filepath.Join(dir, "out.jpg")
+	if err := saveImageToFile(jpgPath, combo); err != nil {
+		t.Fatalf("saveImageToFile jpg: %v", err)
+	}
+	if raw, err := os.ReadFile(jpgPath); err != nil {
+		t.Fatal(err)
+	} else if dec, err := jpeg.Decode(bytes.NewReader(raw)); err != nil || dec.Bounds().Dx() != 2 {
+		t.Fatalf("decoded jpg = (%v, %v)", dec, err)
+	}
+}
+
+func TestViewerContextMenuZHAndEN(t *testing.T) {
+	prevPref := i18n.Preference()
+	prevLang := i18n.Current()
+	i18n.SetPreference(i18n.PrefZH)
+	i18n.Set(i18n.LangZH)
+	defer func() {
+		i18n.SetPreference(prevPref)
+		i18n.Set(prevLang)
+	}()
+
+	dir := t.TempDir()
+	p1 := filepath.Join(dir, "01.png")
+	p2 := filepath.Join(dir, "02.png")
+	p3 := filepath.Join(dir, "03.png")
+	writeTestPNG(t, p1, 100, 60, color.RGBA{R: 255, A: 255})
+	writeTestPNG(t, p2, 80, 80, color.RGBA{G: 255, A: 255})
+	writeTestPNG(t, p3, 120, 40, color.RGBA{B: 255, A: 255})
+
+	var copiedText string
+	var copiedPNG []byte
+	var pinnedImg image.Image
+	var settingsOpened bool
+
+	v := New(config.DefaultPureImageConfig(), Callbacks{
+		Headless:       true,
+		CanPin:         func() bool { return true },
+		OnPinImage:     func(img image.Image) { pinnedImg = img },
+		OnCopyText:     func(s string) { copiedText = s },
+		OnCopyImage:    func(b []byte) { copiedPNG = b },
+		OnOpenSettings: func() { settingsOpened = true },
+	})
+	defer v.Shutdown()
+
+	tt := ui.NewTester(v.View, 1100, 720)
+	tt.Frame()
+
+	// Empty state context menu
+	tt.RightClickAt(120, 120)
+	emptyMenu := tt.Menu()
+	if len(emptyMenu) < 5 || emptyMenu[0] != "打开图片" {
+		t.Fatalf("unexpected empty menu: %v", emptyMenu)
+	}
+	if err := tt.ChooseMenuItem("复制", "复制图像"); err == nil {
+		t.Fatal("expected Copy image disabled in empty state")
+	}
+	if err := tt.ChooseMenuItem("删除到回收站"); err == nil {
+		t.Fatal("expected Delete disabled in empty state")
+	}
+	tt.CloseMenu()
+
+	// Open multi-image directory
+	v.Open(p1)
+	tt.Frame()
+
+	choose := func(path ...string) {
+		t.Helper()
+		tt.RightClickAt(550, 360)
+		if err := tt.ChooseMenuItem(path...); err != nil {
+			t.Fatalf("ChooseMenuItem(%v): %v (menu=%v)", path, err, tt.Menu())
+		}
+		tt.Frame()
+	}
+
+	// Navigation
+	choose("下一张")
+	if filepath.Base(v.path) != "02.png" {
+		t.Fatalf("Next -> %q", v.path)
+	}
+	choose("最后一张")
+	if filepath.Base(v.path) != "03.png" {
+		t.Fatalf("Last -> %q", v.path)
+	}
+	choose("第一张")
+	if filepath.Base(v.path) != "01.png" {
+		t.Fatalf("First -> %q", v.path)
+	}
+	choose("下一张")
+	choose("上一张")
+	if filepath.Base(v.path) != "01.png" {
+		t.Fatalf("Prev -> %q", v.path)
+	}
+
+	// View & Zoom
+	choose("视图与缩放", "200%")
+	if v.fit || v.zoom != 2.0 {
+		t.Fatalf("expected 200%% zoom, fit=%v zoom=%v", v.fit, v.zoom)
+	}
+	choose("视图与缩放", "适配窗口")
+	if !v.fit {
+		t.Fatal("expected fit=true")
+	}
+	choose("视图与缩放", "详细信息")
+	if !v.prefs.ShowDetails {
+		t.Fatal("expected ShowDetails=true")
+	}
+	choose("视图与缩放", "透明区域棋盘格")
+	if v.prefs.Checkerboard {
+		t.Fatal("expected Checkerboard=false after toggle")
+	}
+	choose("视图与缩放", "悬浮快速预览")
+
+	// Transform
+	choose("旋转与翻转", "顺时针旋转 90°")
+	if v.userRotate != 90 {
+		t.Fatalf("rotateCW = %d, want 90", v.userRotate)
+	}
+	choose("旋转与翻转", "逆时针旋转 90°")
+	if v.userRotate != 0 {
+		t.Fatalf("rotateCCW = %d, want 0", v.userRotate)
+	}
+	choose("旋转与翻转", "旋转 180°")
+	if v.userRotate != 180 {
+		t.Fatalf("rotate180 = %d, want 180", v.userRotate)
+	}
+	choose("旋转与翻转", "水平翻转")
+	choose("旋转与翻转", "垂直翻转")
+	if !v.flipH || !v.flipV {
+		t.Fatalf("flips = (%v, %v), want (true, true)", v.flipH, v.flipV)
+	}
+	choose("旋转与翻转", "重置旋转与翻转")
+	if v.userRotate != 0 || v.flipH || v.flipV {
+		t.Fatalf("expected transform reset, got rot=%d H=%v V=%v", v.userRotate, v.flipH, v.flipV)
+	}
+
+	// Slideshow
+	choose("幻灯片", "开始幻灯片")
+	if !v.slideshow {
+		t.Fatal("expected slideshow=true")
+	}
+	choose("幻灯片", "停止幻灯片")
+	if v.slideshow {
+		t.Fatal("expected slideshow=false")
+	}
+	choose("幻灯片", "6 秒")
+	if v.prefs.SlideshowSeconds != 6 {
+		t.Fatalf("SlideshowSeconds = %d, want 6", v.prefs.SlideshowSeconds)
+	}
+
+	// Sort
+	choose("排序", "大小降序")
+	if v.prefs.Sort != "size" || !v.prefs.SortDesc {
+		t.Fatalf("Sort = (%q, %v)", v.prefs.Sort, v.prefs.SortDesc)
+	}
+	choose("排序", "包含子目录（递归）")
+	if !v.prefs.Recursive {
+		t.Fatal("expected Recursive=true")
+	}
+
+	// Copy & Pin
+	choose("复制", "复制图像")
+	if dec, err := png.Decode(bytes.NewReader(copiedPNG)); err != nil || dec.Bounds().Dx() <= 0 {
+		t.Fatalf("Copy image failed: err=%v len=%d", err, len(copiedPNG))
+	}
+	choose("复制", "复制文件路径")
+	if copiedText == "" || filepath.Ext(copiedText) != ".png" {
+		t.Fatalf("Copy path unexpected: %q", copiedText)
+	}
+	choose("复制", "复制文件名")
+	if copiedText != filepath.Base(v.path) {
+		t.Fatalf("Copy file name = %q, want %q", copiedText, filepath.Base(v.path))
+	}
+	choose("复制", "复制图像信息")
+	if copiedText == "" {
+		t.Fatal("Copy image info empty")
+	}
+	choose("贴到屏幕")
+	if pinnedImg == nil {
+		t.Fatal("Pin to screen callback not invoked")
+	}
+
+	// Window & Options
+	choose("窗口置顶")
+	if !v.alwaysOnTop {
+		t.Fatal("expected alwaysOnTop=true")
+	}
+	choose("选项与设置", "滚轮缩放（关闭则滚轮切换）")
+	choose("选项与设置", "预读数量", "预读 2 张")
+	if v.prefs.PreloadCount != 2 {
+		t.Fatalf("PreloadCount = %d, want 2", v.prefs.PreloadCount)
+	}
+	choose("选项与设置", "PureImage 设置…")
+	if !settingsOpened {
+		t.Fatal("expected OnOpenSettings callback invoked")
+	}
+
+	// Animated GIF controls in context menu
+	gifDir := t.TempDir()
+	gifPath := filepath.Join(gifDir, "loop.gif")
+	pal := color.Palette{color.Black, color.White}
+	gf1 := image.NewPaletted(image.Rect(0, 0, 10, 10), pal)
+	gf2 := image.NewPaletted(image.Rect(0, 0, 10, 10), pal)
+	gf2.SetColorIndex(2, 2, 1)
+	var gbuf bytes.Buffer
+	_ = gif.EncodeAll(&gbuf, &gif.GIF{
+		Image:    []*image.Paletted{gf1, gf2},
+		Delay:    []int{5, 5},
+		Disposal: []byte{gif.DisposalNone, gif.DisposalNone},
+		Config:   image.Config{ColorModel: pal, Width: 10, Height: 10},
+	})
+	if err := os.WriteFile(gifPath, gbuf.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	v.Open(gifPath)
+	tt.Frame()
+	if !v.animPlaying || len(v.animFrames) != 2 {
+		t.Fatalf("expected animated GIF playing with 2 frames: playing=%v frames=%d", v.animPlaying, len(v.animFrames))
+	}
+	choose("暂停动画")
+	if v.animPlaying || !v.animPaused {
+		t.Fatalf("expected paused after Pause animation menu")
+	}
+	choose("下一帧")
+	if v.animIdx != 1 {
+		t.Fatalf("animIdx = %d, want 1", v.animIdx)
+	}
+	choose("播放动画")
+	if !v.animPlaying || v.animPaused {
+		t.Fatalf("expected playing after Play animation menu")
+	}
+
+	// Switch to English and verify all top-level labels + submenus have zero Han runes
+	i18n.SetPreference(i18n.PrefEN)
+	i18n.Set(i18n.LangEN)
+	v.Open(p1)
+	tt.Frame()
+	tt.RightClickAt(550, 360)
+	enMenu := tt.Menu()
+	for _, lbl := range enMenu {
+		for _, r := range lbl {
+			if unicode.Is(unicode.Han, r) {
+				t.Errorf("unexpected Han rune in English context menu item %q", lbl)
+				break
+			}
+		}
+	}
+	tt.CloseMenu()
+	choose("View & Zoom", "150%")
+	choose("Slideshow", "4s")
+	choose("Sort", "Name ascending")
+	choose("Transform", "Flip vertically")
+	choose("Copy", "Copy file name")
+	choose("Options", "Preload count", "Preload 1")
+	choose("Options", "PureImage Settings…")
+	if !v.flipV || v.prefs.Sort != "name" || v.prefs.SortDesc || v.prefs.PreloadCount != 1 {
+		t.Fatalf("EN submenu execution failed: flipV=%v sort=%q/%v preload=%d", v.flipV, v.prefs.Sort, v.prefs.SortDesc, v.prefs.PreloadCount)
+	}
+
+	// Verify keyboard shortcuts matching context menu accelerators
+	tt.Key(ui.Shift, ui.KeyR)
+	tt.Frame()
+	if v.userRotate != 270 {
+		t.Fatalf("Shift+R rotateCCW = %d, want 270", v.userRotate)
+	}
+	tt.Key(0, ui.KeyV)
+	tt.Frame()
+	if v.flipV {
+		t.Fatal("expected flipV=false after V key toggle")
+	}
+	tt.Key(ui.Ctrl|ui.Shift, ui.KeyC)
+	tt.Frame()
+	if copiedText != v.path {
+		t.Fatalf("Ctrl+Shift+C copied %q, want %q", copiedText, v.path)
+	}
+	copiedPNG = nil
+	tt.Key(ui.Ctrl, ui.KeyC)
+	tt.Frame()
+	if dec, err := png.Decode(bytes.NewReader(copiedPNG)); err != nil || dec.Bounds().Dx() <= 0 {
+		t.Fatalf("Ctrl+C copy image failed: err=%v len=%d", err, len(copiedPNG))
 	}
 }

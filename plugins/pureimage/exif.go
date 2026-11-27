@@ -337,6 +337,11 @@ func FitWithin(w, h, maxDim int) (int, int) {
 
 // TransformImage applies EXIF orientation, quarter-turn rotation, and horizontal flip.
 func TransformImage(src image.Image, orientation, rotate int, flip bool) image.Image {
+	return TransformImageEx(src, orientation, rotate, flip, false)
+}
+
+// TransformImageEx applies EXIF orientation, quarter-turn rotation, horizontal flip, and vertical flip.
+func TransformImageEx(src image.Image, orientation, rotate int, flipH, flipV bool) image.Image {
 	img := OrientImage(src, orientation)
 	switch ((rotate % 360) + 360) % 360 {
 	case 90:
@@ -346,8 +351,11 @@ func TransformImage(src image.Image, orientation, rotate int, flip bool) image.I
 	case 270:
 		img = Rotate90(Rotate90(Rotate90(img)))
 	}
-	if flip {
+	if flipH {
 		img = FlipHorizontal(img)
+	}
+	if flipV {
+		img = FlipVertical(img)
 	}
 	return img
 }
@@ -374,6 +382,20 @@ func FlipHorizontal(src image.Image) image.Image {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			r, g, bl, a := src.At(b.Min.X+w-1-x, b.Min.Y+y).RGBA()
+			dst.SetRGBA(x, y, color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(bl >> 8), uint8(a >> 8)})
+		}
+	}
+	return dst
+}
+
+// FlipVertical mirrors src vertically.
+func FlipVertical(src image.Image) image.Image {
+	b := src.Bounds()
+	w, h := b.Dx(), b.Dy()
+	dst := image.NewRGBA(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			r, g, bl, a := src.At(b.Min.X+x, b.Min.Y+h-1-y).RGBA()
 			dst.SetRGBA(x, y, color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(bl >> 8), uint8(a >> 8)})
 		}
 	}

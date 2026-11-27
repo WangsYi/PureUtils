@@ -4,6 +4,7 @@ package purevideo
 
 import (
 	"fmt"
+	"image"
 	"math"
 	"os"
 	"path/filepath"
@@ -29,6 +30,10 @@ type PlayerCallbacks struct {
 	PluginDir      string
 	OnPrefsChange  func(config.PureVideoConfig)
 	OnOpenSettings func()
+	OnCopyText     func(string)
+	OnCopyImage    func(png []byte)
+	CanPin         func() bool
+	OnPinImage     func(image.Image)
 	OnAllClosed    func()
 	Logf           func(format string, args ...any)
 	Headless       bool
@@ -55,15 +60,28 @@ type Player struct {
 	path        string
 	displayName string
 
-	state  PlaybackState
-	pos    time.Duration
-	dur    time.Duration
-	natW   int
-	natH   int
-	volume int
-	muted  bool
-	loop   bool
-	speed  float64
+	state        PlaybackState
+	pos          time.Duration
+	dur          time.Duration
+	natW         int
+	natH         int
+	volume       int
+	muted        bool
+	loop         bool
+	speed        float64
+	alwaysOnTop  bool
+	aspectRatio  string
+	rotateDeg    int
+	flipH        bool
+	flipV        bool
+	videoZoom    float64
+	deinterlace  bool
+	hwdecEnabled bool
+	subVisible   bool
+	audioDelay   float64
+	subDelay     float64
+	abLoopA      float64
+	abLoopB      float64
 
 	errText   string
 	toast     string
@@ -89,12 +107,16 @@ func NewPlayer(prefs config.PureVideoConfig, cb PlayerCallbacks) *Player {
 		cb.BackendFactory = defaultBackendFactory
 	}
 	return &Player{
-		prefs:  prefs,
-		cb:     cb,
-		volume: prefs.Volume,
-		muted:  prefs.Muted,
-		loop:   prefs.Loop,
-		speed:  prefs.DefaultSpeed,
+		prefs:        prefs,
+		cb:           cb,
+		volume:       prefs.Volume,
+		muted:        prefs.Muted,
+		loop:         prefs.Loop,
+		speed:        prefs.DefaultSpeed,
+		hwdecEnabled: true,
+		subVisible:   true,
+		abLoopA:      -1,
+		abLoopB:      -1,
 	}
 }
 
@@ -183,6 +205,11 @@ func (p *Player) loadItem(path string) {
 	p.dur = 0
 	p.natW, p.natH = 0, 0
 	p.pendingSeek = 0
+	p.abLoopA = -1
+	p.abLoopB = -1
+	p.audioDelay = 0
+	p.subDelay = 0
+	p.subVisible = true
 	p.state = StateLoading
 	p.updateTitle()
 
@@ -194,6 +221,7 @@ func (p *Player) loadItem(path string) {
 	_ = p.backend.SetVolume(float32(p.volume) / 100.0)
 	_ = p.backend.SetMute(p.muted)
 	_ = p.backend.SetRate(float32(p.speed))
+	p.applyBackendAdjustments()
 
 	p.syncStage()
 	p.invalidate()
@@ -243,8 +271,9 @@ func (p *Player) ensureWindow() {
 				p.backend.Resize(w, h)
 			}
 		},
-		OnPlayPause:  p.TogglePlayPause,
-		OnFullScreen: p.ToggleFullScreen,
+		OnPlayPause:   p.TogglePlayPause,
+		OnFullScreen:  p.ToggleFullScreen,
+		OnContextMenu: p.showNativeContextMenu,
 		OnWheel: func(steps int) {
 			p.SetVolume(p.volume + steps*5)
 			p.showToast(i18n.F("音量 %d%%", "Volume %d%%", p.volume), 1200*time.Millisecond)
@@ -284,6 +313,7 @@ func (p *Player) ensureWindow() {
 		}
 		p.win = nil
 		p.fullscreen = false
+		p.alwaysOnTop = false
 		p.state = StateEmpty
 		p.path = ""
 		p.errText = ""
@@ -693,6 +723,7 @@ func (p *Player) Reload() {
 	_ = p.backend.SetVolume(float32(p.volume) / 100.0)
 	_ = p.backend.SetMute(p.muted)
 	_ = p.backend.SetRate(float32(p.speed))
+	p.applyBackendAdjustments()
 	p.syncStage()
 	p.invalidate()
 	if err := p.backend.Open(p.path, wasPlaying); err != nil {
@@ -836,6 +867,10 @@ func (p *Player) handleKey(key ui.Key, mods ui.Modifiers) {
 		p.Prev()
 	case ui.KeyPageDown, ui.KeyBracketRight:
 		p.Next()
+	case ui.KeyHome:
+		p.SeekTo(0)
+	case ui.KeyBackspace:
+		p.SetSpeed(1.0)
 	case ui.KeyF, ui.KeyF11:
 		p.ToggleFullScreen()
 	case ui.KeyM:
@@ -844,8 +879,40 @@ func (p *Player) handleKey(key ui.Key, mods ui.Modifiers) {
 		p.ToggleLoop()
 	case ui.KeyO:
 		p.pickFile()
+	case ui.KeyS:
+		if mods&ui.Ctrl != 0 {
+			p.SaveScreenshot()
+		}
+	case ui.KeyC:
+		if mods&(ui.Ctrl|ui.Shift) == (ui.Ctrl | ui.Shift) {
+			p.CopyPath()
+		} else if mods&ui.Ctrl != 0 {
+			p.CopyCurrentFrame()
+		}
+	case ui.KeyEnter:
+		if mods&ui.Alt != 0 {
+			p.ShowFileProperties()
+		}
 	case ui.KeyPeriod:
 		p.FrameStep()
+	case ui.KeyComma:
+		p.FrameBackStep()
+	case ui.KeyA:
+		p.SetABLoopA()
+	case ui.KeyB:
+		p.SetABLoopB()
+	case ui.KeyV:
+		p.ToggleSubtitleVisible()
+	case ui.KeyR:
+		p.RotateCW()
+	case ui.KeyT:
+		p.ToggleAlwaysOnTop()
+	case ui.KeyE:
+		p.RevealInExplorer()
+	case ui.KeyI:
+		p.ShowMediaInfo()
+	case ui.KeyDelete:
+		p.DeleteCurrent()
 	case ui.KeyEscape:
 		if p.fullscreen {
 			p.ToggleFullScreen()
@@ -877,16 +944,46 @@ func (p *Player) handleShortcuts(c *ui.Context) {
 		p.Prev()
 	case c.Shortcut(0, ui.KeyPageDown) || c.Shortcut(0, ui.KeyBracketRight):
 		p.Next()
+	case c.Shortcut(0, ui.KeyHome):
+		p.SeekTo(0)
+	case c.Shortcut(0, ui.KeyBackspace):
+		p.SetSpeed(1.0)
 	case c.Shortcut(0, ui.KeyF) || c.Shortcut(0, ui.KeyF11):
 		p.ToggleFullScreen()
 	case c.Shortcut(0, ui.KeyM):
 		p.ToggleMute()
 	case c.Shortcut(0, ui.KeyL):
 		p.ToggleLoop()
-	case c.Shortcut(0, ui.KeyO):
+	case c.Shortcut(0, ui.KeyO) || c.Shortcut(ui.Ctrl, ui.KeyO):
 		p.pickFile()
+	case c.Shortcut(ui.Ctrl, ui.KeyS):
+		p.SaveScreenshot()
+	case c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyC):
+		p.CopyPath()
+	case c.Shortcut(ui.Ctrl, ui.KeyC):
+		p.CopyCurrentFrame()
+	case c.Shortcut(ui.Alt, ui.KeyEnter):
+		p.ShowFileProperties()
 	case c.Shortcut(0, ui.KeyPeriod):
 		p.FrameStep()
+	case c.Shortcut(0, ui.KeyComma):
+		p.FrameBackStep()
+	case c.Shortcut(0, ui.KeyA):
+		p.SetABLoopA()
+	case c.Shortcut(0, ui.KeyB):
+		p.SetABLoopB()
+	case c.Shortcut(0, ui.KeyV):
+		p.ToggleSubtitleVisible()
+	case c.Shortcut(0, ui.KeyR):
+		p.RotateCW()
+	case c.Shortcut(0, ui.KeyT):
+		p.ToggleAlwaysOnTop()
+	case c.Shortcut(0, ui.KeyE):
+		p.RevealInExplorer()
+	case c.Shortcut(0, ui.KeyI):
+		p.ShowMediaInfo()
+	case c.Shortcut(0, ui.KeyDelete):
+		p.DeleteCurrent()
 	case c.Shortcut(0, ui.KeyEscape):
 		if p.fullscreen {
 			p.ToggleFullScreen()
@@ -922,7 +1019,7 @@ func (p *Player) View(c *ui.Context) {
 	pal := applyVideoTheme(c)
 	p.handleShortcuts(c)
 
-	ui.Column(c).Fill().Background(pal.BgInset).Children(func() {
+	ui.Column(c).Fill().Background(pal.BgInset).ContextMenu(p.buildUIContextMenu).Children(func() {
 		switch {
 		case p.errText != "":
 			p.renderErrorState(c, pal)

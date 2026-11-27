@@ -37,6 +37,8 @@ type Callbacks struct {
 	OnPrefsChange     func(config.PureImageConfig)
 	OnPinImage        func(image.Image)
 	OnCopyText        func(string)
+	OnCopyImage       func(png []byte)
+	OnOpenSettings    func()
 	OnAllClosed       func()
 	ShouldIgnoreSpace func() bool
 	Logf              func(format string, args ...any)
@@ -93,11 +95,13 @@ type Viewer struct {
 	slideshow bool
 	slideStop chan struct{}
 
-	fullscreen bool
-	info       string
+	fullscreen  bool
+	alwaysOnTop bool
+	info        string
 
 	userRotate int
 	flipH      bool
+	flipV      bool
 
 	checkerBmp *ui.Bitmap
 	checkerW   int
@@ -122,6 +126,7 @@ type Viewer struct {
 	animIdx     int
 	animStop    chan struct{}
 	animPlaying bool
+	animPaused  bool
 
 	preloadMu sync.Mutex
 	preload   map[string]preloadEntry
@@ -188,6 +193,8 @@ func (v *Viewer) OpenImage(title string, img image.Image) {
 	v.displayName = title
 	v.userRotate = 0
 	v.flipH = false
+	v.flipV = false
+	v.animPaused = false
 	v.baseImg = img
 	v.currentImg = img
 	v.bmp = ui.NewBitmap(img)
@@ -281,6 +288,7 @@ func (v *Viewer) ensureWindow() {
 		}
 		v.clearPreload()
 		v.releaseChecker()
+		v.alwaysOnTop = false
 		v.win = nil
 		if v.previewWin != nil {
 			pw := v.previewWin
@@ -608,6 +616,8 @@ func (v *Viewer) loadCurrent() {
 	v.stopAnimation()
 	v.userRotate = 0
 	v.flipH = false
+	v.flipV = false
+	v.animPaused = false
 	v.full = false
 	v.fullLoad = false
 	v.exif = ExifData{}
@@ -630,12 +640,12 @@ func (v *Viewer) loadCurrent() {
 
 	if IsAnimatedExt(path) || IsAPNGPath(path) {
 		if v.cb.Headless {
-			frames, firstImg, delays, sw, sh, ex, alpha, err := DecodeAnimation(path, animationDim, 0, false)
+			frames, firstImg, delays, sw, sh, ex, alpha, err := decodeAnimationEx(path, animationDim, 0, false, false)
 			v.applyAnimation(path, seq, frames, firstImg, delays, sw, sh, ex, alpha, err)
 			return
 		}
 		go func() {
-			frames, firstImg, delays, sw, sh, ex, alpha, err := DecodeAnimation(path, animationDim, 0, false)
+			frames, firstImg, delays, sw, sh, ex, alpha, err := decodeAnimationEx(path, animationDim, 0, false, false)
 			if v.closed.Load() {
 				for _, f := range frames {
 					f.ReleasePixels()
@@ -655,13 +665,13 @@ func (v *Viewer) loadCurrent() {
 	}
 
 	if v.cb.Headless {
-		bmp, raw, sw, sh, ex, alpha, err := DecodePreview(path, previewDim, 0, false)
+		bmp, raw, sw, sh, ex, alpha, err := decodePreviewEx(path, previewDim, 0, false, false)
 		v.applyPreview(path, seq, bmp, raw, sw, sh, ex, alpha, err)
 		return
 	}
 
 	go func() {
-		bmp, raw, sw, sh, ex, alpha, err := DecodePreview(path, previewDim, 0, false)
+		bmp, raw, sw, sh, ex, alpha, err := decodePreviewEx(path, previewDim, 0, false, false)
 		if v.closed.Load() {
 			if bmp != nil {
 				bmp.ReleasePixels()
@@ -947,8 +957,9 @@ func (v *Viewer) maybeLoadFull(z float32) {
 	seq := v.seq.Load()
 	rot := v.userRotate
 	flip := v.flipH
+	flipV := v.flipV
 	go func() {
-		bmp, raw, sw, sh, ex, alpha, err := DecodeFull(path, rot, flip)
+		bmp, raw, sw, sh, ex, alpha, err := decodeFullEx(path, rot, flip, flipV)
 		if v.closed.Load() {
 			if bmp != nil {
 				bmp.ReleasePixels()
@@ -1093,7 +1104,7 @@ func (v *Viewer) reloadTransformed() {
 		if v.baseImg == nil {
 			return
 		}
-		img := TransformImage(v.baseImg, 1, v.userRotate, v.flipH)
+		img := TransformImageEx(v.baseImg, 1, v.userRotate, v.flipH, v.flipV)
 		b := img.Bounds()
 		v.currentImg = img
 		v.bmp = ui.NewBitmap(img)
@@ -1113,15 +1124,16 @@ func (v *Viewer) reloadTransformed() {
 	path := v.path
 	rot := v.userRotate
 	flip := v.flipH
+	flipV := v.flipV
 	if IsAnimatedExt(path) || IsAPNGPath(path) {
 		v.stopAnimation()
 		if v.cb.Headless {
-			frames, firstImg, delays, sw, sh, ex, alpha, err := DecodeAnimation(path, animationDim, rot, flip)
+			frames, firstImg, delays, sw, sh, ex, alpha, err := decodeAnimationEx(path, animationDim, rot, flip, flipV)
 			v.applyAnimation(path, seq, frames, firstImg, delays, sw, sh, ex, alpha, err)
 			return
 		}
 		go func() {
-			frames, firstImg, delays, sw, sh, ex, alpha, err := DecodeAnimation(path, animationDim, rot, flip)
+			frames, firstImg, delays, sw, sh, ex, alpha, err := decodeAnimationEx(path, animationDim, rot, flip, flipV)
 			mygo.RunOnMain(func() {
 				v.applyAnimation(path, seq, frames, firstImg, delays, sw, sh, ex, alpha, err)
 			})
@@ -1129,12 +1141,12 @@ func (v *Viewer) reloadTransformed() {
 		return
 	}
 	if v.cb.Headless {
-		bmp, raw, sw, sh, ex, alpha, err := DecodePreview(path, previewDim, rot, flip)
+		bmp, raw, sw, sh, ex, alpha, err := decodePreviewEx(path, previewDim, rot, flip, flipV)
 		v.applyPreview(path, seq, bmp, raw, sw, sh, ex, alpha, err)
 		return
 	}
 	go func() {
-		bmp, raw, sw, sh, ex, alpha, err := DecodePreview(path, previewDim, rot, flip)
+		bmp, raw, sw, sh, ex, alpha, err := decodePreviewEx(path, previewDim, rot, flip, flipV)
 		mygo.RunOnMain(func() {
 			v.applyPreview(path, seq, bmp, raw, sw, sh, ex, alpha, err)
 		})
@@ -1276,7 +1288,8 @@ func (v *Viewer) View(c *ui.Context) {
 		v.updateInfo()
 	}
 
-	root := ui.Box(c.Key("viewer-root")).Fill().Background(ui.Hex("#16181D")).Center().Clip()
+	root := ui.Box(c.Key("viewer-root")).Fill().Background(ui.Hex("#16181D")).Center().Clip().
+		ContextMenu(v.buildContextMenu)
 	if v.bmp != nil && v.prefs.Checkerboard && v.hasAlpha {
 		root = root.Draw(func(p *ui.Painter, r ui.Rect) {
 			dw, dh := v.displayDims()
@@ -1751,7 +1764,7 @@ func (v *Viewer) drawSettings(c *ui.Context) {
 			v.reveal()
 			v.closeMenus()
 		})
-		v.menuRow(c, tr(lang, "copyPath")+" (Ctrl+C)", false, v.path == "", false, func(float32) {
+		v.menuRow(c, tr(lang, "copyPath")+" (Ctrl+Shift+C)", false, v.path == "", false, func(float32) {
 			v.copyPath()
 			v.closeMenus()
 		})
@@ -1929,6 +1942,18 @@ func (v *Viewer) handleKeys(c *ui.Context) {
 	if c.Shortcut(0, ui.KeyRight) {
 		v.next()
 	}
+	if c.Shortcut(0, ui.KeyHome) {
+		v.first()
+	}
+	if c.Shortcut(0, ui.KeyEnd) {
+		v.last()
+	}
+	if c.Shortcut(0, ui.KeySpace) && v.isAnimated() {
+		v.toggleAnimPlay()
+	}
+	if c.Shortcut(0, ui.KeyPeriod) && v.isAnimated() {
+		v.stepAnimFrame()
+	}
 	if c.Shortcut(0, ui.KeyEqual) || c.Shortcut(ui.Shift, ui.KeyEqual) {
 		v.zoomBy(1.25)
 	}
@@ -1941,11 +1966,24 @@ func (v *Viewer) handleKeys(c *ui.Context) {
 	if c.Shortcut(0, ui.Key1) {
 		v.actual()
 	}
-	if c.Shortcut(0, ui.KeyR) {
+	if c.Shortcut(ui.Shift, ui.KeyR) {
+		v.rotateCCW()
+	} else if c.Shortcut(0, ui.KeyR) {
 		v.rotate()
 	}
 	if c.Shortcut(0, ui.KeyH) {
 		v.flip()
+	}
+	if c.Shortcut(0, ui.KeyV) {
+		v.flipVertical()
+	}
+	if c.Shortcut(0, ui.KeyI) {
+		before := v.prefs
+		v.prefs.ShowDetails = !v.prefs.ShowDetails
+		v.applyPrefsDiff(before, true)
+	}
+	if c.Shortcut(0, ui.KeyT) {
+		v.toggleAlwaysOnTop()
 	}
 	if c.Shortcut(0, ui.KeyS) {
 		v.toggleSlideshow()
@@ -1959,14 +1997,22 @@ func (v *Viewer) handleKeys(c *ui.Context) {
 	if c.Shortcut(0, ui.KeyE) {
 		v.reveal()
 	}
+	if c.Shortcut(ui.Alt, ui.KeyEnter) {
+		v.showProperties()
+	}
 	if c.Shortcut(0, ui.KeyDelete) {
 		v.deleteCurrent()
 	}
 	if c.Shortcut(ui.Ctrl, ui.KeyO) {
 		v.openDialog()
 	}
-	if c.Shortcut(ui.Ctrl, ui.KeyC) {
+	if c.Shortcut(ui.Ctrl, ui.KeyS) {
+		v.saveAs()
+	}
+	if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyC) {
 		v.copyPath()
+	} else if c.Shortcut(ui.Ctrl, ui.KeyC) {
+		v.copyImage()
 	}
 	if c.Shortcut(ui.Ctrl, ui.KeyComma) {
 		v.settingsOpen = !v.settingsOpen
@@ -1994,35 +2040,12 @@ func (v *Viewer) pinCurrent() {
 	if !v.canPin() || v.bmp == nil {
 		return
 	}
-	lang := v.prefs.Language
-	if v.currentImg != nil && (v.full || v.path == "" || v.cb.Headless) {
-		v.cb.OnPinImage(v.currentImg)
-		v.showToast(tr(lang, "pinned"))
-		return
-	}
-	path := v.path
-	rot := v.userRotate
-	flip := v.flipH
-	fallback := v.currentImg
-	go func() {
-		bmp, raw, _, _, _, _, err := DecodeFull(path, rot, flip)
-		if bmp != nil {
-			bmp.ReleasePixels()
+	v.resolveFullImage(func(img image.Image) {
+		if v.cb.OnPinImage != nil {
+			v.cb.OnPinImage(img)
+			v.showToast(tr(v.prefs.Language, "pinned"))
 		}
-		img := raw
-		if err != nil || img == nil {
-			img = fallback
-		}
-		if img == nil || v.closed.Load() {
-			return
-		}
-		mygo.RunOnMain(func() {
-			if !v.closed.Load() && v.cb.OnPinImage != nil {
-				v.cb.OnPinImage(img)
-				v.showToast(tr(v.prefs.Language, "pinned"))
-			}
-		})
-	}()
+	})
 }
 
 func (v *Viewer) addFileAssoc() {
@@ -2075,14 +2098,7 @@ func (v *Viewer) copyPath() {
 	if v.path == "" {
 		return
 	}
-	if !v.cb.Headless {
-		if v.cb.OnCopyText != nil {
-			v.cb.OnCopyText(v.path)
-		} else {
-			mygo.Clipboard.WriteText(v.path)
-		}
-	}
-	v.showToast(tr(v.prefs.Language, "copied"))
+	v.copyText(v.path, "copied")
 }
 
 func (v *Viewer) reveal() {

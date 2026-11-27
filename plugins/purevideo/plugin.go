@@ -6,10 +6,13 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"image"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/egoist/mygo"
 
 	"pureutils/pkg/purekit"
 	"pureutils/pkg/purekit/config"
@@ -72,6 +75,28 @@ func (p *Plugin) Init(host purekit.Host) error {
 		},
 		OnOpenSettings: func() {
 			host.OpenSettings(PluginID)
+		},
+		OnCopyText: func(text string) {
+			if cb := host.Clipboard(); cb != nil {
+				_ = cb.WriteText(text, PluginID)
+			} else {
+				mygo.Clipboard.WriteText(text)
+			}
+		},
+		OnCopyImage: func(pngBytes []byte) {
+			if cb := host.Clipboard(); cb != nil {
+				_ = cb.WriteImage(pngBytes, PluginID)
+			} else {
+				mygo.Clipboard.WriteImage(pngBytes)
+			}
+		},
+		CanPin: func() bool {
+			return host.Bus() != nil && host.Bus().Has(purekit.CapImagePin)
+		},
+		OnPinImage: func(img image.Image) {
+			if host.Bus() != nil && img != nil {
+				_ = purekit.CallImagePinImage(context.Background(), host.Bus(), img, 0)
+			}
 		},
 		OnAllClosed: func() {
 			host.NotifyWindowClosed()
