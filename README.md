@@ -66,7 +66,7 @@
 
 ## 下载与安装
 
-- 从 [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases) 下载模块化安装程序 `PureUtils-1.3.0-setup.exe`（已内置裁剪版 `libmpv-2.dll` 与源码交叉编译的 `pureimage_codecs.dll`）。
+- 从 [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases) 下载模块化安装程序 `PureUtils-1.3.1-setup.exe`（已内置裁剪版 `libmpv-2.dll` 与源码交叉编译的 `pureimage_codecs.dll`）。
 - 基于 Inno Setup 的安装包采用单用户目录安装（无需管理员权限），可自由勾选 **完整套件 / PureShot+PureClip / 仅 PureImage / 仅 PureVideo / 仅 PureZip** 以及 `PureMonitor`、右键菜单和文件关联；卸载或取消勾选时自动清理对应注册表、计划任务与快捷方式。
 
 ---
