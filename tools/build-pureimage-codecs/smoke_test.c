@@ -139,8 +139,8 @@ int main(int argc, char** argv) {
         (void)p_exif(res, &exif_len);
 
         if (fc < 1 || fw <= 0 || fh <= 0 || !rgba || rgba_len != (size_t)fw * (size_t)fh * 4) {
-            fprintf(stderr, "Invalid decoded output for %s: fc=%d %dx%d rgba=%p len=%zu\n",
-                path, fc, fw, fh, (const void*)rgba, rgba_len);
+            fprintf(stderr, "Invalid decoded output for %s: fc=%d %dx%d rgba=%p len=%llu\n",
+                path, fc, fw, fh, (const void*)rgba, (unsigned long long)rgba_len);
             p_free(res);
             free(raw);
             return 1;
@@ -154,8 +154,8 @@ int main(int argc, char** argv) {
                 return 1;
             }
         }
-        printf("PASS %s -> frames=%d orig=%dx%d frame0=%dx%d flags=0x%X exif=%zu\n",
-            path, fc, ow, oh, fw, fh, p_flags(res), exif_len);
+        printf("PASS %s -> frames=%d orig=%dx%d frame0=%dx%d flags=0x%X exif=%llu\n",
+            path, fc, ow, oh, fw, fh, p_flags(res), (unsigned long long)exif_len);
         p_free(res);
         free(raw);
     }
