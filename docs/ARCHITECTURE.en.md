@@ -2,7 +2,7 @@
 
 > [简体中文](ARCHITECTURE.md) | **English** | [Back to README](../README.en.md)
 
-PureUtils is structured around a reusable core SDK (**`pkg/purekit`**), five completely decoupled built-in plugins (**`plugins/*`**), and a thin host shell (**`internal/host`**) coordinating the system tray, global hotkeys, unified Settings window, in-app GitHub Releases auto-updater ([`updater.go`](../internal/host/updater.go)), and the **`Alt+Space` Global Plugin Launcher**. The entire stack is **100% Pure Go (`CGO_ENABLED=0`) + MyGo native GPU UI** — no WebView, no JavaScript, no cgo.
+PureUtils is structured around a reusable core SDK (**`pkg/purekit`**), six completely decoupled built-in plugins (**`plugins/*`**), and a thin host shell (**`internal/host`**) coordinating the system tray, global hotkeys, unified Settings window, in-app GitHub Releases auto-updater ([`updater.go`](../internal/host/updater.go)), and the **`Alt+Space` Global Plugin Launcher**. The entire stack is **100% Pure Go (`CGO_ENABLED=0`) + MyGo native GPU UI** — no WebView, no JavaScript, no cgo.
 
 ---
 
@@ -11,13 +11,14 @@ PureUtils is structured around a reusable core SDK (**`pkg/purekit`**), five com
 ```text
 main.go                       MyGo single-instance entry, crash.log wiring, config/modules load, CLI routing
   └─ internal/host            Thin host shell (Host impl, tray, hotkeys, unified Settings, Auto-Updater, Launcher)
-       ├─ builtin_*.go        Conditional build bridges (!nopureshot / !nopureclip / !nopureimage&&!nofreeimage / !nopurevideo / !nopurezip)
+       ├─ builtin_*.go        Conditional build bridges (!nopureshot / !nopureclip / !nopureimage&&!nofreeimage / !nopurevideo / !nopurezip / !nopuremonitor)
        └─ plugins/<id>        Self-contained feature plugins (zero cross-plugin imports, zero internal/* imports)
             ├─ pureshot       PureShot: region/screen capture, 9 vector annotation tools (pureshot/annotate), floating pins
             ├─ pureclip       PureClip: clipboard watcher, SQLite/Blob store, Ditto-style popup, read-only legacy fallback
             ├─ pureimage      PureImage: 40+ image/RAW/animated codecs, TurboJPEG scaling, Spacebar preview, HKCU associations
             ├─ purevideo      PureVideo: bundled trimmed libmpv hardware playback, 21 video formats, subtitles & HKCU associations
-            └─ purezip        PureZip: archive/ pure-Go engine, zipshell/ Explorer context menu & associations, UI manager
+            ├─ purezip        PureZip: archive/ pure-Go engine, zipshell/ Explorer context menu & associations, UI manager
+            └─ puremonitor    PureMonitor: taskbar/edge pill, ADL/NVML/PawnIO sensors & ETW game FPS HUD
   └─ pkg/purekit              Reusable plugin platform SDK (never imports internal/* or plugins/*)
        ├─ purekit             Plugin / Host / Feature / Matcher / SettingsTab / Bus / Typed Contracts
        ├─ purekit/core        Paths / Logger / SetupCrashOutput / Version / Command / Hotkey / ModuleConfig / Color
@@ -39,10 +40,10 @@ Dependency boundaries are automatically enforced on every test run by [`internal
 
 1. **Compile Time (Go Build Tags)**:
    - `nofreeimage` / `nopureimage`: strips PureImage codecs (`avif`, `heic`, `jxl`, `webp`, `wazero`) and optional `turbojpeg.dll` usage (~10 MB binary reduction);
-   - `nopureshot`, `nopureclip`, `nopurevideo`, `nopurezip`: individually omit capture, clipboard history, video player, or archive functionality;
+   - `nopureshot`, `nopureclip`, `nopurevideo`, `nopurezip`, `nopuremonitor`: individually omit capture, clipboard history, video player, archive manager, or hardware monitor functionality;
    - Controlled conveniently via `.\build.ps1 build -CoreOnly` or `.\build.ps1 build -Exclude purezip,pureimage,purevideo`.
 2. **Install Time (`modules.json`)**:
-   - The Inno Setup installer and portable builds write `{capture, history, viewer, video, zip}` into `modules.json`; the host starts `CompiledModules() ∩ modules.json`.
+   - The Inno Setup installer and portable builds write `{capture, history, viewer, video, zip, monitor}` into `modules.json`; the host starts `CompiledModules() ∩ modules.json`.
 3. **Runtime Hot-Toggle (`HostConfig.DisabledModules`) & Auto-Updater**:
    - Users can toggle individual plugins live inside **Settings → General**. The host calls `applyPluginModules(hc)` to start/stop affected plugins cleanly, refreshes tray menus, global hotkeys, and launcher providers, and relies on `Bus.Version()` capability generation counters so plugins automatically re-subscribe when a sibling provider comes back online.
    - **Settings → Advanced** hosts the GitHub Releases auto-updater (`updater.go` with mirror fallback and SHA-256 verification) alongside persistent panic/crash output in `logs/crash.log` via `core.SetupCrashOutput`.

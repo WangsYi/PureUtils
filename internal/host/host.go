@@ -2,6 +2,7 @@ package host
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -249,6 +250,7 @@ func (a *App) HostConfig() config.HostConfig {
 }
 
 func (a *App) SaveHostConfig(cfg config.HostConfig) error {
+	prevHC := a.cfgMgr.Host()
 	if err := a.cfgMgr.SaveHost(cfg); err != nil {
 		if a.log != nil {
 			a.log.Errorf("保存设置失败: %v", err)
@@ -277,7 +279,18 @@ func (a *App) SaveHostConfig(cfg config.HostConfig) error {
 		mygo.Theme.SetSource(mygo.ThemeSource(hc.ThemeSource()))
 		if !isIsolatedTestInstance() {
 			a.ReloadHotkeys()
-			a.applyStartupSetting()
+			startupChanged := hc.Advanced.RunOnStartup != prevHC.Advanced.RunOnStartup ||
+				hc.Advanced.RunElevatedOnStartup != prevHC.Advanced.RunElevatedOnStartup
+			if serr := a.applyStartupSetting(startupChanged); serr != nil {
+				if hc.Advanced.RunElevatedOnStartup && !prevHC.Advanced.RunElevatedOnStartup {
+					hc.Advanced.RunElevatedOnStartup = false
+					_ = a.cfgMgr.SaveHost(hc)
+				}
+				if a.log != nil {
+					a.log.Warnf("更新开机自启失败: %v", serr)
+				}
+				return serr
+			}
 		}
 		if a.ShouldStayInTray() && a.tray == nil {
 			a.createTray()
@@ -717,7 +730,7 @@ func (a *App) Start(args []string) {
 			a.createTray()
 		}
 		if !isIsolatedTestInstance() {
-			a.applyStartupSetting()
+			_ = a.applyStartupSetting(false)
 			if a.updater != nil {
 				go a.updater.CleanupOldDownloads()
 				a.startUpdateScheduler()
@@ -884,16 +897,75 @@ func isIsolatedTestInstance() bool {
 	return strings.TrimSpace(os.Getenv("PUREUTILS_INSTANCE_ID")) != ""
 }
 
-func (a *App) applyStartupSetting() {
+// IsElevated reports whether the host process currently runs with administrator privileges.
+func (a *App) IsElevated() bool {
+	if a.headless {
+		return false
+	}
+	return platform.IsElevated()
+}
+
+// RestartAsAdmin prompts UAC elevation to relaunch PureUtils with administrator privileges.
+func (a *App) RestartAsAdmin() error {
+	if a.headless || platform.IsElevated() {
+		return nil
+	}
+	args := fmt.Sprintf("--wait-pid %d --settings", os.Getpid())
+	if err := platform.RelaunchElevated(args); err != nil {
+		if a.log != nil {
+			a.log.Warnf("以管理员身份重启失败: %v", err)
+		}
+		if errors.Is(err, platform.ErrElevationCanceled) {
+			return errors.New(i18n.S("用户取消了管理员权限授权", "Administrator elevation was canceled"))
+		}
+		return err
+	}
+	if a.log != nil {
+		a.log.Infof("正在以管理员身份重启 PureUtils")
+	}
+	a.Quit()
+	return nil
+}
+
+func (a *App) applyStartupSetting(interactive bool) error {
 	hc := a.HostConfig()
 	args := ""
 	if !a.ModuleEnabled(core.ModuleCapture) && !a.ModuleEnabled(core.ModuleHistory) &&
 		(a.ModuleEnabled(core.ModuleViewer) || a.ModuleEnabled(core.ModuleVideo) || a.ModuleEnabled(core.ModuleZip) || a.ModuleEnabled(core.ModuleMonitor)) {
 		args = "--background"
 	}
-	if err := platform.SetRunOnStartupWithArgs(hc.Advanced.RunOnStartup, args); err != nil && a.log != nil {
-		a.log.Warnf("更新开机自启失败: %v", err)
+	if hc.Advanced.RunOnStartup && hc.Advanced.RunElevatedOnStartup {
+		if err := platform.SetElevatedRunOnStartupWithArgs(true, args, interactive); err != nil {
+			if a.log != nil {
+				a.log.Warnf("更新管理员开机自启失败: %v", err)
+			}
+			if errors.Is(err, platform.ErrElevationCanceled) {
+				return errors.New(i18n.S("需要管理员权限配置计划任务（已取消）", "Administrator approval is required for elevated startup (canceled)"))
+			}
+			return err
+		}
+		return nil
 	}
+	var firstErr error
+	if err := platform.SetElevatedRunOnStartupWithArgs(false, "", interactive); err != nil {
+		if a.log != nil {
+			a.log.Warnf("清理管理员开机自启计划任务失败: %v", err)
+		}
+		if errors.Is(err, platform.ErrElevationCanceled) {
+			firstErr = errors.New(i18n.S("需要管理员权限移除计划任务（已取消）", "Administrator approval is required to remove the elevated task (canceled)"))
+		} else {
+			firstErr = err
+		}
+	}
+	if err := platform.SetRunOnStartupWithArgs(hc.Advanced.RunOnStartup, args); err != nil {
+		if a.log != nil {
+			a.log.Warnf("更新开机自启失败: %v", err)
+		}
+		if firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }
 
 // Updater returns the host self-updater instance.

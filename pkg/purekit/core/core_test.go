@@ -119,3 +119,23 @@ func TestModuleConfig(t *testing.T) {
 		t.Fatalf("LoadModuleConfig = %+v, want %+v", got, cfg)
 	}
 }
+
+func TestStripWaitPIDAndParseArgs(t *testing.T) {
+	pid, rest := StripWaitPID([]string{"--wait-pid", "12345", "--settings"})
+	if pid != 12345 || len(rest) != 1 || rest[0] != "--settings" {
+		t.Fatalf("StripWaitPID space form = (%d, %v)", pid, rest)
+	}
+	pidEq, restEq := StripWaitPID([]string{"--wait-pid=99", "--launcher"})
+	if pidEq != 99 || len(restEq) != 1 || restEq[0] != "--launcher" {
+		t.Fatalf("StripWaitPID eq form = (%d, %v)", pidEq, restEq)
+	}
+	pidBad, restBad := StripWaitPID([]string{"--wait-pid", "not-a-pid", "--settings"})
+	if pidBad != 0 || len(restBad) != 1 || restBad[0] != "--settings" {
+		t.Fatalf("StripWaitPID bad value = (%d, %v)", pidBad, restBad)
+	}
+
+	req := ParseArgs([]string{"--wait-pid", "12345", "--settings"})
+	if !req.HasCommand || req.Command != CmdShowSettings || len(req.Paths) != 0 {
+		t.Fatalf("ParseArgs with --wait-pid = %+v", req)
+	}
+}

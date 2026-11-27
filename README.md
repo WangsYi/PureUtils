@@ -57,10 +57,10 @@
 | :---: | :---: |
 | ![剪贴板历史双栏](docs/screenshots/history.png) | ![剪贴板精简浮窗](docs/screenshots/history-compact.png) |
 
-### 截图与矢量标注（PureShot）、压缩管理（PureZip）与视频浏览（PureVideo）
-| 截图选区与标注 | 压缩文件管理 | 极速视频浏览 |
-| :---: | :---: | :---: |
-| ![截图与标注](docs/screenshots/overlay.png) | ![PureZip 压缩管理](docs/screenshots/zip.png) | ![PureVideo 视频浏览](docs/screenshots/video.png) |
+### 截图与矢量标注（PureShot）、压缩管理（PureZip）、视频浏览（PureVideo）与硬件监控（PureMonitor）
+| 截图选区与标注 | 压缩文件管理 | 极速视频浏览 | 硬件与传感器监控 |
+| :---: | :---: | :---: | :---: |
+| ![截图与标注](docs/screenshots/overlay.png) | ![PureZip 压缩管理](docs/screenshots/zip.png) | ![PureVideo 视频浏览](docs/screenshots/video.png) | ![PureMonitor 硬件监控](docs/screenshots/monitor.png) |
 
 ---
 

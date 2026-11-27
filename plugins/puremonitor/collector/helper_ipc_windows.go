@@ -4,10 +4,15 @@ package collector
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -16,12 +21,41 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"pureutils/pkg/purekit/i18n"
 )
 
-var (
-	modShell32Mon    = windows.NewLazySystemDLL("shell32.dll")
-	procShellExecMon = modShell32Mon.NewProc("ShellExecuteW")
+const (
+	seeMaskNoCloseProcess   = 0x00000040
+	pawnIOSilentInstallArgs = "-install -silent"
 )
+
+// ErrInstallCanceled is returned when the user declines the UAC prompt for PawnIO installation.
+var ErrInstallCanceled = errors.New("administrator authorization canceled")
+
+var (
+	modShell32Mon      = windows.NewLazySystemDLL("shell32.dll")
+	procShellExecMon   = modShell32Mon.NewProc("ShellExecuteW")
+	procShellExecExMon = modShell32Mon.NewProc("ShellExecuteExW")
+)
+
+type shellExecuteInfoW struct {
+	CbSize       uint32
+	FMask        uint32
+	Hwnd         uintptr
+	LpVerb       *uint16
+	LpFile       *uint16
+	LpParameters *uint16
+	LpDirectory  *uint16
+	NShow        int32
+	HInstApp     uintptr
+	LpIDList     uintptr
+	LpClass      *uint16
+	HkeyClass    uintptr
+	DwHotKey     uint32
+	HIconMonitor uintptr
+	HProcess     uintptr
+}
 
 // HelperPIDFPS transfers per-PID frame timing calculated in an elevated helper process.
 type HelperPIDFPS struct {
@@ -69,6 +103,90 @@ func LaunchElevatedExe(exePath, args string, showCmd int32) error {
 			return err
 		}
 		return fmt.Errorf("ShellExecuteW(runas) failed: %d", r)
+	}
+	return nil
+}
+
+// RunPawnIOSilentInstall executes setupPath silently with `-install -silent` and waits for completion.
+// When the current process is not elevated, Windows presents a single UAC prompt before hidden execution.
+func RunPawnIOSilentInstall(ctx context.Context, setupPath string) error {
+	setupPath = strings.TrimSpace(setupPath)
+	if setupPath == "" {
+		return errors.New(i18n.S("未找到 PawnIO 安装包", "PawnIO installer not found"))
+	}
+	if err := validateMZHeader(setupPath); err != nil {
+		return err
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if windows.GetCurrentProcessToken().IsElevated() {
+		runCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		defer cancel()
+		cmd := exec.CommandContext(runCtx, setupPath, "-install", "-silent")
+		cmd.Dir = filepath.Dir(setupPath)
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			if errors.Is(runCtx.Err(), context.Canceled) {
+				return context.Canceled
+			}
+			if errors.Is(runCtx.Err(), context.DeadlineExceeded) {
+				return errors.New(i18n.S("PawnIO 静默安装超时", "PawnIO silent installation timed out"))
+			}
+			msg := strings.TrimSpace(string(out))
+			if msg != "" {
+				return fmt.Errorf("%s (%v: %s)", i18n.S("PawnIO 静默安装失败", "PawnIO silent installation failed"), err, msg)
+			}
+			return fmt.Errorf("%s (%v)", i18n.S("PawnIO 静默安装失败", "PawnIO silent installation failed"), err)
+		}
+		return nil
+	}
+
+	verb, _ := windows.UTF16PtrFromString("runas")
+	file, _ := windows.UTF16PtrFromString(setupPath)
+	params, _ := windows.UTF16PtrFromString(pawnIOSilentInstallArgs)
+	dir, _ := windows.UTF16PtrFromString(filepath.Dir(setupPath))
+	sei := shellExecuteInfoW{
+		CbSize:       uint32(unsafe.Sizeof(shellExecuteInfoW{})),
+		FMask:        seeMaskNoCloseProcess,
+		LpVerb:       verb,
+		LpFile:       file,
+		LpParameters: params,
+		LpDirectory:  dir,
+		NShow:        windows.SW_HIDE,
+	}
+	r, _, callErr := procShellExecExMon.Call(uintptr(unsafe.Pointer(&sei)))
+	runtime.KeepAlive(verb)
+	runtime.KeepAlive(file)
+	runtime.KeepAlive(params)
+	runtime.KeepAlive(dir)
+	if r == 0 {
+		if callErr == windows.ERROR_CANCELLED {
+			return ErrInstallCanceled
+		}
+		return fmt.Errorf("%s (%v)", i18n.S("启动 PawnIO 安装程序失败", "Failed to launch PawnIO installer"), callErr)
+	}
+	if sei.HProcess == 0 {
+		return errors.New(i18n.S("未能获取 PawnIO 安装进程句柄", "Failed to obtain PawnIO installer process handle"))
+	}
+	h := windows.Handle(sei.HProcess)
+	defer windows.CloseHandle(h)
+
+	ev, werr := windows.WaitForSingleObject(h, uint32((2*time.Minute).Milliseconds()))
+	if ev == uint32(windows.WAIT_TIMEOUT) {
+		return errors.New(i18n.S("PawnIO 静默安装超时", "PawnIO silent installation timed out"))
+	}
+	if ev != windows.WAIT_OBJECT_0 {
+		return fmt.Errorf("%s (%w)", i18n.S("等待 PawnIO 安装完成失败", "Failed waiting for PawnIO installer"), werr)
+	}
+	var exitCode uint32
+	if err := windows.GetExitCodeProcess(h, &exitCode); err != nil {
+		return fmt.Errorf("%s (%w)", i18n.S("获取 PawnIO 安装结果失败", "Failed to read PawnIO installer exit code"), err)
+	}
+	if exitCode != 0 {
+		return fmt.Errorf("%s (%d)", i18n.S("PawnIO 安装程序退出码异常", "PawnIO installer exited with code"), exitCode)
 	}
 	return nil
 }

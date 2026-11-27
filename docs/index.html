@@ -583,7 +583,7 @@
       <div class="hero-copy">
         <h1 data-i18n="hero_title">轻快、克制的 Windows 原生效率工具集。</h1>
         <p class="hero-desc" data-i18n="hero_desc">
-          把日常高频的截图贴图、剪贴板历史、多格式看图、极速视频浏览与压缩管理收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪、设置页实时开关与自动更新。
+          把日常高频的截图贴图、剪贴板历史、多格式看图、极速视频浏览、压缩管理与硬件/帧率监控收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪、设置页实时开关与自动更新。
         </p>
         <div class="hero-actions">
           <a class="btn-primary" href="https://github.com/WangsYi/PureUtils/releases/latest" target="_blank" rel="noopener" data-i18n="cta_download">下载安装程序 · v1.3.0</a>
@@ -606,6 +606,7 @@
           <button class="stage-tab" data-shot="screenshots/viewer.png" data-key="viewer" data-i18n="tab_viewer">极速看图</button>
           <button class="stage-tab" data-shot="screenshots/video.png" data-key="video" data-i18n="tab_video">极速视频</button>
           <button class="stage-tab" data-shot="screenshots/zip.png" data-key="zip" data-i18n="tab_zip">压缩管理</button>
+          <button class="stage-tab" data-shot="screenshots/monitor.png" data-key="monitor" data-i18n="tab_monitor">硬件监控</button>
           <button class="stage-tab" data-shot="screenshots/settings.png" data-key="settings" data-i18n="tab_settings">系统设置</button>
         </div>
         <div class="stage-caption-row">
@@ -618,7 +619,7 @@
     <!-- Features Story Chapters -->
     <section id="features" class="section">
       <div class="section-head">
-        <h2 data-i18n="feat_title">五大独立组件，按需协同</h2>
+        <h2 data-i18n="feat_title">六大独立组件，按需协同</h2>
         <p data-i18n="feat_sub">每个工具都可独立启用或彻底裁剪；当同时开启时，通过统一能力总线自然衔接操作流。</p>
       </div>
 
@@ -755,7 +756,32 @@
         </div>
       </article>
 
-      <!-- 06 Launcher + Settings & Auto-Update -->
+      <!-- 06 PureMonitor -->
+      <article class="chapter rev">
+        <div class="chapter-copy">
+          <div class="chapter-kicker">
+            <img src="assets/monitor.png" alt="PureMonitor" />
+            <span>06 · PureMonitor</span>
+          </div>
+          <h3 data-i18n="pm_title">任务栏监控、可收起悬浮胶囊与硬件传感器面板</h3>
+          <p data-i18n="pm_desc">常驻系统任务栏或贴边自动收起为轻量迷你胶囊，实时呈现处理器、显卡、内存、磁盘、网速与温度功耗，并支持零注入 ETW 游戏帧率悬浮监控。</p>
+          <ul class="chapter-points">
+            <li data-i18n="pm_li1">任务栏紧凑监控条与边缘感知收起胶囊，支持自选 1–2 项收起核心指标</li>
+            <li data-i18n="pm_li2">集成 AMD ADL、NVML、PDH 与可选 PawnIO / 提权传感器采集，实时记录曲线</li>
+            <li data-i18n="pm_li3">原生零注入 ETW 游戏帧率（FPS / 1% Low / Frametime）HUD 与完整硬件规格面板</li>
+          </ul>
+          <div class="chapter-keys">
+            <kbd>--monitor</kbd>
+          </div>
+        </div>
+        <div class="chapter-media">
+          <div class="studio-mat">
+            <img class="win-shot zoomable" src="screenshots/monitor.png" alt="PureMonitor 硬件监控与传感器面板" />
+          </div>
+        </div>
+      </article>
+
+      <!-- 07 Launcher + Settings & Auto-Update -->
       <div class="duo-grid">
         <div class="duo-card">
           <div class="studio-mat duo-mat">
@@ -772,8 +798,8 @@
             <img class="win-shot zoomable" src="screenshots/settings.png" alt="PureUtils 系统设置与自动更新" />
           </div>
           <div class="duo-copy">
-            <h3 data-i18n="s_title">模块热开关、双语切换、热键接管与自动更新</h3>
-            <p data-i18n-html="s_desc_html">设置中心支持实时启停五大组件、中英双语（简体中文 / English）无需重启切换、录制并接管 <kbd>Win+</kbd> 热键，并内置应用内自动更新与 SHA-256 校验。</p>
+            <h3 data-i18n="s_title">模块热开关、双语切换、热键接管与提权自启</h3>
+            <p data-i18n-html="s_desc_html">设置中心支持实时启停六大组件、中英双语（简体中文 / English）无需重启切换、录制并接管 <kbd>Win+</kbd> 热键、一键管理员重启与免 UAC 自启，并内置应用内自动更新与 SHA-256 校验。</p>
           </div>
         </div>
       </div>
@@ -825,54 +851,62 @@
           <!-- Layer 2: Unified Host -->
           <rect x="24" y="132" width="912" height="74" rx="10" fill="var(--surface)" stroke="var(--border-strong)" stroke-width="1.5" />
           <text id="svgHTitle" x="480" y="159" text-anchor="middle" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">统一原生桌面宿主（Unified Desktop Host）</text>
-          <text id="svgHSub" x="480" y="185" text-anchor="middle" fill="var(--ink-secondary)" font-size="12.5" font-family="var(--sans)">单实例调度   ·   上下文快捷启动器   ·   热键与 Win 键接管   ·   模块热开关   ·   应用内自动更新</text>
+          <text id="svgHSub" x="480" y="185" text-anchor="middle" fill="var(--ink-secondary)" font-size="12" font-family="var(--sans)">单实例调度   ·   上下文启动器   ·   热键与 Win 键接管   ·   模块热开关   ·   免 UAC 提权自启   ·   自动更新</text>
 
           <!-- Connectors Layer 2 -> Layer 3 -->
-          <line x1="110" y1="206" x2="110" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="295" y1="206" x2="295" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="480" y1="206" x2="480" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="665" y1="206" x2="665" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="850" y1="206" x2="850" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="95" y1="206" x2="95" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="249" y1="206" x2="249" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="403" y1="206" x2="403" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="557" y1="206" x2="557" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="711" y1="206" x2="711" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
+          <line x1="865" y1="206" x2="865" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
 
-          <!-- Layer 3: Five Independent Modules -->
+          <!-- Layer 3: Six Independent Modules -->
           <text id="svgL3" x="24" y="236" fill="var(--ink-muted)" font-size="11.5" font-weight="600" letter-spacing="0.04em" font-family="var(--mono)">02 · 可插拔功能模块（零互相依赖，支持独立裁剪与热开关）</text>
 
-          <rect x="24" y="250" width="172" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="38" y="278" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">PureShot</text>
-          <text x="182" y="278" text-anchor="end" fill="var(--accent)" font-size="10.5" font-family="var(--mono)">capture</text>
-          <text id="svgM1" x="38" y="302" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">区域冻结 · 9种矢量标注</text>
-          <text id="svgM1b" x="38" y="321" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">取色放大镜 · 悬浮贴图</text>
+          <rect x="24" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="34" y="278" fill="var(--ink)" font-size="12.5" font-weight="650" font-family="var(--sans)">PureShot</text>
+          <text x="156" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">capture</text>
+          <text id="svgM1" x="34" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">区域冻结 · 9种标注</text>
+          <text id="svgM1b" x="34" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">取色器 · 悬浮贴图</text>
 
-          <rect x="209" y="250" width="172" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="223" y="278" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">PureClip</text>
-          <text x="367" y="278" text-anchor="end" fill="var(--accent)" font-size="10.5" font-family="var(--mono)">history</text>
-          <text id="svgM2" x="223" y="302" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">历史记录 · 即时检索</text>
-          <text id="svgM2b" x="223" y="321" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">分类收藏 · 隐私忽略</text>
+          <rect x="178" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="188" y="278" fill="var(--ink)" font-size="12.5" font-weight="650" font-family="var(--sans)">PureClip</text>
+          <text x="310" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">history</text>
+          <text id="svgM2" x="188" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">历史记录 · 即时检索</text>
+          <text id="svgM2b" x="188" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">分类收藏 · 隐私忽略</text>
 
-          <rect x="394" y="250" width="172" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="408" y="278" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">PureImage</text>
-          <text x="552" y="278" text-anchor="end" fill="var(--accent)" font-size="10.5" font-family="var(--mono)">viewer</text>
-          <text id="svgM3" x="408" y="302" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">40+ 图片与相机 RAW</text>
-          <text id="svgM3b" x="408" y="321" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">EXIF · 空格秒开预览</text>
+          <rect x="332" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="342" y="278" fill="var(--ink)" font-size="12.5" font-weight="650" font-family="var(--sans)">PureImage</text>
+          <text x="464" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">viewer</text>
+          <text id="svgM3" x="342" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">40+ 图片与相机 RAW</text>
+          <text id="svgM3b" x="342" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">EXIF · 空格秒开预览</text>
 
-          <rect x="579" y="250" width="172" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="593" y="278" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">PureVideo</text>
-          <text x="737" y="278" text-anchor="end" fill="var(--accent)" font-size="10.5" font-family="var(--mono)">video</text>
-          <text id="svgM4" x="593" y="302" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">内置裁剪 libmpv 硬解</text>
-          <text id="svgM4b" x="593" y="321" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">21种格式 · 外挂字幕</text>
+          <rect x="486" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="496" y="278" fill="var(--ink)" font-size="12.5" font-weight="650" font-family="var(--sans)">PureVideo</text>
+          <text x="618" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">video</text>
+          <text id="svgM4" x="496" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">内置 libmpv 硬解</text>
+          <text id="svgM4b" x="496" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">21种格式 · 外挂字幕</text>
 
-          <rect x="764" y="250" width="172" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="778" y="278" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">PureZip</text>
-          <text x="922" y="278" text-anchor="end" fill="var(--accent)" font-size="10.5" font-family="var(--mono)">zip</text>
-          <text id="svgM5" x="778" y="302" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">ZIP / 7Z / TAR / RAR</text>
-          <text id="svgM5b" x="778" y="321" fill="var(--ink-secondary)" font-size="11" font-family="var(--sans)">智能解压 · AES 加密</text>
+          <rect x="640" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="650" y="278" fill="var(--ink)" font-size="12.5" font-weight="650" font-family="var(--sans)">PureZip</text>
+          <text x="772" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">zip</text>
+          <text id="svgM5" x="650" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">ZIP/7Z/TAR/RAR</text>
+          <text id="svgM5b" x="650" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">智能解压 · AES 加密</text>
+
+          <rect x="794" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
+          <text x="804" y="278" fill="var(--ink)" font-size="12" font-weight="650" font-family="var(--sans)">PureMonitor</text>
+          <text x="926" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">monitor</text>
+          <text id="svgM6" x="804" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">任务栏 · 边缘胶囊</text>
+          <text id="svgM6b" x="804" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">传感器 · ETW 帧率</text>
 
           <!-- Bus Links Modules <-> Bus Rail -->
-          <line x1="110" y1="336" x2="110" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="295" y1="336" x2="295" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="480" y1="336" x2="480" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="665" y1="336" x2="665" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="850" y1="336" x2="850" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="95" y1="336" x2="95" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="249" y1="336" x2="249" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="403" y1="336" x2="403" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="557" y1="336" x2="557" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="711" y1="336" x2="711" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
+          <line x1="865" y1="336" x2="865" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
 
           <!-- Capability Collaboration Bus -->
           <rect x="24" y="366" width="912" height="52" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.2" />
@@ -909,7 +943,7 @@
         <p data-i18n="dl_desc">PureUtils 以 GNU AGPL-3.0 协议开源，提供单用户安装程序，可自由选择完整套件或单独安装任意组件。</p>
       </div>
       <div class="hero-actions" style="margin-bottom:0">
-        <a class="btn-primary" href="https://github.com/WangsYi/PureUtils/releases/latest" target="_blank" rel="noopener" data-i18n="dl_btn">下载 PureUtils-1.3.0-setup.exe (24.4 MB)</a>
+        <a class="btn-primary" href="https://github.com/WangsYi/PureUtils/releases/latest" target="_blank" rel="noopener" data-i18n="dl_btn">下载 PureUtils-1.3.0-setup.exe (25.0 MB)</a>
         <a class="btn-secondary" href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener" data-i18n="dl_gh">访问 GitHub</a>
       </div>
     </section>
@@ -959,8 +993,12 @@
           caption: "多格式压缩包目录浏览、包内直接预览图片与智能解压归档",
           keys: "<kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>Enter</kbd>"
         },
+        monitor: {
+          caption: "任务栏监控条、贴边收起迷你胶囊、硬件传感器与零注入 ETW 游戏帧率 HUD",
+          keys: "<kbd>--monitor</kbd>"
+        },
         settings: {
-          caption: "按组件独立划分设置分区，支持自定义热键、实时启停模块与自动更新",
+          caption: "按组件独立划分设置分区，支持自定义热键、提权重启与免 UAC 自启、实时启停模块与自动更新",
           keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> → 设置"
         }
       },
@@ -989,8 +1027,12 @@
           caption: "Multi-format archive tree navigation, in-archive image preview, and smart extract",
           keys: "<kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>Enter</kbd>"
         },
+        monitor: {
+          caption: "Taskbar telemetry, edge-docked floating pill, hardware sensors, and zero-injection ETW game FPS HUD",
+          keys: "<kbd>--monitor</kbd>"
+        },
         settings: {
-          caption: "Clean per-module tabs with hotkey conflict detection, live toggles, and auto-updater",
+          caption: "Clean per-module tabs with hotkey conflict detection, elevated restart, live toggles, and auto-updater",
           keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> → Settings"
         }
       }
@@ -1008,18 +1050,20 @@
         svgE4T: "命令行与文件关联",
         svgE4S: "单实例接管 · 双击图片/视频/压缩包",
         svgHTitle: "统一原生桌面宿主（Unified Desktop Host）",
-        svgHSub: "单实例调度   ·   上下文快捷启动器   ·   热键与 Win 键接管   ·   模块热开关   ·   应用内自动更新",
+        svgHSub: "单实例调度   ·   上下文启动器   ·   热键与 Win 键接管   ·   模块热开关   ·   免 UAC 提权自启   ·   自动更新",
         svgL3: "02 · 可插拔功能模块（零互相依赖，支持独立裁剪与热开关）",
-        svgM1: "区域冻结 · 9种矢量标注",
-        svgM1b: "取色放大镜 · 悬浮贴图",
+        svgM1: "区域冻结 · 9种标注",
+        svgM1b: "取色器 · 悬浮贴图",
         svgM2: "历史记录 · 即时检索",
         svgM2b: "分类收藏 · 隐私忽略",
         svgM3: "40+ 图片与相机 RAW",
         svgM3b: "EXIF · 空格秒开预览",
-        svgM4: "内置裁剪 libmpv 硬解",
+        svgM4: "内置 libmpv 硬解",
         svgM4b: "21种格式 · 外挂字幕",
-        svgM5: "ZIP / 7Z / TAR / RAR",
+        svgM5: "ZIP/7Z/TAR/RAR",
         svgM5b: "智能解压 · AES 加密",
+        svgM6: "任务栏 · 边缘胶囊",
+        svgM6b: "传感器 · ETW 帧率",
         svgBusTitle: "跨模块能力协作总线（Capability Bus · 按需联动，禁用自动降级）",
         svgBusSub: "剪贴板 / 压缩包直连 PureImage 看图   ·   看图 / 剪贴板转为 PureShot 贴图   ·   启动器上下文路由 PureVideo 播放",
         svgBaseTitle: "原生运行时底座（Native Desktop Foundation）",
@@ -1036,18 +1080,20 @@
         svgE4T: "CLI & File Associations",
         svgE4S: "Single Instance · Images/Video/Zips",
         svgHTitle: "Unified Native Desktop Host",
-        svgHSub: "Single-Instance   ·   Context Launcher   ·   Hotkey & Win-Key Arbiter   ·   Live Toggles   ·   Auto-Updater",
+        svgHSub: "Single-Instance   ·   Context Launcher   ·   Hotkey Arbiter   ·   Live Toggles   ·   Admin Logon   ·   Auto-Updater",
         svgL3: "02 · DECOUPLED FUNCTIONAL MODULES (INDEPENDENT & HOT-TOGGLEABLE)",
-        svgM1: "Snap · 9 Vector Tools",
-        svgM1b: "Magnifier · Floating Pins",
-        svgM2: "History · Instant Search",
-        svgM2b: "Filters · Privacy Rules",
-        svgM3: "40+ Image & RAW Codecs",
-        svgM3b: "EXIF · Spacebar Preview",
-        svgM4: "Built-in libmpv Decode",
-        svgM4b: "21 Formats · Subtitles",
-        svgM5: "ZIP / 7Z / TAR / RAR",
-        svgM5b: "Smart Extract · AES-256",
+        svgM1: "Snap · 9 Tools",
+        svgM1b: "Magnifier · Pins",
+        svgM2: "History · Search",
+        svgM2b: "Filters · Privacy",
+        svgM3: "40+ Image / RAW",
+        svgM3b: "EXIF · Space View",
+        svgM4: "Built-in libmpv",
+        svgM4b: "21 Formats · Subs",
+        svgM5: "ZIP/7Z/TAR/RAR",
+        svgM5b: "Smart Extract · AES",
+        svgM6: "Taskbar · Edge Pill",
+        svgM6b: "Sensors · ETW FPS",
         svgBusTitle: "Cross-Module Capability Bus (Optional Collaboration with Graceful Fallback)",
         svgBusSub: "Clip / Zip → PureImage View   ·   Image / Clip → PureShot Pin   ·   Launcher Routes Context → PureVideo",
         svgBaseTitle: "Native Desktop Runtime Foundation",
@@ -1062,7 +1108,7 @@
         nav_arch: "架构",
         nav_download: "下载",
         hero_title: "轻快、克制的 Windows 原生效率工具集。",
-        hero_desc: "把日常高频的截图贴图、剪贴板历史、多格式看图、极速视频浏览与压缩管理收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪、设置页实时开关与自动更新。",
+        hero_desc: "把日常高频的截图贴图、剪贴板历史、多格式看图、极速视频浏览、压缩管理与硬件/帧率监控收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪、设置页实时开关与自动更新。",
         cta_download: "下载安装程序 · v1.3.0",
         cta_repo: "GitHub 仓库",
         hero_spec: "Windows 10/11 64 位 · 原生 GPU 渲染（零 WebView） · GNU AGPL-3.0 开源 · 单用户安装免管理员权限",
@@ -1072,8 +1118,9 @@
         tab_viewer: "极速看图",
         tab_video: "极速视频",
         tab_zip: "压缩管理",
+        tab_monitor: "硬件监控",
         tab_settings: "系统设置",
-        feat_title: "五大独立组件，按需协同",
+        feat_title: "六大独立组件，按需协同",
         feat_sub: "每个工具都可独立启用或彻底裁剪；当同时开启时，通过统一能力总线自然衔接操作流。",
         pc_title: "呼出即搜的剪贴板历史",
         pc_desc: "提供精简浮窗与双栏详情两种视图，呼出瞬间自动聚焦搜索框；直接键入关键词即可在本地历史中完成即时多词过滤。",
@@ -1100,10 +1147,15 @@
         pz_li1: "覆盖 ZIP、7Z、RAR（只读）与 TAR 家族压缩格式，支持 AES-256 加密与文件名编码切换",
         pz_li2: "双击压缩包内图片直接调用 PureImage 浏览，免去手动先解压",
         pz_li3: "内置清晰的资源管理器右键级联菜单，安装时可按需开启",
+        pm_title: "任务栏监控、可收起悬浮胶囊与硬件传感器面板",
+        pm_desc: "常驻系统任务栏或贴边自动收起为轻量迷你胶囊，实时呈现处理器、显卡、内存、磁盘、网速与温度功耗，并支持零注入 ETW 游戏帧率悬浮监控。",
+        pm_li1: "任务栏紧凑监控条与边缘感知收起胶囊，支持自选 1–2 项收起核心指标",
+        pm_li2: "集成 AMD ADL、NVML、PDH 与可选 PawnIO / 提权传感器采集，实时记录曲线",
+        pm_li3: "原生零注入 ETW 游戏帧率（FPS / 1% Low / Frametime）HUD 与完整硬件规格面板",
         l_title: "全局上下文启动器",
         l_desc_html: '按下 <kbd>Alt+Space</kbd> 实时感知当前资源管理器选中文件与剪贴板内容，给出智能解压、看图、看视频或贴图建议，并支持统一检索插件功能与剪贴板历史。',
-        s_title: "模块热开关、双语切换、热键接管与自动更新",
-        s_desc_html: '设置中心支持实时启停五大组件、中英双语（简体中文 / English）无需重启切换、录制并接管 <kbd>Win+</kbd> 热键，并内置应用内自动更新与 SHA-256 校验。',
+        s_title: "模块热开关、双语切换、热键接管与提权自启",
+        s_desc_html: '设置中心支持实时启停六大组件、中英双语（简体中文 / English）无需重启切换、录制并接管 <kbd>Win+</kbd> 热键、一键管理员重启与免 UAC 自启，并内置应用内自动更新与 SHA-256 校验。',
         arch_title: "模块化架构设计",
         arch_sub: "宿主调度、功能模块与原生系统底座严格分层。模块之间通过统一能力总线解耦协作，停用任意模块都不会破坏整体运行。",
         pil_1_t: "三层自由组合",
@@ -1114,7 +1166,7 @@
         pil_3_d: "全套界面直接依托原生 GPU 管线绘制，不嵌入 Web 浏览器内核，安装目录干净独立且兼容已有历史记录。",
         dl_title: "下载与开源许可",
         dl_desc: "PureUtils 以 GNU AGPL-3.0 协议开源，提供单用户安装程序，可自由选择完整套件或单独安装任意组件。",
-        dl_btn: "下载 PureUtils-1.3.0-setup.exe (24.4 MB)",
+        dl_btn: "下载 PureUtils-1.3.0-setup.exe (25.0 MB)",
         dl_gh: "访问 GitHub",
         f_arch: "详细架构"
       },
@@ -1124,7 +1176,7 @@
         nav_arch: "Architecture",
         nav_download: "Download",
         hero_title: "Fast, focused native utilities for Windows.",
-        hero_desc: "Screenshot & desktop pins, clipboard history, fast image & video browsing, and archive management unified in one native desktop app. Zero embedded browser engine, instant launch, live module toggles, and built-in auto-updates.",
+        hero_desc: "Screenshot & desktop pins, clipboard history, fast image & video browsing, archive management, and hardware/FPS monitoring unified in one native desktop app. Zero embedded browser engine, instant launch, live module toggles, and built-in auto-updates.",
         cta_download: "Download Installer · v1.3.0",
         cta_repo: "GitHub Repository",
         hero_spec: "Windows 10/11 x64 · Native GPU UI (Zero WebView) · GNU AGPL-3.0 · Per-user installer",
@@ -1134,8 +1186,9 @@
         tab_viewer: "Viewer",
         tab_video: "Video",
         tab_zip: "Archive",
+        tab_monitor: "Monitor",
         tab_settings: "Settings",
-        feat_title: "Five Independent Modules, Connected When Needed",
+        feat_title: "Six Independent Modules, Connected When Needed",
         feat_sub: "Install only what you need or switch tools live inside Settings. Enabled modules cooperate smoothly across a shared capability bus.",
         pc_title: "Instant Keyboard-First Clipboard History",
         pc_desc: "Switch cleanly between a compact quick popup and a dual-column inspector. Search focuses immediately on open and filters multi-word queries across local history in real time.",
@@ -1162,10 +1215,15 @@
         pz_li1: "Handles ZIP, 7Z, TAR families, and RAR (read), with AES-256 encryption and filename encoding switching",
         pz_li2: "Double-click archived images to preview directly in PureImage without extracting first",
         pz_li3: "Ships a clean cascading Windows Explorer right-click menu configurable during setup",
+        pm_title: "Taskbar Strip, Collapsible Edge Pill & Hardware Sensor Dashboard",
+        pm_desc: "Sits unobtrusively on the taskbar or collapses into a sleek screen-edge pill, tracking CPU, GPU, RAM, disk, network, temps/power, and zero-injection ETW game FPS overlays.",
+        pm_li1: "Compact taskbar monitor and edge-aware collapsed pill with 1–2 customizable metrics",
+        pm_li2: "Unified AMD ADL, NVML, PDH, and optional PawnIO / elevated sensor collection with sparkline history",
+        pm_li3: "Zero-injection ETW game FPS / 1% Low / frametime HUD alongside detailed hardware inventory",
         l_title: "Global Contextual Launcher",
         l_desc_html: 'Press <kbd>Alt+Space</kbd> to detect selected Explorer files and clipboard items, surfacing Smart Extract, Image View, Video Playback, Pin, and live history matches in one panel.',
-        s_title: "Live Modules, Bilingual i18n, Hotkeys & Auto-Updater",
-        s_desc_html: 'Toggle all five modules live, switch between English and Simplified Chinese without restarting, intercept <kbd>Win+</kbd> hotkeys, and update in-app via GitHub Releases with SHA-256 verification.',
+        s_title: "Live Modules, Bilingual i18n, Hotkeys & Admin Logon",
+        s_desc_html: 'Toggle all six modules live, switch between English and Simplified Chinese without restarting, intercept <kbd>Win+</kbd> hotkeys, restart elevated or enable UAC-free admin logon, and update in-app via GitHub Releases with SHA-256 verification.',
         arch_title: "Modular Layered Architecture",
         arch_sub: "The desktop host, independent feature modules, and native platform foundation sit in clean layers. Sibling modules stay strictly decoupled and degrade gracefully when turned off.",
         pil_1_t: "Flexible Composition",
@@ -1176,7 +1234,7 @@
         pil_3_d: "Every window renders directly via native GPU graphics with zero embedded browser runtime, keeping startup instant and data isolated.",
         dl_title: "Download & Open Source License",
         dl_desc: "PureUtils is open source under GNU AGPL-3.0. Download the per-user installer and customize your active toolset freely.",
-        dl_btn: "Download PureUtils-1.3.0-setup.exe (24.4 MB)",
+        dl_btn: "Download PureUtils-1.3.0-setup.exe (25.0 MB)",
         dl_gh: "View on GitHub",
         f_arch: "Architecture Docs"
       }

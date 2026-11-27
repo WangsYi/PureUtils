@@ -626,6 +626,7 @@ func TestPawnIOAutoEnableOnFreshInitAndInstalledCardUI(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(modDir, "AMDFamily17.bin"), make([]byte, 64), 0o600)
 
 	sv := newSettingsTabView(p, h)
+	sv.sensorMgr.SetDriverCheckFn(func() bool { return true })
 	sv.sensorMgr.Status()
 	tt := ui.NewTester(func(c *ui.Context) {
 		pal := pureui.ApplyTheme(c)
@@ -636,11 +637,100 @@ func TestPawnIOAutoEnableOnFreshInitAndInstalledCardUI(t *testing.T) {
 		})
 	}, 720, 1800)
 	tt.Frame()
-	if tt.HasText("Install PawnIO Driver") {
-		t.Fatal("should not offer Install PawnIO Driver when driver is already installed locally")
+	if tt.HasText("Install PawnIO Driver") || tt.HasText("Download & Install PawnIO") {
+		t.Fatal("should not offer Install/Download PawnIO when driver is already installed locally")
 	}
 	if !tt.HasText("Start Elevated Sensor Helper") || !tt.HasText("Update Modules") {
 		t.Fatalf("expected elevated helper and update modules actions when driver+modules ready, texts=%v", tt.Texts())
+	}
+}
+
+func TestPawnIOUninstalledCardShowsDownloadAndInstallButton(t *testing.T) {
+	prevDetect := detectPawnIOInstalled
+	detectPawnIOInstalled = func() bool { return false }
+	defer func() { detectPawnIOInstalled = prevDetect }()
+
+	prevPref, prevLang := i18n.Preference(), i18n.Current()
+	defer func() {
+		i18n.SetPreference(prevPref)
+		i18n.Set(prevLang)
+	}()
+	i18n.SetPreference(i18n.PrefEN)
+	i18n.Set(i18n.LangEN)
+
+	h := newMockMonitorHost(t)
+	p := NewPlugin()
+	if err := p.Init(h); err != nil {
+		t.Fatal(err)
+	}
+	defer p.Stop()
+
+	sv := newSettingsTabView(p, h)
+	var installed bool
+	sv.sensorMgr.SetDriverCheckFn(func() bool { return installed })
+	sv.sensorMgr.SetInstallFn(func(_ context.Context, _ string) error {
+		installed = true
+		return nil
+	})
+
+	renderTab := func() *ui.Tester {
+		tt := ui.NewTester(func(c *ui.Context) {
+			pal := pureui.ApplyTheme(c)
+			ui.Scroll(c).Fill().Children(func() {
+				ui.Column(c).Padding(16).Gap(12).Children(func() {
+					sv.Render(c, pal)
+				})
+			})
+		}, 720, 1800)
+		tt.Frame()
+		return tt
+	}
+
+	// 1. Fresh uninstalled state shows primary one-click "Download & Install PawnIO".
+	tt1 := renderTab()
+	if !tt1.HasText("Download & Install PawnIO") {
+		t.Fatalf("expected Download & Install PawnIO button when nothing downloaded, texts=%v", tt1.Texts())
+	}
+	if tt1.HasText("Install PawnIO Driver") {
+		t.Fatal("did not expect Install PawnIO Driver before PawnIO_setup.exe is downloaded")
+	}
+
+	// 2. When PawnIO_setup.exe + modules exist locally (e.g. UAC canceled earlier), offer silent install retry + redownload.
+	modDir := filepath.Join(h.Paths().PluginDir(PluginID), "sensors")
+	_ = os.MkdirAll(modDir, 0o755)
+	exe := make([]byte, 2048)
+	exe[0], exe[1] = 'M', 'Z'
+	if err := os.WriteFile(filepath.Join(modDir, "PawnIO_setup.exe"), exe, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(modDir, "IntelMSR.bin"), make([]byte, 64), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	tt2 := renderTab()
+	if !tt2.HasText("Install PawnIO Driver") || !tt2.HasText("Redownload & Install") {
+		t.Fatalf("expected Install PawnIO Driver and Redownload & Install buttons when setup+modules ready, texts=%v", tt2.Texts())
+	}
+
+	// 3. Running silent install auto-enables PawnIOEnabled once driver+modules are ready.
+	doneCh := make(chan struct{})
+	sv.sensorMgr.SetOnChange(func() {
+		sv.onSensorProgressChanged()
+		if !sv.sensorMgr.Progress().Active {
+			select {
+			case <-doneCh:
+			default:
+				close(doneCh)
+			}
+		}
+	})
+	sv.sensorMgr.StartSilentInstall()
+	select {
+	case <-doneCh:
+	case <-time.After(3 * time.Second):
+		t.Fatalf("StartSilentInstall did not complete in UI test: %+v", sv.sensorMgr.Progress())
+	}
+	if !sv.draft.PawnIOEnabled || !p.Config().PawnIOEnabled {
+		t.Fatalf("expected PawnIOEnabled auto-enabled after silent install, draft=%v saved=%v", sv.draft.PawnIOEnabled, p.Config().PawnIOEnabled)
 	}
 }
 

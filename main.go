@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo"
 
@@ -14,6 +15,7 @@ import (
 	"pureutils/pkg/purekit/config"
 	"pureutils/pkg/purekit/core"
 	"pureutils/pkg/purekit/i18n"
+	"pureutils/pkg/purekit/platform"
 )
 
 func main() {
@@ -38,6 +40,11 @@ func main() {
 	}
 	if handled, code := host.RunMonitorHelper(args); handled {
 		os.Exit(code)
+	}
+	var waitPID uint32
+	waitPID, args = core.StripWaitPID(args)
+	if waitPID != 0 {
+		platform.WaitProcessExit(waitPID, 8*time.Second)
 	}
 
 	i18n.SetPreference(i18n.PrefAuto)

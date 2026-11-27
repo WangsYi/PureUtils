@@ -577,6 +577,42 @@ func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 			ui.Switch(c, &h.hostDraft.Advanced.RunOnStartup).Label(i18n.S("开关：开机自动启动", "Toggle: Launch on Startup"))
 		})
 		ui.Divider(c)
+		pureui.SettingRowTip(
+			c,
+			i18n.S("开机以管理员身份自启（免 UAC）", "Launch Elevated at Logon (No UAC)"),
+			i18n.S("通过 Windows 计划任务在登录时以最高权限静默自启，避免每次弹窗且让全局热键在管理员窗口上也可生效", "Register a Windows logon scheduled task with highest privileges to avoid UAC prompts and keep global hotkeys active over elevated windows"),
+			pal,
+			func() {
+				sw := ui.Switch(c, &h.hostDraft.Advanced.RunElevatedOnStartup).Label(i18n.S("开关：开机以管理员身份自启", "Toggle: Launch Elevated on Startup"))
+				if sw.Changed() && h.hostDraft.Advanced.RunElevatedOnStartup {
+					h.hostDraft.Advanced.RunOnStartup = true
+				}
+			},
+		)
+		ui.Divider(c)
+		pureui.SettingRowTip(
+			c,
+			i18n.S("当前运行权限", "Privilege Level"),
+			i18n.S("普通权限下，当焦点位于以管理员运行的程序（如 Argus / 任务管理器）上时，Windows 会拦截全局热键（UIPI）", "When running as a standard user, Windows UIPI blocks global hotkeys while an elevated window has focus"),
+			pal,
+			func() {
+				if h.app.IsElevated() {
+					pureui.PillBadge(c, i18n.S("管理员权限", "Administrator"), pal.Success, pal.SuccessSoft)
+				} else {
+					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+						pureui.PillBadge(c, i18n.S("普通权限", "Standard User"), pal.TextMuted, pal.Bg)
+						ui.Button(c, i18n.S("以管理员身份重启", "Restart as Admin")).OnClick(func() {
+							if err := h.app.RestartAsAdmin(); err != nil {
+								h.statusIsRecorded = false
+								h.status = i18n.S("提权重启失败: ", "Elevated restart failed: ") + err.Error()
+								h.invalidate()
+							}
+						}).Border(0, ui.Transparent)
+					})
+				}
+			},
+		)
+		ui.Divider(c)
 		pureui.SettingRowTip(c, i18n.S("记录详细日志", "Verbose Logging"), i18n.S("写入更多调试上下文到每日日志文件以便排查问题", "Write detailed diagnostic context to daily log files"), pal, func() {
 			ui.Switch(c, &h.hostDraft.Advanced.VerboseLogging).Label(i18n.S("开关：记录详细日志", "Toggle: Verbose Logging"))
 		})
@@ -941,6 +977,7 @@ func (h *settingsView) isDirty() bool {
 		h.hostDraft.Appearance.Language != h.hostOrig.Appearance.Language ||
 		h.hostDraft.Hotkeys.TakeoverWinKeys != h.hostOrig.Hotkeys.TakeoverWinKeys ||
 		h.hostDraft.Advanced.RunOnStartup != h.hostOrig.Advanced.RunOnStartup ||
+		h.hostDraft.Advanced.RunElevatedOnStartup != h.hostOrig.Advanced.RunElevatedOnStartup ||
 		h.hostDraft.Advanced.VerboseLogging != h.hostOrig.Advanced.VerboseLogging ||
 		h.hostDraft.Launcher.Enabled != h.hostOrig.Launcher.Enabled ||
 		int(h.launcherMax) != h.hostOrig.Launcher.MaxResults ||
@@ -1043,6 +1080,7 @@ func (h *settingsView) save(c *ui.Context) {
 		nextHost.Hotkeys.TakeoverWinKeys = true
 	}
 	nextHost.Advanced.RunOnStartup = h.hostDraft.Advanced.RunOnStartup
+	nextHost.Advanced.RunElevatedOnStartup = h.hostDraft.Advanced.RunElevatedOnStartup
 	nextHost.Advanced.VerboseLogging = h.hostDraft.Advanced.VerboseLogging
 	nextHost.Launcher.Enabled = h.hostDraft.Launcher.Enabled
 	nextHost.Launcher.MaxResults = int(h.launcherMax)
@@ -1059,6 +1097,8 @@ func (h *settingsView) save(c *ui.Context) {
 		}
 	}
 	if err := h.app.SaveHostConfig(nextHost); err != nil {
+		h.hostOrig = h.app.HostConfig()
+		h.hostDraft.Advanced.RunElevatedOnStartup = h.hostOrig.Advanced.RunElevatedOnStartup
 		h.status = i18n.S("保存失败: ", "Failed to save: ") + err.Error()
 		h.invalidate()
 		return

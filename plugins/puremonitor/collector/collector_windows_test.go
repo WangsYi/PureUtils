@@ -3,6 +3,7 @@
 package collector
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -197,6 +198,16 @@ func TestEngineBuildSensorsAndHelperMerge(t *testing.T) {
 func TestWatchParentProcessAndLaunchElevatedValidation(t *testing.T) {
 	if err := LaunchElevatedExe("", "", 0); err == nil {
 		t.Fatal("expected error for empty LaunchElevatedExe path")
+	}
+	if err := RunPawnIOSilentInstall(context.Background(), ""); err == nil {
+		t.Fatal("expected error for empty RunPawnIOSilentInstall path")
+	}
+	badExe := filepath.Join(t.TempDir(), "not-an-exe.exe")
+	if err := os.WriteFile(badExe, []byte("invalid payload without MZ header"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := RunPawnIOSilentInstall(context.Background(), badExe); err == nil {
+		t.Fatal("expected error for non-MZ RunPawnIOSilentInstall path")
 	}
 	// No-op guards
 	WatchParentProcess(0, func() {})

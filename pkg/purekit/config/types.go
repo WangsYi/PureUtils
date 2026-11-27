@@ -45,10 +45,11 @@ type AppearanceConfig struct {
 
 // AdvancedConfig holds global timing, startup, and logging controls.
 type AdvancedConfig struct {
-	SelfWriteSuppressMs int  `json:"selfWriteSuppressMs"`
-	DebounceMs          int  `json:"debounceMs"`
-	RunOnStartup        bool `json:"runOnStartup"`
-	VerboseLogging      bool `json:"verboseLogging"`
+	SelfWriteSuppressMs  int  `json:"selfWriteSuppressMs"`
+	DebounceMs           int  `json:"debounceMs"`
+	RunOnStartup         bool `json:"runOnStartup"`
+	RunElevatedOnStartup bool `json:"runElevatedOnStartup"`
+	VerboseLogging       bool `json:"verboseLogging"`
 }
 
 // LauncherConfig controls the global Alt+Space plugin launcher.

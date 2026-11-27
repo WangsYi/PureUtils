@@ -94,9 +94,10 @@ type SensorExtStatus struct {
 	SensorDir       string
 }
 
-// SensorDownloadProgress reports live PawnIO extension download progress.
+// SensorDownloadProgress reports live PawnIO extension download and install progress.
 type SensorDownloadProgress struct {
 	Active      bool
+	Installing  bool
 	SourceID    string
 	SourceLabel string
 	Stage       string
@@ -120,12 +121,13 @@ type githubReleaseAsset struct {
 // SensorExtManager handles downloading, importing, installing, and removing optional
 // PawnIO driver setup and signed hardware sensor modules inside `<pluginDir>\sensors`.
 type SensorExtManager struct {
-	sensorDir       string
-	httpClient      *http.Client
-	setupAPIURL     string
-	modulesAPIURL   string
-	mirrorPrefixes  map[string]string
-	driverCheckFn   func() bool
+	sensorDir      string
+	httpClient     *http.Client
+	setupAPIURL    string
+	modulesAPIURL  string
+	mirrorPrefixes map[string]string
+	driverCheckFn  func() bool
+	installFn      func(ctx context.Context, setupPath string) error
 
 	mu       sync.RWMutex
 	progress SensorDownloadProgress
@@ -167,11 +169,64 @@ func (m *SensorExtManager) SetupPath() string {
 	return filepath.Join(m.sensorDir, "PawnIO_setup.exe")
 }
 
+// SetDriverCheckFn overrides driver installation detection in unit tests.
+func (m *SensorExtManager) SetDriverCheckFn(fn func() bool) {
+	m.mu.Lock()
+	m.driverCheckFn = fn
+	m.mu.Unlock()
+}
+
+// SetInstallFn overrides PawnIO silent installer execution in unit tests.
+func (m *SensorExtManager) SetInstallFn(fn func(ctx context.Context, setupPath string) error) {
+	m.mu.Lock()
+	m.installFn = fn
+	m.mu.Unlock()
+}
+
 func (m *SensorExtManager) isDriverInstalled() bool {
-	if m.driverCheckFn != nil {
-		return m.driverCheckFn()
+	m.mu.Lock()
+	fn := m.driverCheckFn
+	m.mu.Unlock()
+	if fn != nil {
+		return fn()
 	}
 	return IsPawnIODriverInstalled()
+}
+
+func (m *SensorExtManager) runInstall(ctx context.Context, setupPath string) error {
+	m.mu.Lock()
+	fn := m.installFn
+	m.mu.Unlock()
+	if fn != nil {
+		return fn(ctx, setupPath)
+	}
+	return RunPawnIOSilentInstall(ctx, setupPath)
+}
+
+func (m *SensorExtManager) installDownloadedDriver(ctx context.Context) error {
+	setupPath := m.SetupPath()
+	if _, err := os.Stat(setupPath); err != nil {
+		return errors.New(i18n.S("未找到 PawnIO 安装包", "PawnIO installer not found"))
+	}
+	if err := validateMZHeader(setupPath); err != nil {
+		return err
+	}
+	if err := m.runInstall(ctx, setupPath); err != nil {
+		return err
+	}
+	for i := 0; i < 10; i++ {
+		if m.isDriverInstalled() {
+			return nil
+		}
+		if i < 9 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(100 * time.Millisecond):
+			}
+		}
+	}
+	return errors.New(i18n.S("安装程序已完成，但未检测到 PawnIO 驱动（可能被系统安全策略阻止）", "Installer completed, but PawnIO driver was not detected (may be blocked by system security policy)"))
 }
 
 // Status reports current driver installation and downloaded asset status.
@@ -232,8 +287,14 @@ func (m *SensorExtManager) updateProgress(fn func(*SensorDownloadProgress)) {
 	}
 }
 
-// StartDownload begins background download of PawnIO_setup.exe and signed sensor modules.
-func (m *SensorExtManager) StartDownload(source, customURL string) {
+type installStageError struct {
+	err error
+}
+
+func (e installStageError) Error() string { return e.err.Error() }
+func (e installStageError) Unwrap() error { return e.err }
+
+func (m *SensorExtManager) startOperation(initProg SensorDownloadProgress, task func(context.Context) (string, error)) {
 	m.mu.Lock()
 	if m.progress.Active {
 		m.mu.Unlock()
@@ -241,12 +302,8 @@ func (m *SensorExtManager) StartDownload(source, customURL string) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	m.cancel = cancel
-	m.progress = SensorDownloadProgress{
-		Active:      true,
-		SourceID:    source,
-		SourceLabel: SensorSourceLabel(source),
-		Stage:       i18n.S("正在解析 PawnIO 最新版本…", "Resolving latest PawnIO release…"),
-	}
+	initProg.Active = true
+	m.progress = initProg
 	cb := m.onChange
 	m.mu.Unlock()
 	if cb != nil {
@@ -254,22 +311,31 @@ func (m *SensorExtManager) StartDownload(source, customURL string) {
 	}
 
 	go func() {
-		err := m.Download(ctx, source, customURL)
+		okStage, err := task(ctx)
 		m.mu.Lock()
 		m.cancel = nil
 		m.progress.Active = false
+		m.progress.Installing = false
 		if err != nil {
-			if errors.Is(err, context.Canceled) {
+			m.progress.Completed = false
+			var ie installStageError
+			switch {
+			case errors.Is(err, ErrInstallCanceled):
+				m.progress.Err = i18n.S("已取消管理员授权，未安装 PawnIO 驱动", "Administrator authorization canceled; PawnIO driver was not installed")
+				m.progress.Stage = i18n.S("已取消安装", "Installation canceled")
+			case errors.Is(err, context.Canceled):
 				m.progress.Err = i18n.S("已取消下载", "Download canceled")
 				m.progress.Stage = i18n.S("下载已取消", "Download canceled")
-			} else {
+			case errors.As(err, &ie):
+				m.progress.Err = ie.Error()
+				m.progress.Stage = i18n.S("安装失败", "Installation failed")
+			default:
 				m.progress.Err = err.Error()
 				m.progress.Stage = i18n.S("下载失败", "Download failed")
 			}
-			m.progress.Completed = false
 		} else {
 			m.progress.Err = ""
-			m.progress.Stage = i18n.S("PawnIO 传感器扩展已下载就绪", "PawnIO sensor extension ready")
+			m.progress.Stage = okStage
 			m.progress.Completed = true
 		}
 		cb := m.onChange
@@ -278,6 +344,59 @@ func (m *SensorExtManager) StartDownload(source, customURL string) {
 			cb()
 		}
 	}()
+}
+
+// StartDownload begins background download of PawnIO_setup.exe and signed sensor modules.
+func (m *SensorExtManager) StartDownload(source, customURL string) {
+	m.startOperation(SensorDownloadProgress{
+		SourceID:    source,
+		SourceLabel: SensorSourceLabel(source),
+		Stage:       i18n.S("正在解析 PawnIO 最新版本…", "Resolving latest PawnIO release…"),
+	}, func(ctx context.Context) (string, error) {
+		if err := m.Download(ctx, source, customURL); err != nil {
+			return "", err
+		}
+		return i18n.S("PawnIO 传感器扩展已下载就绪", "PawnIO sensor extension ready"), nil
+	})
+}
+
+// StartDownloadAndInstall downloads PawnIO assets and silently installs the driver when not already installed.
+func (m *SensorExtManager) StartDownloadAndInstall(source, customURL string) {
+	m.startOperation(SensorDownloadProgress{
+		SourceID:    source,
+		SourceLabel: SensorSourceLabel(source),
+		Stage:       i18n.S("正在解析 PawnIO 最新版本…", "Resolving latest PawnIO release…"),
+	}, func(ctx context.Context) (string, error) {
+		if err := m.Download(ctx, source, customURL); err != nil {
+			return "", err
+		}
+		if m.isDriverInstalled() {
+			return i18n.S("PawnIO 传感器扩展已下载就绪", "PawnIO sensor extension ready"), nil
+		}
+		m.updateProgress(func(p *SensorDownloadProgress) {
+			p.Installing = true
+			p.DoneBytes = 0
+			p.TotalBytes = 0
+			p.Stage = i18n.S("正在静默安装 PawnIO 驱动（如需授权请确认 UAC）…", "Silently installing PawnIO driver (approve UAC if prompted)…")
+		})
+		if err := m.installDownloadedDriver(ctx); err != nil {
+			return "", installStageError{err}
+		}
+		return i18n.S("PawnIO 驱动与传感器模块已安装就绪", "PawnIO driver and sensor modules installed"), nil
+	})
+}
+
+// StartSilentInstall silently executes the locally downloaded PawnIO_setup.exe in background.
+func (m *SensorExtManager) StartSilentInstall() {
+	m.startOperation(SensorDownloadProgress{
+		Installing: true,
+		Stage:      i18n.S("正在静默安装 PawnIO 驱动（如需授权请确认 UAC）…", "Silently installing PawnIO driver (approve UAC if prompted)…"),
+	}, func(ctx context.Context) (string, error) {
+		if err := m.installDownloadedDriver(ctx); err != nil {
+			return "", installStageError{err}
+		}
+		return i18n.S("PawnIO 驱动已静默安装完成", "PawnIO driver silently installed"), nil
+	})
 }
 
 // CancelDownload aborts an active download.
@@ -411,6 +530,12 @@ func (m *SensorExtManager) RemoveLocalFiles() error {
 	if err := os.RemoveAll(m.sensorDir); err != nil {
 		return err
 	}
+	m.mu.Lock()
+	if !m.progress.Active {
+		m.progress.Err = ""
+		m.progress.Completed = false
+	}
+	m.mu.Unlock()
 	return nil
 }
 

@@ -563,6 +563,7 @@ Filename: "{app}\PureUtils.exe"; Parameters: "--settings"; Flags: nowait skipifn
 [UninstallRun]
 Filename: "{app}\PureUtils.exe"; Parameters: "--exit"; Flags: runhidden; RunOnceId: "ExitPureUtils"; Check: IsPureUtilsRunning
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM PureUtils.exe /F"; Flags: runhidden; RunOnceId: "KillPureUtils"; Check: NeedForceKillPureUtils
+Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""PureUtilsAutostart"" /F"; Flags: runhidden; RunOnceId: "RemovePureUtilsTask"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"

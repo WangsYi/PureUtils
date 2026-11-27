@@ -21,6 +21,8 @@ func TestRoundTripPluginAndHostSections(t *testing.T) {
 	host.Launcher.Shortcut = "Ctrl+Space"
 	host.Hotkeys.Launcher = "Ctrl+Space"
 	host.Hotkeys.Plugins = map[string]string{"demo": "Ctrl+Alt+D"}
+	host.Advanced.RunOnStartup = true
+	host.Advanced.RunElevatedOnStartup = true
 	host.SetModuleDisabled(core.ModuleZip, true)
 	host.SetModuleDisabled(core.ModuleHistory, true)
 	if err := mgr.SaveHost(host); err != nil {
@@ -76,6 +78,9 @@ func TestRoundTripPluginAndHostSections(t *testing.T) {
 	}
 	if reloaded.Host().Hotkeys.Plugins["demo"] != "Ctrl+Alt+D" {
 		t.Fatalf("Hotkeys.Plugins = %+v", reloaded.Host().Hotkeys.Plugins)
+	}
+	if !reloaded.Host().Advanced.RunOnStartup || !reloaded.Host().Advanced.RunElevatedOnStartup {
+		t.Fatalf("Advanced startup flags = %+v", reloaded.Host().Advanced)
 	}
 	if !reloaded.Host().IsModuleDisabled(core.ModuleZip) || !reloaded.Host().IsModuleDisabled(core.ModuleHistory) || reloaded.Host().IsModuleDisabled(core.ModuleCapture) {
 		t.Fatalf("DisabledModules round-trip = %+v", reloaded.Host().DisabledModules)

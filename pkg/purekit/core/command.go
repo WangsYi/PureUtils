@@ -1,6 +1,7 @@
 package core
 
 import (
+	"strconv"
 	"strings"
 
 	"pureutils/pkg/purekit/i18n"
@@ -147,9 +148,36 @@ type LaunchRequest struct {
 	HasCommand bool
 }
 
+// StripWaitPID extracts any `--wait-pid <pid>` or `--wait-pid=<pid>` flag and returns remaining args.
+func StripWaitPID(args []string) (uint32, []string) {
+	var pid uint32
+	rest := make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		arg := strings.TrimSpace(args[i])
+		if strings.EqualFold(arg, "--wait-pid") {
+			if i+1 < len(args) {
+				if v, err := strconv.ParseUint(strings.TrimSpace(args[i+1]), 10, 32); err == nil {
+					pid = uint32(v)
+				}
+				i++
+			}
+			continue
+		}
+		if len(arg) > len("--wait-pid=") && strings.EqualFold(arg[:len("--wait-pid=")], "--wait-pid=") {
+			if v, err := strconv.ParseUint(strings.TrimSpace(arg[len("--wait-pid="):]), 10, 32); err == nil {
+				pid = uint32(v)
+			}
+			continue
+		}
+		rest = append(rest, args[i])
+	}
+	return pid, rest
+}
+
 // ParseArgs interprets command-line arguments into a structured LaunchRequest.
 // Every positional argument is collected into Paths; ViewPath is the first one.
 func ParseArgs(args []string) LaunchRequest {
+	_, args = StripWaitPID(args)
 	var req LaunchRequest
 
 	for i := 0; i < len(args); i++ {

@@ -11,13 +11,14 @@ PureUtils 已从单体桌面工具演进为以 **`pkg/purekit` 可复用核心�
 ```text
 main.go                       MyGo 单实例生命周期、crash.log 崩溃日志挂载、config/modules 读取、CLI 路由
   └─ internal/host            薄宿主外壳（Host 实现、动态托盘、热键调度、统一设置、自动更新、Alt+Space 启动器）
-       ├─ builtin_*.go        条件编译注册桥（!nopureshot / !nopureclip / !nopureimage&&!nofreeimage / !nopurevideo / !nopurezip）
+       ├─ builtin_*.go        条件编译注册桥（!nopureshot / !nopureclip / !nopureimage&&!nofreeimage / !nopurevideo / !nopurezip / !nopuremonitor）
        └─ plugins/<id>        完全独立的功能插件（零跨插件 import、零 internal/* import）
             ├─ pureshot       PureShot：区域/整屏截图、9 种矢量标注（pureshot/annotate）、悬浮贴图
             ├─ pureclip       PureClip：剪贴板历史监控、SQLite/Blob 仓储、Ditto 风格浮窗、只读 legacy fallback
             ├─ pureimage      PureImage：40+ 格式与 RAW/动图解码、TurboJPEG、空格预览、系统打开方式关联
             ├─ purevideo      PureVideo：内置裁剪版 libmpv 硬件解码、21 种视频格式、字幕与系统打开方式关联
-            └─ purezip        PureZip：archive/ 纯 Go 压缩引擎、zipshell/ 右键与关联、管理器与进度窗口
+            ├─ purezip        PureZip：archive/ 纯 Go 压缩引擎、zipshell/ 右键与关联、管理器与进度窗口
+            └─ puremonitor    PureMonitor：任务栏/边缘胶囊监控、ADL/NVML/PawnIO 传感器及 ETW 游戏帧率 HUD
   └─ pkg/purekit              可抽离复用的插件平台核心 SDK（不依赖 internal/* 或 plugins/*）
        ├─ purekit             Plugin / Host / Feature / Matcher / SettingsTab / Bus / Typed Contracts
        ├─ purekit/core        Paths / Logger / SetupCrashOutput / Version / Command / Hotkey / ModuleConfig / Color
@@ -46,10 +47,11 @@ PureUtils 支持三层自由组合与裁剪：
    - `nopureclip`：排除 PureClip 剪贴板历史；
    - `nopurevideo`：排除 PureVideo 视频浏览器及 `libmpv` 调用；
    - `nopurezip`：排除 PureZip 压缩包引擎与管理器；
-   - 五个全部排除（`-tags "nopureshot nopureclip nopureimage nopurevideo nopurezip"`）仍可编出纯宿主外壳。
+   - `nopuremonitor`：排除 PureMonitor 硬件监控与帧率 HUD；
+   - 六个全部排除（`-tags "nopureshot nopureclip nopureimage nopurevideo nopurezip nopuremonitor"`）仍可编出纯宿主外壳。
    - 也可通过 `.\build.ps1 build -CoreOnly` 或 `.\build.ps1 build -Exclude purezip,pureimage,purevideo` 一键构建。
 2. **安装期（`modules.json`）**：
-   - 安装包或绿色版目录的 `modules.json` 控制 `{capture, history, viewer, video, zip}` 开关，宿主按 `CompiledModules() ∩ modules.json` 决定启动装配集合。
+   - 安装包或绿色版目录的 `modules.json` 控制 `{capture, history, viewer, video, zip, monitor}` 开关，宿主按 `CompiledModules() ∩ modules.json` 决定启动装配集合。
 3. **运行时（设置页实时热开关 / `DisabledModules`）**：
    - 用户可在「设置 → 常规」随时开启或关闭已编译模块；宿主通过 `applyPluginModules(hc)` 实时启停对应插件并重建托盘、热键与启动器条目，配合 `Bus.Version()` 能力代次递增，使其他插件（如 PureShot / PureClip / PureZip）在提供方恢复后自动重新绑定能力；「设置 → 高级」同时集成自动更新状态检查、镜像切换与日志诊断（含 `debug.SetCrashOutput` 写入的 `logs/crash.log`）。
 

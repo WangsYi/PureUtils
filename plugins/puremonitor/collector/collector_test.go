@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -496,5 +497,125 @@ func TestSensorDownloaderFullFlows(t *testing.T) {
 	case <-doneCh:
 	case <-time.After(3 * time.Second):
 		t.Fatalf("StartDownload cancel did not settle: %+v", mgr2.Progress())
+	}
+}
+
+func TestSensorExtManagerDownloadAndSilentInstall(t *testing.T) {
+	prevPref, prevLang := i18n.Preference(), i18n.Current()
+	defer func() {
+		i18n.SetPreference(prevPref)
+		i18n.Set(prevLang)
+	}()
+	i18n.SetPreference(i18n.PrefEN)
+	i18n.Set(i18n.LangEN)
+
+	var srvURL string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/setup-api":
+			_, _ = w.Write([]byte(`{"assets":[{"name":"PawnIO_setup.exe","browser_download_url":"` + srvURL + `/PawnIO_setup.exe"}]}`))
+		case "/mods-api":
+			_, _ = w.Write([]byte(`{"assets":[{"name":"IntelMSR.bin","browser_download_url":"` + srvURL + `/IntelMSR.bin"}]}`))
+		case "/PawnIO_setup.exe":
+			exe := make([]byte, 2048)
+			exe[0], exe[1] = 'M', 'Z'
+			_, _ = w.Write(exe)
+		case "/IntelMSR.bin":
+			_, _ = w.Write([]byte("INTEL_MSR_BIN_TEST_PAYLOAD_1234"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	srvURL = srv.URL
+
+	runAndWait := func(mgr *SensorExtManager, label string, trigger func()) SensorDownloadProgress {
+		t.Helper()
+		ch := make(chan SensorDownloadProgress, 1)
+		mgr.SetOnChange(func() {
+			if p := mgr.Progress(); !p.Active {
+				select {
+				case ch <- p:
+				default:
+				}
+			}
+		})
+		trigger()
+		select {
+		case p := <-ch:
+			return p
+		case <-time.After(5 * time.Second):
+			t.Fatalf("%s did not settle: %+v", label, mgr.Progress())
+			return SensorDownloadProgress{}
+		}
+	}
+
+	// 1. Download + automatic silent install succeeds end-to-end.
+	mgr := NewSensorExtManager(t.TempDir())
+	mgr.setupAPIURL = srvURL + "/setup-api"
+	mgr.modulesAPIURL = srvURL + "/mods-api"
+	mgr.mirrorPrefixes = map[string]string{SensorSourceGHProxy: "", SensorSourceGHFast: ""}
+	var installed atomic.Bool
+	mgr.SetDriverCheckFn(func() bool { return installed.Load() })
+	mgr.SetInstallFn(func(_ context.Context, setupPath string) error {
+		if !strings.HasSuffix(setupPath, "PawnIO_setup.exe") {
+			t.Fatalf("unexpected setupPath passed to installFn: %q", setupPath)
+		}
+		if err := validateMZHeader(setupPath); err != nil {
+			t.Fatalf("invalid installer MZ header: %v", err)
+		}
+		installed.Store(true)
+		return nil
+	})
+	prog := runAndWait(mgr, "StartDownloadAndInstall", func() {
+		mgr.StartDownloadAndInstall(SensorSourceGitHub, "")
+	})
+	if !prog.Completed || prog.Err != "" || prog.Installing {
+		t.Fatalf("expected clean completed install, got %+v", prog)
+	}
+	st := mgr.Status()
+	if !st.DriverInstalled || !st.ModulesReady || !st.SetupDownloaded {
+		t.Fatalf("expected DriverInstalled & ModulesReady & SetupDownloaded, got %+v", st)
+	}
+
+	// 2. UAC cancellation during download+install preserves SetupDownloaded for one-click retry.
+	mgrRetry := NewSensorExtManager(t.TempDir())
+	mgrRetry.setupAPIURL = srvURL + "/setup-api"
+	mgrRetry.modulesAPIURL = srvURL + "/mods-api"
+	mgrRetry.mirrorPrefixes = map[string]string{SensorSourceGHProxy: "", SensorSourceGHFast: ""}
+	var installedRetry atomic.Bool
+	mgrRetry.SetDriverCheckFn(func() bool { return installedRetry.Load() })
+	mgrRetry.SetInstallFn(func(_ context.Context, _ string) error {
+		return ErrInstallCanceled
+	})
+	pCancel := runAndWait(mgrRetry, "StartDownloadAndInstall cancel", func() {
+		mgrRetry.StartDownloadAndInstall(SensorSourceGitHub, "")
+	})
+	if pCancel.Completed || !strings.Contains(pCancel.Err, "Administrator authorization canceled") {
+		t.Fatalf("expected UAC cancel error, got %+v", pCancel)
+	}
+	if stR := mgrRetry.Status(); !stR.SetupDownloaded || !stR.ModulesReady || stR.DriverInstalled {
+		t.Fatalf("expected local setup+modules retained after cancel, got %+v", stR)
+	}
+
+	// 3. Installer returns 0 but driver stays undetected -> report explicit policy/detection error.
+	mgrRetry.SetInstallFn(func(_ context.Context, _ string) error { return nil })
+	pUndet := runAndWait(mgrRetry, "StartSilentInstall undetected", func() {
+		mgrRetry.StartSilentInstall()
+	})
+	if pUndet.Completed || !strings.Contains(pUndet.Err, "PawnIO driver was not detected") {
+		t.Fatalf("expected driver-not-detected error, got %+v", pUndet)
+	}
+
+	// 4. Retry StartSilentInstall with driver registration succeeding.
+	mgrRetry.SetInstallFn(func(_ context.Context, _ string) error {
+		installedRetry.Store(true)
+		return nil
+	})
+	pRetry := runAndWait(mgrRetry, "StartSilentInstall retry", func() {
+		mgrRetry.StartSilentInstall()
+	})
+	if !pRetry.Completed || pRetry.Err != "" || !mgrRetry.Status().DriverInstalled {
+		t.Fatalf("expected silent install retry to succeed, prog=%+v st=%+v", pRetry, mgrRetry.Status())
 	}
 }

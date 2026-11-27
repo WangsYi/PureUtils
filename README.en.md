@@ -57,10 +57,10 @@ Screenshot & Pinning · Clipboard History · Fast Image & Video Browser · Archi
 | :---: | :---: |
 | ![PureClip History](docs/screenshots/history.png) | ![PureClip Compact](docs/screenshots/history-compact.png) |
 
-### Screenshot & Annotation (PureShot), Archive Manager (PureZip) & Video Browser (PureVideo)
-| PureShot Region & Annotations | PureZip Archive Manager | PureVideo Browser |
-| :---: | :---: | :---: |
-| ![PureShot Overlay](docs/screenshots/overlay.png) | ![PureZip Manager](docs/screenshots/zip.png) | ![PureVideo Player](docs/screenshots/video.png) |
+### Screenshot & Annotation (PureShot), Archive Manager (PureZip), Video Browser (PureVideo) & Monitor (PureMonitor)
+| PureShot Region & Annotations | PureZip Archive Manager | PureVideo Browser | PureMonitor Dashboard |
+| :---: | :---: | :---: | :---: |
+| ![PureShot Overlay](docs/screenshots/overlay.png) | ![PureZip Manager](docs/screenshots/zip.png) | ![PureVideo Player](docs/screenshots/video.png) | ![PureMonitor Dashboard](docs/screenshots/monitor.png) |
 
 ---
 

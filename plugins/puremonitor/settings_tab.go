@@ -96,6 +96,16 @@ func (v *settingsTabView) onSensorProgressChanged() {
 	apply := func() {
 		if prog.Completed {
 			v.status = prog.Stage
+			st := v.sensorMgr.Status()
+			if st.DriverInstalled && st.ModulesReady {
+				v.draft.PawnIOEnabled = true
+				cfg := v.plugin.Config()
+				if !cfg.PawnIOEnabled {
+					cfg.PawnIOEnabled = true
+					_ = v.plugin.ApplyConfig(cfg)
+					v.saved.PawnIOEnabled = true
+				}
+			}
 		} else if !prog.Active && prog.Err != "" {
 			v.status = prog.Err
 		}
@@ -729,7 +739,9 @@ func (v *settingsTabView) renderPawnIOCard(c *ui.Context, pal pureui.Palette) {
 		if prog.Active {
 			ui.Divider(c)
 			pct := 0.0
-			if prog.TotalBytes > 0 {
+			if prog.Installing {
+				pct = 1.0
+			} else if prog.TotalBytes > 0 {
 				pct = float64(prog.DoneBytes) / float64(prog.TotalBytes)
 				if pct > 1 {
 					pct = 1
@@ -738,7 +750,7 @@ func (v *settingsTabView) renderPawnIOCard(c *ui.Context, pal pureui.Palette) {
 			ui.Column(c).Gap(6).FillWidth().Children(func() {
 				ui.Row(c).AlignItems(ui.Center).Gap(8).Children(func() {
 					ui.Text(c, prog.Stage).FontSize(12).FontWeight(500).TextColor(pal.Text).Grow(1).MinWidth(0)
-					if prog.TotalBytes > 0 {
+					if !prog.Installing && prog.TotalBytes > 0 {
 						ui.Text(c, fmt.Sprintf("%.1f / %.1f MB", float64(prog.DoneBytes)/(1024*1024), float64(prog.TotalBytes)/(1024*1024))).
 							FontSize(11).SingleLine().TextColor(pal.TextSecondary).Shrink(0)
 					}
@@ -747,81 +759,93 @@ func (v *settingsTabView) renderPawnIOCard(c *ui.Context, pal pureui.Palette) {
 			})
 		}
 
-		ui.Row(c).Gap(8).Wrap().Children(func() {
-			if prog.Active {
-				ui.Button(c, i18n.S("取消下载", "Cancel Download")).OnClick(func() {
-					if v.sensorMgr != nil {
-						v.sensorMgr.CancelDownload()
-					}
-				}).Border(0, ui.Transparent)
-			} else {
-				switch {
-				case st.DriverInstalled && st.ModulesReady:
-					if !pawnActive && v.draft.PawnIOEnabled {
-						ui.PrimaryButton(c, i18n.S("提权启动传感器采集", "Start Elevated Sensor Helper")).OnClick(func() {
-							if v.headless() {
-								return
-							}
-							if err := v.plugin.StartElevatedHelper("both"); err != nil {
-								v.status = err.Error()
-							} else {
-								v.status = i18n.S("已启动便携采集子进程读取 CPU 与硬盘温度", "Elevated helper started for CPU & disk sensors")
-							}
-							v.invalidate()
-						})
-					}
-					ui.Button(c, i18n.S("更新传感器模块", "Update Modules")).OnClick(func() {
+		if !prog.Active || !prog.Installing {
+			ui.Row(c).Gap(8).Wrap().Children(func() {
+				if prog.Active {
+					ui.Button(c, i18n.S("取消下载", "Cancel Download")).OnClick(func() {
 						if v.sensorMgr != nil {
-							v.status = ""
-							src := collector.SensorSourceIDFromLabel(v.sourceLabel)
-							v.sensorMgr.StartDownload(src, v.draft.SensorCustomMirrorURL)
+							v.sensorMgr.CancelDownload()
 						}
 					}).Border(0, ui.Transparent)
-				case st.DriverInstalled && !st.ModulesReady:
-					ui.PrimaryButton(c, i18n.S("仅下载传感器模块", "Download Modules Only")).OnClick(func() {
-						if v.sensorMgr != nil {
-							v.status = ""
-							src := collector.SensorSourceIDFromLabel(v.sourceLabel)
-							v.sensorMgr.StartDownload(src, v.draft.SensorCustomMirrorURL)
-						}
-					})
-				default:
-					ui.PrimaryButton(c, i18n.S("下载传感器扩展", "Download Sensor Extension")).OnClick(func() {
-						if v.sensorMgr != nil {
-							v.status = ""
-							src := collector.SensorSourceIDFromLabel(v.sourceLabel)
-							v.sensorMgr.StartDownload(src, v.draft.SensorCustomMirrorURL)
-						}
-					})
-					if st.SetupDownloaded {
-						ui.Button(c, i18n.S("安装 PawnIO 驱动", "Install PawnIO Driver")).OnClick(func() {
-							if !v.headless() {
-								if err := collector.LaunchElevatedExe(st.SetupPath, "", 1); err != nil {
+				} else {
+					switch {
+					case st.DriverInstalled && st.ModulesReady:
+						if !pawnActive && v.draft.PawnIOEnabled {
+							ui.PrimaryButton(c, i18n.S("提权启动传感器采集", "Start Elevated Sensor Helper")).OnClick(func() {
+								if v.headless() {
+									return
+								}
+								if err := v.plugin.StartElevatedHelper("both"); err != nil {
 									v.status = err.Error()
 								} else {
-									v.status = i18n.S("已启动 PawnIO 安装程序", "Launched PawnIO installer")
+									v.status = i18n.S("已启动便携采集子进程读取 CPU 与硬盘温度", "Elevated helper started for CPU & disk sensors")
 								}
+								v.invalidate()
+							})
+						}
+						ui.Button(c, i18n.S("更新传感器模块", "Update Modules")).OnClick(func() {
+							if v.sensorMgr != nil {
+								v.status = ""
+								src := collector.SensorSourceIDFromLabel(v.sourceLabel)
+								v.sensorMgr.StartDownload(src, v.draft.SensorCustomMirrorURL)
+							}
+						}).Border(0, ui.Transparent)
+					case st.DriverInstalled && !st.ModulesReady:
+						ui.PrimaryButton(c, i18n.S("仅下载传感器模块", "Download Modules Only")).OnClick(func() {
+							if v.sensorMgr != nil {
+								v.status = ""
+								src := collector.SensorSourceIDFromLabel(v.sourceLabel)
+								v.sensorMgr.StartDownload(src, v.draft.SensorCustomMirrorURL)
+							}
+						})
+					case st.SetupDownloaded && st.ModulesReady:
+						ui.PrimaryButton(c, i18n.S("静默安装 PawnIO 驱动", "Install PawnIO Driver")).OnClick(func() {
+							if v.sensorMgr != nil {
+								v.status = ""
+								v.sensorMgr.StartSilentInstall()
+							}
+						})
+						ui.Button(c, i18n.S("重新下载并安装", "Redownload & Install")).OnClick(func() {
+							if v.sensorMgr != nil {
+								v.status = ""
+								src := collector.SensorSourceIDFromLabel(v.sourceLabel)
+								v.sensorMgr.StartDownloadAndInstall(src, v.draft.SensorCustomMirrorURL)
+							}
+						}).Border(0, ui.Transparent)
+					default:
+						ui.PrimaryButton(c, i18n.S("下载并安装 PawnIO", "Download & Install PawnIO")).OnClick(func() {
+							if v.sensorMgr != nil {
+								v.status = ""
+								src := collector.SensorSourceIDFromLabel(v.sourceLabel)
+								v.sensorMgr.StartDownloadAndInstall(src, v.draft.SensorCustomMirrorURL)
+							}
+						})
+						if st.SetupDownloaded {
+							ui.Button(c, i18n.S("静默安装 PawnIO 驱动", "Install PawnIO Driver")).OnClick(func() {
+								if v.sensorMgr != nil {
+									v.status = ""
+									v.sensorMgr.StartSilentInstall()
+								}
+							}).Border(0, ui.Transparent)
+						}
+					}
+					ui.Button(c, i18n.S("从本地导入…", "Import Local…")).OnClick(func() {
+						if !v.headless() && v.sensorMgr != nil {
+							v.importLocalSensorFile(c)
+						}
+					}).Border(0, ui.Transparent)
+					if st.SetupDownloaded || st.ModulesReady {
+						ui.Button(c, i18n.S("移除本地文件", "Remove Local Files")).OnClick(func() {
+							if v.sensorMgr != nil {
+								_ = v.sensorMgr.RemoveLocalFiles()
+								v.status = i18n.S("已移除本地传感器扩展文件", "Removed local sensor extension files")
 								v.invalidate()
 							}
 						}).Border(0, ui.Transparent)
 					}
 				}
-				ui.Button(c, i18n.S("从本地导入…", "Import Local…")).OnClick(func() {
-					if !v.headless() && v.sensorMgr != nil {
-						v.importLocalSensorFile(c)
-					}
-				}).Border(0, ui.Transparent)
-				if st.SetupDownloaded || st.ModulesReady {
-					ui.Button(c, i18n.S("移除本地文件", "Remove Local Files")).OnClick(func() {
-						if v.sensorMgr != nil {
-							_ = v.sensorMgr.RemoveLocalFiles()
-							v.status = i18n.S("已移除本地传感器扩展文件", "Removed local sensor extension files")
-							v.invalidate()
-						}
-					}).Border(0, ui.Transparent)
-				}
-			}
-		})
+			})
+		}
 
 		msg := strings.TrimSpace(v.status)
 		msgCol := pal.TextMuted
