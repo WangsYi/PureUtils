@@ -91,7 +91,7 @@ foreach ($rel in @(
 
 $manifestRaw = Get-Content -LiteralPath (Join-Path $targetDir 'modules.json') -Raw -Encoding UTF8
 $manifest = $manifestRaw | ConvertFrom-Json
-foreach ($mod in @('capture', 'history', 'viewer', 'video', 'zip')) {
+foreach ($mod in @('capture', 'history', 'viewer', 'video', 'zip', 'monitor')) {
     if ($manifest.$mod -ne $true) {
         throw "Expected modules.json.$mod = true, got $($manifest.$mod)"
     }

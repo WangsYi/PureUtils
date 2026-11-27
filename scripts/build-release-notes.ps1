@@ -41,7 +41,6 @@ foreach ($t in $allTags) {
 }
 
 $rangeSpec = if ($prevTag) { "$prevTag..$Ref" } else { $Ref }
-$rangeLabel = if ($prevTag) { "$prevTag..$tag" } else { $tag }
 
 $logArgs = @('-C', $root, '-c', 'i18n.logOutputEncoding=utf-8', 'log')
 if ($prevTag) {
@@ -67,8 +66,6 @@ foreach ($entry in $rawLog) {
             'feat' { $cat = 'feat' }
             'fix' { $cat = 'fix' }
             { $_ -in @('perf', 'refactor', 'style') } { $cat = 'perf' }
-            'docs' { $cat = 'docs' }
-            { $_ -in @('ci', 'build', 'chore', 'test') } { $cat = 'ci' }
         }
     }
     $commits.Add([pscustomobject]@{
@@ -110,123 +107,55 @@ if (-not [string]::IsNullOrWhiteSpace($NotesEn)) {
     $enBody = $NotesEn.Trim()
 }
 
-$usedManual = (-not [string]::IsNullOrWhiteSpace($zhBody)) -or (-not [string]::IsNullOrWhiteSpace($enBody))
-
-function Format-GroupedCommits([string]$Lang) {
-    $groups = if ($Lang -eq 'zh') {
-        @(
-            @{ Key = 'feat'; Title = '#### ✨ 新功能' },
-            @{ Key = 'fix'; Title = '#### 🐛 问题修复' },
-            @{ Key = 'perf'; Title = '#### ⚡ 体验与优化' },
-            @{ Key = 'docs'; Title = '#### 📝 文档' },
-            @{ Key = 'ci'; Title = '#### 📦 构建与发布' },
-            @{ Key = 'other'; Title = '#### 🔧 其他变更' }
-        )
-    } else {
-        @(
-            @{ Key = 'feat'; Title = '#### ✨ Features' },
-            @{ Key = 'fix'; Title = '#### 🐛 Bug Fixes' },
-            @{ Key = 'perf'; Title = '#### ⚡ Improvements' },
-            @{ Key = 'docs'; Title = '#### 📝 Documentation' },
-            @{ Key = 'ci'; Title = '#### 📦 Build, CI & Release' },
-            @{ Key = 'other'; Title = '#### 🔧 Other Changes' }
-        )
+function Format-ConciseCommits([string]$Lang) {
+    $picked = @($commits | Where-Object { $_.Category -in @('feat', 'fix', 'perf') })
+    if ($picked.Count -eq 0) {
+        $picked = @($commits)
     }
-
-    $buf = New-Object System.Collections.Generic.List[string]
-    $total = $commits.Count
-    $featCount = @($commits | Where-Object { $_.Category -eq 'feat' }).Count
-    $fixCount = @($commits | Where-Object { $_.Category -eq 'fix' }).Count
-
-    if ($total -eq 0) {
+    if ($picked.Count -eq 0) {
         if ($Lang -eq 'zh') {
-            $buf.Add("本版本为 ``$tag`` 常规维护发布。")
-        } else {
-            $buf.Add("Maintenance release for ``$tag``.")
+            return "- ``$tag`` 维护更新。"
         }
-        return ($buf -join "`n")
+        return "- Maintenance release for ``$tag``."
     }
-
-    if ($Lang -eq 'zh') {
-        $buf.Add("本版本共包含 **$total** 项变更（新增特性 **$featCount** 项，问题修复 **$fixCount** 项）：")
-    } else {
-        $buf.Add("This release includes **$total** changes (**$featCount** features, **$fixCount** bug fixes):")
+    $buf = New-Object System.Collections.Generic.List[string]
+    foreach ($item in $picked) {
+        $buf.Add("- $($item.Subject) (``$($item.Hash)``)")
     }
-    $buf.Add('')
-
-    foreach ($g in $groups) {
-        $items = @($commits | Where-Object { $_.Category -eq $g.Key })
-        if ($items.Count -eq 0) { continue }
-        $buf.Add($g.Title)
-        $buf.Add('')
-        foreach ($item in $items) {
-            $buf.Add("- $($item.Subject) (``$($item.Hash)``)")
-        }
-        $buf.Add('')
-    }
-
-    return ($buf -join "`n").Trim()
+    return ($buf -join "`n")
 }
 
 if ([string]::IsNullOrWhiteSpace($zhBody)) {
-    $zhBody = Format-GroupedCommits 'zh'
+    $zhBody = Format-ConciseCommits 'zh'
 }
 if ([string]::IsNullOrWhiteSpace($enBody)) {
-    $enBody = Format-GroupedCommits 'en'
+    $enBody = Format-ConciseCommits 'en'
 }
 
-$bytesFmt = $InstallerBytes.ToString('N0', [System.Globalization.CultureInfo]::InvariantCulture)
 $shaLower = $Sha256.Trim().ToLowerInvariant()
 $sizeLabel = $InstallerSizeMB.Trim()
 
 $lines = New-Object System.Collections.Generic.List[string]
-$lines.Add("## PureUtils $tag")
-$lines.Add('')
-$lines.Add('### 中文更新说明')
+$lines.Add('### 更新内容')
 $lines.Add('')
 $lines.Add($zhBody)
 $lines.Add('')
 $lines.Add('---')
 $lines.Add('')
-$lines.Add('### English Release Notes')
+$lines.Add('### Highlights')
 $lines.Add('')
 $lines.Add($enBody)
 $lines.Add('')
 $lines.Add('---')
 $lines.Add('')
-$lines.Add('### 安装包信息 / Installer')
-$lines.Add('')
-$lines.Add('| 文件 / File | 大小 / Size | SHA-256 |')
-$lines.Add('|---|---|---|')
-$lines.Add("| ``PureUtils-$ver-setup.exe`` | $sizeLabel MB ($bytesFmt bytes) | ``$shaLower`` |")
-$lines.Add('| `SHA256SUMS.txt` | — | SHA-256 校验清单 / Checksum manifest |')
-$lines.Add('')
-
-if ($usedManual -and $commits.Count -gt 0) {
-    $lines.Add('<details>')
-    $lines.Add("<summary>完整提交记录 / Full Commit Log ($rangeLabel)</summary>")
-    $lines.Add('')
-    foreach ($c in $commits) {
-        $lines.Add("- $($c.Subject) (``$($c.Hash)``)")
-    }
-    $lines.Add('')
-    $lines.Add('</details>')
-    $lines.Add('')
-}
-
+$lines.Add("**安装包 / Installer**: ``PureUtils-$ver-setup.exe`` ($sizeLabel MB) · SHA-256: ``$shaLower``")
 if ($prevTag) {
-    $lines.Add("**完整变更对比 / Full Changelog**: https://github.com/$Repo/compare/$prevTag...$tag")
-    $lines.Add('')
+    $lines.Add("**Changelog**: https://github.com/$Repo/compare/$prevTag...$tag")
 }
-
-$lines.Add('---')
-$lines.Add('')
-$lines.Add('> 本版本由 GitHub Actions 自动化流水线完成编译、测试、打包与校验。  ')
-$lines.Add('> Built, tested, packaged, and verified automatically via GitHub Actions.')
 
 $outParent = Split-Path -Parent $OutputPath
 if (-not [string]::IsNullOrWhiteSpace($outParent)) {
     New-Item -ItemType Directory -Force -Path $outParent | Out-Null
 }
 [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`n") + "`n", $utf8NoBom)
-Write-Host "Generated bilingual release notes ($rangeSpec, commits=$($commits.Count)) -> $OutputPath"
+Write-Host "Generated concise release notes ($rangeSpec, commits=$($commits.Count)) -> $OutputPath"
