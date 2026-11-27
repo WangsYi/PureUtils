@@ -59,9 +59,9 @@ jobs:
           img1.save(out / "test.webp")
           img1.save(out / "test_anim.webp", save_all=True, append_images=[img2], duration=[60, 80], loop=0)
           PYEOF
-          avifenc -q 70 "$GITHUB_WORKSPACE/dist/fixtures/test.png" "$GITHUB_WORKSPACE/dist/fixtures/test.avif"
-          heif-enc -q 70 "$GITHUB_WORKSPACE/dist/fixtures/test.png" -o "$GITHUB_WORKSPACE/dist/fixtures/test.heic"
-          cjxl "$GITHUB_WORKSPACE/dist/fixtures/test.png" "$GITHUB_WORKSPACE/dist/fixtures/test.jxl" -q 85
+          avifenc "$GITHUB_WORKSPACE/dist/fixtures/test.png" "$GITHUB_WORKSPACE/dist/fixtures/test.avif"
+          heif-enc "$GITHUB_WORKSPACE/dist/fixtures/test.png" -o "$GITHUB_WORKSPACE/dist/fixtures/test.heic"
+          cjxl "$GITHUB_WORKSPACE/dist/fixtures/test.png" "$GITHUB_WORKSPACE/dist/fixtures/test.jxl"
           ls -lh "$GITHUB_WORKSPACE/dist/fixtures"
 
       - name: Upload pureimage-codecs artifact

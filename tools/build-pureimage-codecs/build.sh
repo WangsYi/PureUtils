@@ -292,9 +292,21 @@ if [[ ! -f "$WEBP_CORE_LIB" && -f "$PREFIX/lib/libwebpdecoder.a" ]]; then
   WEBP_CORE_LIB="$PREFIX/lib/libwebpdecoder.a"
 fi
 
-"${HOST}-g++" -shared \
+STDCPP_A="$("${HOST}-g++" -print-file-name=libstdc++.a)"
+WINPTHREAD_A="$("${HOST}-gcc" -print-file-name=libwinpthread.a)"
+if [[ ! -f "$STDCPP_A" || ! -f "$WINPTHREAD_A" ]]; then
+  echo "ERROR: Missing static runtime archives: STDCPP_A=$STDCPP_A WINPTHREAD_A=$WINPTHREAD_A" >&2
+  exit 1
+fi
+EXTRA_RUNTIME_LIBS=()
+ATOMIC_A="$("${HOST}-gcc" -print-file-name=libatomic.a)"
+if [[ -f "$ATOMIC_A" ]]; then
+  EXTRA_RUNTIME_LIBS+=("$ATOMIC_A")
+fi
+
+"${HOST}-gcc" -shared \
   -Wl,--gc-sections -Wl,--exclude-libs,ALL \
-  -static -static-libgcc -static-libstdc++ \
+  -static -static-libgcc \
   "$BUILD_DIR/pureimage_codecs.o" \
   -Wl,--start-group \
   "$PREFIX/lib/libturbojpeg.a" \
@@ -311,8 +323,10 @@ fi
   "$PREFIX/lib/libhwy.a" \
   "$PREFIX/lib/libbrotlidec.a" \
   "$PREFIX/lib/libbrotlicommon.a" \
+  "$STDCPP_A" \
+  "$WINPTHREAD_A" \
+  "${EXTRA_RUNTIME_LIBS[@]}" \
   -Wl,--end-group \
-  -Wl,-Bstatic -lpthread -Wl,-Bdynamic \
   -o "$OUT_DIR/pureimage_codecs.dll"
 
 "${HOST}-strip" --strip-unneeded "$OUT_DIR/pureimage_codecs.dll"
