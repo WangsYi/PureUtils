@@ -117,6 +117,7 @@ jobs:
       - name: Create or update pureimage-codecs pre-release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           if gh release view pureimage-codecs >/dev/null 2>&1; then
             gh release upload pureimage-codecs \
@@ -129,6 +130,7 @@ jobs:
               dist/pureimage-codecs-x64.7z \
               dist/SHA256SUMS.txt \
               dist/LICENSES-pureimage-codecs.txt \
+              --target "${{ github.sha }}" \
               --prerelease --latest=false \
               --title "PureImage Native Codecs (pureimage_codecs.dll x64)" \
               --notes "Unified Windows x64 decode-only DLL bundling libjpeg-turbo, libwebp, libavif+dav1d, libheif+libde265 (LGPL-3.0-or-later), and libjxl. Marked prerelease so in-app auto-updater ignores it. See LICENSES-pureimage-codecs.txt for full license notices."

@@ -270,6 +270,7 @@ static int32_t pic_decode_jpeg(const uint8_t* data, size_t data_len, int32_t max
         if (factors && num_factors > 0) {
             int best_w = 0, best_h = 0;
             for (int i = 0; i < num_factors; i++) {
+                if (factors[i].num <= 0 || factors[i].denom <= 0 || factors[i].num > factors[i].denom) continue;
                 int cw = TJSCALED(orig_w, factors[i]);
                 int ch = TJSCALED(orig_h, factors[i]);
                 int cmax = cw > ch ? cw : ch;
@@ -288,6 +289,7 @@ static int32_t pic_decode_jpeg(const uint8_t* data, size_t data_len, int32_t max
                 /* Pick smallest available factor if even 1/8 exceeds limit */
                 int min_w = orig_w, min_h = orig_h;
                 for (int i = 0; i < num_factors; i++) {
+                    if (factors[i].num <= 0 || factors[i].denom <= 0 || factors[i].num > factors[i].denom) continue;
                     int cw = TJSCALED(orig_w, factors[i]);
                     int ch = TJSCALED(orig_h, factors[i]);
                     int cmax = cw > ch ? cw : ch;

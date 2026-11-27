@@ -154,6 +154,12 @@ int main(int argc, char** argv) {
                 return 1;
             }
         }
+        if (fmt == PIC_FMT_JPEG && (fw > ow || fh > oh)) {
+            fprintf(stderr, "Unexpected JPEG upscale for %s: orig=%dx%d frame0=%dx%d\n", path, ow, oh, fw, fh);
+            p_free(res);
+            free(raw);
+            return 1;
+        }
         printf("PASS %s -> frames=%d orig=%dx%d frame0=%dx%d flags=0x%X exif=%llu\n",
             path, fc, ow, oh, fw, fh, p_flags(res), (unsigned long long)exif_len);
         p_free(res);
