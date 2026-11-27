@@ -12,6 +12,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: pages
@@ -35,6 +36,20 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
+
+      - name: Wait for github-pages artifact to become visible
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 15); do
+            count=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?name=github-pages" --jq '.artifacts | length' 2>/dev/null || echo 0)
+            if [ "${count:-0}" -ge 1 ]; then
+              echo "github-pages artifact visible on attempt $i"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::warning::github-pages artifact not visible after 30s; proceeding to deploy-pages"
 
       - name: Deploy to GitHub Pages
         id: deployment
