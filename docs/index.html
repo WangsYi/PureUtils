@@ -46,9 +46,8 @@
       --agent-active: rgba(255, 255, 255, 0.78);
       --agent-shadow: rgba(10, 10, 10, 0.06);
       --split-sep: rgba(255, 255, 255, 0.18);
-      --stage-bg: #111318;
-      --stage-border: rgba(10, 10, 10, 0.10);
-      --stage-shadow: 0 1px 2px rgba(10, 10, 10, 0.05), 0 28px 60px -28px rgba(10, 10, 10, 0.36);
+      --img-shadow: 0 12px 36px -14px rgba(10, 10, 10, 0.24), 0 2px 6px rgba(10, 10, 10, 0.06);
+      --card-img-shadow: 0 6px 20px -8px rgba(10, 10, 10, 0.18);
       --switch-active: #ffffff;
       --sans: "Inter", "Segoe UI Variable", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", -apple-system, BlinkMacSystemFont, sans-serif;
       --mono: "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, SFMono-Regular, monospace;
@@ -75,9 +74,8 @@
       --agent-active: rgba(255, 255, 255, 0.08);
       --agent-shadow: rgba(0, 0, 0, 0.35);
       --split-sep: rgba(13, 13, 15, 0.16);
-      --stage-bg: #111318;
-      --stage-border: rgba(255, 255, 255, 0.10);
-      --stage-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 32px 68px -24px rgba(0, 0, 0, 0.72);
+      --img-shadow: 0 18px 48px -14px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.35);
+      --card-img-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.55);
       --switch-active: #2e2e34;
     }
 
@@ -331,24 +329,27 @@
       position: relative;
       width: 100%;
       aspect-ratio: 16 / 10;
-      border-radius: 16px;
-      background: var(--stage-bg);
-      border: 1px solid var(--stage-border);
-      box-shadow: var(--stage-shadow);
-      overflow: hidden;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      overflow: visible;
     }
     .shot-track {
       position: absolute;
       inset: 0;
-      padding: 20px;
+      padding: 0;
     }
     .shot-slide {
       position: absolute;
-      inset: 20px;
-      width: calc(100% - 40px);
-      height: calc(100% - 40px);
-      object-fit: contain;
-      border-radius: 8px;
+      inset: 0;
+      margin: auto;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      border-radius: 12px;
+      border: 0;
+      box-shadow: var(--img-shadow);
       opacity: 0;
       pointer-events: none;
       cursor: zoom-in;
@@ -359,7 +360,7 @@
       pointer-events: auto;
     }
     .shot-meta {
-      margin-top: 12px;
+      margin-top: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -374,44 +375,36 @@
       width: 36px;
       height: 36px;
       margin-top: -18px;
-      border: 0;
+      border: 1px solid var(--border);
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.90);
-      color: #0a0a0a;
+      background: var(--surface);
+      color: var(--ink);
       display: grid;
       place-items: center;
       cursor: pointer;
       opacity: 0;
-      box-shadow: 0 1px 2px rgba(10, 10, 10, 0.08), 0 6px 18px -4px rgba(10, 10, 10, 0.35);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 2px 10px -2px rgba(10, 10, 10, 0.24);
       transition: opacity 0.2s ease, transform 0.15s ease, background-color 0.15s ease;
     }
     .shot:hover .shot-nav,
     .shot:focus-within .shot-nav { opacity: 1; }
-    .shot-nav:hover { background: #ffffff; }
+    .shot-nav:hover { background: var(--chip); }
     .shot-nav:active { transform: scale(0.94); }
-    .shot-prev { left: 14px; }
-    .shot-next { right: 14px; }
+    .shot-prev { left: 8px; }
+    .shot-next { right: 8px; }
     .shot-nav svg { width: 16px; height: 16px; }
     @media (hover: none) {
       .shot-nav { opacity: 0.85; }
     }
     .shot-dots {
-      position: absolute;
-      left: 50%;
-      bottom: 14px;
-      transform: translateX(-50%);
-      z-index: 5;
-      display: inline-flex;
+      display: flex;
+      width: fit-content;
       align-items: center;
       gap: 6px;
-      padding: 6px 9px;
-      border-radius: 999px;
-      background: rgba(10, 10, 10, 0.50);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      margin: 18px auto 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
     }
     .shot-dot {
       width: 6px;
@@ -419,12 +412,12 @@
       padding: 0;
       border: 0;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.48);
+      background: var(--dot);
       cursor: pointer;
       transition: background-color 0.2s ease, width 0.2s ease;
     }
-    .shot-dot:hover { background: rgba(255, 255, 255, 0.82); }
-    .shot-dot.is-active { width: 16px; background: #ffffff; }
+    .shot-dot:hover { background: var(--muted); }
+    .shot-dot.is-active { width: 16px; background: var(--ink); }
 
     /* Shared Width Container (960px matching otty.sh) */
     .section-wrap {
@@ -486,34 +479,40 @@
     }
     .feat-card {
       border-radius: 12px;
-      padding: 10px;
+      padding: 12px;
       background: var(--card);
-      border: 1px solid var(--border);
+      border: 0;
       display: flex;
       flex-direction: column;
     }
     .feat-img {
       position: relative;
       width: 100%;
-      aspect-ratio: 16 / 10;
-      border-radius: 8px;
-      background: var(--stage-bg);
-      padding: 8px;
-      overflow: hidden;
+      aspect-ratio: 16 / 10.5;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      overflow: visible;
       cursor: zoom-in;
     }
     .feat-img img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      border-radius: 4px;
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      border-radius: 8px;
+      border: 0;
+      box-shadow: var(--card-img-shadow);
       transition: transform 0.25s ease;
     }
     .feat-card:hover .feat-img img {
       transform: scale(1.018);
     }
     .feat-card-meta {
-      padding: 12px 6px 4px;
+      padding: 14px 4px 4px;
     }
     .feat-title-row {
       display: flex;
@@ -572,19 +571,22 @@
       position: relative;
       width: 100%;
       aspect-ratio: 16 / 10;
-      border-radius: 12px;
-      background: var(--stage-bg);
-      border: 1px solid var(--stage-border);
-      overflow: hidden;
+      background: transparent;
+      border: 0;
+      overflow: visible;
       cursor: zoom-in;
     }
     .workflow-stage img {
       position: absolute;
-      inset: 14px;
-      width: calc(100% - 28px);
-      height: calc(100% - 28px);
-      object-fit: contain;
-      border-radius: 6px;
+      inset: 0;
+      margin: auto;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      border-radius: 10px;
+      border: 0;
+      box-shadow: var(--img-shadow);
       transition: opacity 0.18s ease;
     }
     .palette-grid {
@@ -631,7 +633,7 @@
       border-radius: 16px;
       padding: 32px;
       background: var(--panel);
-      border: 1px solid var(--border);
+      border: 0;
     }
     .panel-grid {
       display: grid;
@@ -700,19 +702,22 @@
       position: relative;
       width: 100%;
       aspect-ratio: 4 / 3;
-      border-radius: 12px;
-      background: var(--stage-bg);
-      border: 1px solid var(--stage-border);
-      overflow: hidden;
+      background: transparent;
+      border: 0;
+      overflow: visible;
       cursor: zoom-in;
     }
     .agent-stage img {
       position: absolute;
-      inset: 14px;
-      width: calc(100% - 28px);
-      height: calc(100% - 28px);
-      object-fit: contain;
-      border-radius: 6px;
+      inset: 0;
+      margin: auto;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      border-radius: 10px;
+      border: 0;
+      box-shadow: var(--img-shadow);
       transition: opacity 0.18s ease;
     }
 
@@ -870,7 +875,7 @@
       max-width: min(94vw, 1120px);
       max-height: 90vh;
       border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      border: 0;
       box-shadow: 0 28px 80px rgba(0, 0, 0, 0.65);
     }
 
@@ -883,9 +888,6 @@
     @media (max-width: 580px) {
       .page { padding: 40px 18px 60px; }
       .hero-shot-wrap { margin-top: 36px; }
-      .shot-track { padding: 10px; }
-      .shot-slide { inset: 10px; width: calc(100% - 20px); height: calc(100% - 20px); }
-      .workflow-stage img, .agent-stage img { inset: 10px; width: calc(100% - 20px); height: calc(100% - 20px); }
       .hairline-sep { margin-top: 68px; }
       .workflow-sec, .panel-sec, .closing-cta { margin-top: 72px; }
       .panel-box { padding: 20px; }
@@ -974,8 +976,8 @@
         <button class="shot-nav shot-next" id="shotNext" type="button" aria-label="Next screenshot">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
         </button>
-        <div class="shot-dots" id="shotDots" aria-label="Choose screenshot"></div>
       </div>
+      <div class="shot-dots" id="shotDots" aria-label="Choose screenshot"></div>
       <div class="shot-meta">
         <span id="heroCaption">PureShot · 截图标注与桌面贴图</span>
         <span class="kbd-pill" id="heroKbd">F1</span>
@@ -1499,6 +1501,11 @@
       slides.forEach((img, i) => img.classList.toggle("is-active", i === slideIndex));
       dots.forEach((dot, i) => dot.classList.toggle("is-active", i === slideIndex));
       updateSlideBadge();
+    }
+
+    const urlSlide = parseInt(params.get("slide"), 10);
+    if (!isNaN(urlSlide) && urlSlide >= 0 && urlSlide < slides.length) {
+      goSlide(urlSlide);
     }
 
     let carouselTimer = null;
