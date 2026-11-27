@@ -1,1254 +1,1407 @@
-<!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<!doctype html>
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PureUtils — Windows 原生效率工具集</title>
-  <meta name="description" content="PureUtils：将截图贴图、剪贴板历史、多格式看图与压缩管理收拢在一个轻量原生 Windows 应用里（AGPL-3.0）。" />
+  <title>PureUtils — Windows 原生效率套件</title>
+  <meta name="description" content="截图、剪贴板、看图、视频、压缩与硬件监控，融于单一原生 Windows 应用（GNU AGPL-3.0）。" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0d0d0f" media="(prefers-color-scheme: dark)" />
   <link rel="icon" type="image/png" href="assets/icon.png" />
+  <script>
+    (function () {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var urlTheme = params.get("theme");
+        var saved = localStorage.getItem("pureutils_theme");
+        var theme = urlTheme === "dark" || urlTheme === "light"
+          ? urlTheme
+          : (saved === "dark" || saved === "light"
+              ? saved
+              : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+        if (theme === "dark") document.documentElement.classList.add("dark");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (e) {}
+    })();
+  </script>
   <style>
     :root {
-      --bg: #fafaf9;
-      --bg-band: #f3f2ee;
-      --mat-bg: #ebe9e2;
-      --dot-color: rgba(20, 20, 19, 0.10);
+      --paper: #ffffff;
       --surface: #ffffff;
-      --surface-hover: #f5f4f0;
-      --border: #e5e4dd;
-      --border-strong: #d3d1c8;
-      --ink: #141413;
-      --ink-secondary: #57534e;
-      --ink-muted: #78716c;
-      --accent: #0f62fe;
-      --accent-soft: rgba(15, 98, 254, 0.08);
-      --btn-primary-bg: #141413;
-      --btn-primary-fg: #fafaf9;
-      --btn-primary-hover: #2b2b28;
-      --win-shadow: 0 2px 6px rgba(20, 20, 19, 0.08), 0 18px 42px rgba(20, 20, 19, 0.16);
-      --win-shadow-front: 0 6px 14px rgba(20, 20, 19, 0.14), 0 24px 52px rgba(20, 20, 19, 0.28);
-      --kbd-shadow: 0 1px 0 #d3d1c8;
-      --sans: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
-      --mono: "Cascadia Mono", "JetBrains Mono", Consolas, ui-monospace, SFMono-Regular, monospace;
+      --ink: #0a0a0a;
+      --muted: rgb(126, 127, 149);
+      --chip: rgb(238, 240, 241);
+      --chip-hover: rgb(228, 231, 233);
+      --card: rgb(238, 240, 241);
+      --panel: #e3e4e5;
+      --hairline: rgba(10, 10, 10, 0.10);
+      --border: rgba(10, 10, 10, 0.08);
+      --label: rgba(10, 10, 10, 0.42);
+      --kbd-bg: rgba(10, 10, 10, 0.06);
+      --kbd-ink: rgba(10, 10, 10, 0.62);
+      --hover: rgba(10, 10, 10, 0.035);
+      --ring: rgba(10, 10, 10, 0.14);
+      --dot: rgba(10, 10, 10, 0.28);
+      --agent-hover: rgba(255, 255, 255, 0.45);
+      --agent-active: rgba(255, 255, 255, 0.78);
+      --agent-shadow: rgba(10, 10, 10, 0.06);
+      --split-sep: rgba(255, 255, 255, 0.18);
+      --stage-bg: #111318;
+      --stage-border: rgba(10, 10, 10, 0.10);
+      --stage-shadow: 0 1px 2px rgba(10, 10, 10, 0.05), 0 28px 60px -28px rgba(10, 10, 10, 0.36);
+      --switch-active: #ffffff;
+      --sans: "Inter", "Segoe UI Variable", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, SFMono-Regular, monospace;
     }
 
-    html[data-theme="dark"] {
-      --bg: #111110;
-      --bg-band: #181816;
-      --mat-bg: #1e1e1b;
-      --dot-color: rgba(255, 255, 255, 0.07);
-      --surface: #171715;
-      --surface-hover: #21211e;
-      --border: #272723;
-      --border-strong: #393933;
-      --ink: #f2f2ef;
-      --ink-secondary: #a8a8a0;
-      --ink-muted: #7d7d76;
-      --accent: #3b82f6;
-      --accent-soft: rgba(59, 130, 246, 0.12);
-      --btn-primary-bg: #f2f2ef;
-      --btn-primary-fg: #111110;
-      --btn-primary-hover: #ffffff;
-      --win-shadow: 0 4px 10px rgba(0, 0, 0, 0.28), 0 20px 46px rgba(0, 0, 0, 0.50);
-      --win-shadow-front: 0 10px 22px rgba(0, 0, 0, 0.42), 0 28px 60px rgba(0, 0, 0, 0.65);
-      --kbd-shadow: 0 1px 0 #1f1f1c;
+    html.dark {
+      --paper: #0d0d0f;
+      --surface: #1a1a1e;
+      --ink: #ececef;
+      --muted: rgb(150, 152, 172);
+      --chip: #1d1d22;
+      --chip-hover: #26262b;
+      --card: #161619;
+      --panel: #151517;
+      --hairline: rgba(255, 255, 255, 0.12);
+      --border: rgba(255, 255, 255, 0.09);
+      --label: rgba(255, 255, 255, 0.45);
+      --kbd-bg: rgba(255, 255, 255, 0.08);
+      --kbd-ink: rgba(255, 255, 255, 0.65);
+      --hover: rgba(255, 255, 255, 0.05);
+      --ring: rgba(255, 255, 255, 0.18);
+      --dot: rgba(255, 255, 255, 0.32);
+      --agent-hover: rgba(255, 255, 255, 0.04);
+      --agent-active: rgba(255, 255, 255, 0.08);
+      --agent-shadow: rgba(0, 0, 0, 0.35);
+      --split-sep: rgba(13, 13, 15, 0.16);
+      --stage-bg: #111318;
+      --stage-border: rgba(255, 255, 255, 0.10);
+      --stage-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 32px 68px -24px rgba(0, 0, 0, 0.72);
+      --switch-active: #2e2e34;
     }
 
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; overflow-x: clip; }
     body {
       margin: 0;
-      background: var(--bg);
+      background: var(--paper);
       color: var(--ink);
       font-family: var(--sans);
       font-size: 15px;
-      line-height: 1.65;
+      line-height: 1.55;
+      overflow-x: clip;
       -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
     a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; }
     img { display: block; max-width: 100%; }
 
-    kbd {
-      display: inline-flex;
-      align-items: center;
-      padding: 1px 7px;
-      font-family: var(--mono);
-      font-size: 11.5px;
-      line-height: 1.5;
-      color: var(--ink);
-      background: var(--surface);
-      border: 1px solid var(--border-strong);
-      border-radius: 5px;
-      box-shadow: var(--kbd-shadow);
-      white-space: nowrap;
+    .page {
+      padding: 72px 24px 84px;
     }
 
-    .container {
+    /* Editorial Top Intro (max 640px, matching otty.sh) */
+    .intro {
       width: 100%;
-      max-width: 1080px;
+      max-width: 640px;
       margin: 0 auto;
-      padding: 0 24px;
     }
-
-    /* Top Bar */
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 30;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-    }
-    .topbar-inner {
-      height: 56px;
+    .intro-top {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 16px;
     }
-    .brand {
+    .app-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      user-select: none;
+      box-shadow: 0 2px 8px rgba(10, 10, 10, 0.08), 0 0 0 1px var(--border);
+    }
+    .top-tools {
       display: inline-flex;
       align-items: center;
-      gap: 9px;
-      font-weight: 600;
-      font-size: 15px;
-      letter-spacing: -0.01em;
+      gap: 8px;
     }
-    .brand img {
-      width: 22px;
-      height: 22px;
-      border-radius: 5px;
+    .lang-pill {
+      height: 34px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--chip);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+    .lang-pill:hover { background: var(--chip-hover); }
+
+    .theme-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 3px;
+      border-radius: 999px;
+      background: var(--chip);
+    }
+    .theme-opt {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--kbd-ink);
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .theme-opt:hover { color: var(--ink); }
+    .theme-opt svg { width: 15px; height: 15px; }
+    .theme-opt[data-theme="light"],
+    html.dark .theme-opt[data-theme="dark"] {
+      background: var(--switch-active);
+      color: var(--ink);
+      box-shadow: 0 1px 2px var(--agent-shadow), 0 0 0 1px var(--border);
+    }
+    html.dark .theme-opt[data-theme="light"] {
+      background: transparent;
+      color: var(--kbd-ink);
+      box-shadow: none;
+    }
+
+    .intro h1 {
+      margin: 22px 0 0;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      font-size: 32px;
+      font-weight: 500;
+      line-height: 1.25;
+      letter-spacing: -0.025em;
     }
     .brand-ver {
       font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 400;
-      color: var(--ink-muted);
-      white-space: nowrap;
-    }
-    .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      font-size: 13.5px;
-    }
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      color: var(--ink-secondary);
-    }
-    .nav-links a:hover { color: var(--ink); }
-    .nav-sep {
-      width: 1px;
-      height: 15px;
-      background: var(--border);
-    }
-    .nav-tools {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .text-toggle {
-      padding: 4px 6px;
-      border: none;
-      background: transparent;
-      color: var(--ink-secondary);
-      font-family: inherit;
-      font-size: 13px;
-      cursor: pointer;
-    }
-    .text-toggle:hover { color: var(--ink); }
-    .gh-link {
       font-size: 13px;
       font-weight: 500;
-      white-space: nowrap;
+      color: var(--muted);
+      letter-spacing: -0.01em;
     }
-    .gh-link:hover { color: var(--accent); }
-
-    /* Hero */
-    .hero {
-      padding: 58px 0 60px;
-      border-bottom: 1px solid var(--border);
-    }
-    .hero-copy {
-      max-width: 720px;
-    }
-    .hero h1 {
-      margin: 0 0 14px;
-      font-size: clamp(29px, 4.2vw, 44px);
-      font-weight: 650;
-      line-height: 1.16;
-      letter-spacing: -0.025em;
-    }
-    .hero-desc {
-      margin: 0 0 24px;
+    .tagline {
+      margin: 6px 0 0;
       font-size: 16px;
-      color: var(--ink-secondary);
-      max-width: 650px;
+      line-height: 1.35;
+      color: var(--muted);
     }
-    .hero-actions {
+    .bio {
+      margin: 26px 0 0;
+      max-width: 510px;
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    /* Pill CTA Row */
+    .cta-row {
+      margin-top: 28px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
+      gap: 8px;
     }
-    .btn-primary {
-      height: 40px;
-      padding: 0 18px;
-      border-radius: 7px;
-      background: var(--btn-primary-bg);
-      color: var(--btn-primary-fg);
-      font-size: 14px;
-      font-weight: 500;
+    .dl-split {
+      position: relative;
+      display: inline-flex;
+    }
+    .dl-main {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      transition: background 0.14s;
-    }
-    .btn-primary:hover { background: var(--btn-primary-hover); }
-    .btn-secondary {
       height: 40px;
-      padding: 0 16px;
-      border-radius: 7px;
-      border: 1px solid var(--border-strong);
-      color: var(--ink);
-      font-size: 14px;
+      padding: 0 16px 0 20px;
+      border-radius: 999px 0 0 999px;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--mono);
+      font-size: 13px;
       font-weight: 500;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      transition: opacity 0.15s ease;
+    }
+    .dl-main:hover { opacity: 0.9; }
+    .dl-main svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .dl-toggle {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      transition: background 0.14s;
+      justify-content: center;
+      height: 40px;
+      padding: 0 12px;
+      border: 0;
+      border-left: 1px solid var(--split-sep);
+      border-radius: 0 999px 999px 0;
+      background: var(--ink);
+      color: var(--paper);
+      cursor: pointer;
+      transition: opacity 0.15s ease;
     }
-    .btn-secondary:hover { background: var(--surface-hover); }
-    .hero-spec {
-      margin: 0 0 38px;
+    .dl-toggle:hover { opacity: 0.9; }
+    .dl-toggle svg { width: 14px; height: 14px; transition: transform 0.2s ease; }
+    .dl-split.is-open .dl-toggle svg { transform: rotate(180deg); }
+
+    .dl-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      z-index: 30;
+      min-width: 286px;
+      max-width: calc(100vw - 36px);
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(10, 10, 10, 0.05), 0 16px 36px -8px rgba(10, 10, 10, 0.35);
+      opacity: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
+      transition: opacity 0.16s ease, transform 0.16s ease;
+    }
+    .dl-split.is-open .dl-menu {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .dl-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
       font-family: var(--mono);
-      font-size: 12px;
-      color: var(--ink-muted);
+      font-size: 12.5px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      transition: background-color 0.12s ease;
+    }
+    .dl-item:hover { background: var(--chip); }
+    .dl-item-sub {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--muted);
     }
 
-    /* Studio Stage */
-    .studio-mat {
+    .pill-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 40px;
+      padding: 0 20px;
+      border-radius: 999px;
+      background: var(--chip);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      transition: background-color 0.15s ease;
+    }
+    .pill-secondary:hover { background: var(--chip-hover); }
+    .pill-secondary svg { width: 14px; height: 14px; transition: transform 0.15s ease; }
+    .pill-secondary:hover svg { transform: translate(2px, -2px); }
+
+    /* Hero Carousel */
+    .hero-shot-wrap {
+      width: 100%;
+      max-width: 1024px;
+      margin: 56px auto 0;
+    }
+    .shot {
       position: relative;
-      background-color: var(--mat-bg);
-      background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
-      background-size: 18px 18px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 28px;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      border-radius: 16px;
+      background: var(--stage-bg);
+      border: 1px solid var(--stage-border);
+      box-shadow: var(--stage-shadow);
+      overflow: hidden;
+    }
+    .shot-track {
+      position: absolute;
+      inset: 0;
+      padding: 20px;
+    }
+    .shot-slide {
+      position: absolute;
+      inset: 20px;
+      width: calc(100% - 40px);
+      height: calc(100% - 40px);
+      object-fit: contain;
+      border-radius: 8px;
+      opacity: 0;
+      pointer-events: none;
+      cursor: zoom-in;
+      transition: opacity 0.25s ease;
+    }
+    .shot-slide.is-active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .shot-meta {
+      margin-top: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--muted);
     }
-    .hero-mat {
-      min-height: 460px;
-      padding: 36px 28px;
-      cursor: zoom-in;
+    .shot-nav {
+      position: absolute;
+      top: 50%;
+      z-index: 5;
+      width: 36px;
+      height: 36px;
+      margin-top: -18px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.90);
+      color: #0a0a0a;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      opacity: 0;
+      box-shadow: 0 1px 2px rgba(10, 10, 10, 0.08), 0 6px 18px -4px rgba(10, 10, 10, 0.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: opacity 0.2s ease, transform 0.15s ease, background-color 0.15s ease;
     }
-    .win-shot {
-      display: block;
-      width: auto;
-      max-width: 100%;
-      max-height: 480px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: var(--win-shadow);
-      cursor: zoom-in;
-      transition: transform 0.18s ease;
+    .shot:hover .shot-nav,
+    .shot:focus-within .shot-nav { opacity: 1; }
+    .shot-nav:hover { background: #ffffff; }
+    .shot-nav:active { transform: scale(0.94); }
+    .shot-prev { left: 14px; }
+    .shot-next { right: 14px; }
+    .shot-nav svg { width: 16px; height: 16px; }
+    @media (hover: none) {
+      .shot-nav { opacity: 0.85; }
     }
-    .win-shot:hover { transform: translateY(-2px); }
+    .shot-dots {
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      z-index: 5;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: rgba(10, 10, 10, 0.50);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .shot-dot {
+      width: 6px;
+      height: 6px;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.48);
+      cursor: pointer;
+      transition: background-color 0.2s ease, width 0.2s ease;
+    }
+    .shot-dot:hover { background: rgba(255, 255, 255, 0.82); }
+    .shot-dot.is-active { width: 16px; background: #ffffff; }
 
-    .hero-controls {
-      margin-top: 16px;
+    /* Shared Width Container (960px matching otty.sh) */
+    .section-wrap {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .hairline-sep {
+      margin-top: 96px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .hairline-sep .line {
+      height: 1px;
+      flex: 1;
+      background: var(--hairline);
+    }
+    .hairline-sep .sep-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--label);
+    }
+
+    .sec-head {
+      max-width: 540px;
+    }
+    .sec-head.is-center {
+      margin: 0 auto;
+      text-align: center;
+    }
+    .sec-head h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 500;
+      line-height: 1.3;
+      letter-spacing: -0.015em;
+      color: var(--ink);
+    }
+    .sec-head p {
+      margin: 8px 0 0;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    /* Section 1: 6-Module Bento Grid */
+    .modules-sec {
+      margin-top: 56px;
+    }
+    .module-grid {
+      margin-top: 32px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .feat-card {
+      border-radius: 12px;
+      padding: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+    .feat-img {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      border-radius: 8px;
+      background: var(--stage-bg);
+      padding: 8px;
+      overflow: hidden;
+      cursor: zoom-in;
+    }
+    .feat-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 4px;
+      transition: transform 0.25s ease;
+    }
+    .feat-card:hover .feat-img img {
+      transform: scale(1.018);
+    }
+    .feat-card-meta {
+      padding: 12px 6px 4px;
+    }
+    .feat-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .feat-card-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    .feat-card-desc {
+      margin: 5px 0 0;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+    .kbd-pill {
+      display: inline-flex;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      line-height: 1;
+      color: var(--kbd-ink);
+      background: var(--kbd-bg);
+      padding: 4px 8px;
+      border-radius: 7px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Section 2: Keyboard-First Workflow (otty.sh Feature 04) */
+    .workflow-sec {
+      margin-top: 108px;
+    }
+    .workflow-grid {
+      margin-top: 36px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+    .workflow-grid > *,
+    .module-grid > *,
+    .panel-grid > *,
+    .footer-grid > * {
+      min-width: 0;
+    }
+    .workflow-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      border-radius: 12px;
+      background: var(--stage-bg);
+      border: 1px solid var(--stage-border);
+      overflow: hidden;
+      cursor: zoom-in;
+    }
+    .workflow-stage img {
+      position: absolute;
+      inset: 14px;
+      width: calc(100% - 28px);
+      height: calc(100% - 28px);
+      object-fit: contain;
+      border-radius: 6px;
+      transition: opacity 0.18s ease;
+    }
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      min-width: 0;
+    }
+    .palette-card {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 104px;
+      width: 100%;
+      padding: 16px;
+      text-align: left;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      cursor: pointer;
+      box-shadow: 0 0 0 1.5px transparent;
+      transition: box-shadow 0.15s ease, background-color 0.15s ease, transform 0.12s ease;
+    }
+    .palette-card:hover { background: var(--hover); }
+    .palette-card.is-active {
+      background: var(--chip);
+      box-shadow: 0 0 0 1.5px var(--ring);
+    }
+    .palette-card:active { transform: scale(0.985); }
+    .palette-card-foot {
+      margin-top: auto;
+      padding-top: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Section 3: Recessed Highlights Panel (otty.sh Feature 05) */
+    .panel-sec {
+      margin-top: 108px;
+    }
+    .panel-box {
+      border-radius: 16px;
+      padding: 32px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+    .panel-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.28fr);
+      gap: 36px;
+      align-items: center;
+    }
+    .agent-list {
+      list-style: none;
+      margin: 22px 0 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .agent-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      width: 100%;
+      text-align: left;
+      padding: 10px 12px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      cursor: pointer;
+      transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .agent-item:hover { background: var(--agent-hover); }
+    .agent-item.is-active {
+      background: var(--agent-active);
+      box-shadow: 0 1px 2px var(--agent-shadow);
+    }
+    .agent-dot {
+      flex-shrink: 0;
+      width: 5px;
+      height: 5px;
+      margin-top: 7px;
+      border-radius: 999px;
+      background: var(--dot);
+      transition: background-color 0.15s ease;
+    }
+    .agent-item.is-active .agent-dot { background: var(--ink); }
+    .agent-item-text {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+    .agent-item-title {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    .agent-item-desc {
+      display: none;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+    .agent-item.is-active .agent-item-desc { display: block; }
+
+    .agent-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border-radius: 12px;
+      background: var(--stage-bg);
+      border: 1px solid var(--stage-border);
+      overflow: hidden;
+      cursor: zoom-in;
+    }
+    .agent-stage img {
+      position: absolute;
+      inset: 14px;
+      width: calc(100% - 28px);
+      height: calc(100% - 28px);
+      object-fit: contain;
+      border-radius: 6px;
+      transition: opacity 0.18s ease;
+    }
+
+    /* Section 4: Closing Download CTA */
+    .closing-cta {
+      margin-top: 112px;
+      text-align: center;
+    }
+    .closing-cta h2 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 500;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+    .closing-cta p {
+      margin: 10px 0 0;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+    .closing-btns {
+      margin-top: 26px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-lg-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 44px;
+      max-width: 100%;
+      padding: 8px 22px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      transition: opacity 0.15s ease;
+    }
+    .btn-lg-primary:hover { opacity: 0.9; }
+    .btn-lg-primary svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .btn-lg-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 44px;
+      padding: 0 22px;
+      border-radius: 999px;
+      background: var(--chip);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      transition: background-color 0.15s ease;
+    }
+    .btn-lg-secondary:hover { background: var(--chip-hover); }
+    .btn-lg-secondary svg { width: 14px; height: 14px; transition: transform 0.15s ease; }
+    .btn-lg-secondary:hover svg { transform: translate(2px, -2px); }
+
+    /* Footer */
+    .footer-sec {
+      margin-top: 44px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+      gap: 32px 24px;
+    }
+    .footer-brand img {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      box-shadow: 0 1px 3px rgba(10, 10, 10, 0.08), 0 0 0 1px var(--border);
+    }
+    .footer-brand p {
+      margin: 14px 0 0;
+      max-width: 240px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+    .footer-h {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--label);
+    }
+    .footer-list {
+      list-style: none;
+      margin: 14px 0 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .footer-link,
+    .footer-meta {
+      font-size: 13px;
+      line-height: 1.3;
+      color: var(--muted);
+      transition: color 0.15s ease;
+    }
+    .footer-link:hover { color: var(--ink); }
+
+    .footer-bar {
+      margin-top: 44px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 14px;
     }
-    .stage-tabs {
-      display: inline-flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      padding: 4px;
-      border-radius: 8px;
-      background: var(--bg-band);
-      border: 1px solid var(--border);
-    }
-    .stage-tab {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 6px;
-      background: transparent;
-      color: var(--ink-secondary);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    .stage-tab:hover { color: var(--ink); }
-    .stage-tab.active {
-      background: var(--surface);
-      color: var(--ink);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-    }
-    .stage-caption-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      color: var(--ink-secondary);
-    }
-
-    /* Story Chapters */
-    .section {
-      padding: 64px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .section-head {
-      max-width: 640px;
-      margin-bottom: 42px;
-    }
-    .section-head h2 {
-      margin: 0 0 8px;
-      font-size: 26px;
-      font-weight: 620;
-      letter-spacing: -0.02em;
-    }
-    .section-head p {
+    .footer-copy {
       margin: 0;
-      color: var(--ink-secondary);
-      font-size: 15px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: -0.01em;
+      color: var(--muted);
     }
-
-    .chapter {
-      display: grid;
-      grid-template-columns: 0.92fr 1.28fr;
-      gap: 36px;
-      align-items: center;
-      padding: 36px 0;
-      border-top: 1px solid var(--border);
-    }
-    .chapter.rev {
-      grid-template-columns: 1.28fr 0.92fr;
-    }
-    .chapter.rev .chapter-copy { order: 2; }
-    .chapter.rev .chapter-media { order: 1; }
-
-    .chapter-kicker {
+    .footer-controls {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--ink-muted);
-      margin-bottom: 10px;
     }
-    .chapter-kicker img {
-      width: 18px;
-      height: 18px;
-      border-radius: 4px;
-    }
-    .chapter-copy h3 {
-      margin: 0 0 10px;
-      font-size: 21px;
-      font-weight: 600;
-      letter-spacing: -0.015em;
-    }
-    .chapter-copy p {
-      margin: 0 0 14px;
-      color: var(--ink-secondary);
-      font-size: 14.5px;
-    }
-    .chapter-points {
-      margin: 0 0 16px;
-      padding-left: 18px;
-      color: var(--ink);
-      font-size: 14px;
-    }
-    .chapter-points li { margin-bottom: 5px; }
-    .chapter-keys {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-      font-size: 12.5px;
-      color: var(--ink-muted);
-    }
-
-    /* Stacked Dual-Window PureClip Stage */
-    .stacked-stage {
-      padding: 26px 24px 30px;
-      min-height: 410px;
-      display: block;
-    }
-    .stack-wrap {
-      position: relative;
-      width: 100%;
-      padding-bottom: 10%;
-    }
-    .stack-back {
-      width: 82%;
-      border-radius: 9px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: var(--win-shadow);
-      cursor: zoom-in;
-      transition: transform 0.18s ease;
-    }
-    .stack-front {
-      position: absolute;
-      right: 0;
-      bottom: 0;
-      width: 33%;
-      border-radius: 9px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      box-shadow: var(--win-shadow-front);
-      cursor: zoom-in;
-      transition: transform 0.18s ease;
-    }
-    .stack-back:hover, .stack-front:hover { transform: translateY(-2px); }
-
-    /* Paired Duo Chapter (Launcher + Settings) */
-    .duo-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      padding-top: 36px;
-      border-top: 1px solid var(--border);
-    }
-    .duo-card {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .duo-mat {
-      padding: 22px;
-      height: 360px;
-    }
-    .duo-mat .win-shot {
-      max-height: 100%;
-      width: auto;
-    }
-    .duo-copy h3 {
-      margin: 0 0 6px;
-      font-size: 18px;
-      font-weight: 600;
-    }
-    .duo-copy p {
-      margin: 0 0 10px;
-      font-size: 14px;
-      color: var(--ink-secondary);
-    }
-
-    /* Visual Architecture Board */
-    .arch-board {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px;
-      overflow-x: auto;
-    }
-    .arch-svg {
-      display: block;
-      width: 100%;
-      min-width: 720px;
-      height: auto;
-    }
-    .arch-pillars {
-      margin-top: 28px;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 24px;
-      padding-top: 24px;
-      border-top: 1px solid var(--border);
-    }
-    .pillar h4 {
-      margin: 0 0 6px;
-      font-size: 15px;
-      font-weight: 600;
-    }
-    .pillar p {
-      margin: 0;
-      font-size: 13.5px;
-      color: var(--ink-secondary);
-    }
-
-    /* Closing Download Band & Footer */
-    .download-band {
-      padding: 48px 0;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-    }
-    .download-band h2 {
-      margin: 0 0 6px;
-      font-size: 22px;
-      font-weight: 600;
-      letter-spacing: -0.015em;
-    }
-    .download-band p {
-      margin: 0;
-      font-size: 14.5px;
-      color: var(--ink-secondary);
-    }
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 26px 0 38px;
-      font-size: 13px;
-      color: var(--ink-muted);
-    }
-    .footer-inner {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-    }
-    .footer-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 18px;
-    }
-    .footer-links a:hover { color: var(--ink); }
 
     /* Lightbox */
     .lightbox {
       position: fixed;
       inset: 0;
       z-index: 60;
-      background: rgba(14, 14, 13, 0.86);
       display: none;
       align-items: center;
       justify-content: center;
       padding: 24px;
+      background: rgba(10, 10, 12, 0.86);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
       cursor: zoom-out;
     }
-    .lightbox.open { display: flex; }
+    .lightbox.is-open { display: flex; }
     .lightbox img {
-      max-width: 94%;
-      max-height: 90%;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+      max-width: min(94vw, 1120px);
+      max-height: 90vh;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.65);
     }
 
-    @media (max-width: 860px) {
-      .nav-links, .nav-sep { display: none; }
-      .hero { padding: 36px 0 42px; }
-      .hero-mat { min-height: 240px; padding: 18px; }
-      .chapter, .chapter.rev {
-        grid-template-columns: 1fr;
-        gap: 20px;
-      }
-      .chapter.rev .chapter-copy { order: 1; }
-      .chapter.rev .chapter-media { order: 2; }
-      .duo-grid, .arch-pillars { grid-template-columns: 1fr; }
-      .duo-mat { height: auto; }
-      .stack-wrap { padding-bottom: 0; display: flex; flex-direction: column; gap: 14px; align-items: center; }
-      .stack-back { width: 100%; }
-      .stack-front { position: static; width: 62%; }
+    @media (max-width: 900px) {
+      .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .workflow-grid { grid-template-columns: minmax(0, 1fr); }
+      .panel-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+      .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 580px) {
+      .page { padding: 40px 18px 60px; }
+      .hero-shot-wrap { margin-top: 36px; }
+      .shot-track { padding: 10px; }
+      .shot-slide { inset: 10px; width: calc(100% - 20px); height: calc(100% - 20px); }
+      .workflow-stage img, .agent-stage img { inset: 10px; width: calc(100% - 20px); height: calc(100% - 20px); }
+      .hairline-sep { margin-top: 68px; }
+      .workflow-sec, .panel-sec, .closing-cta { margin-top: 72px; }
+      .panel-box { padding: 20px; }
+      .module-grid { grid-template-columns: minmax(0, 1fr); }
+      .palette-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+      .dl-main { padding: 0 12px 0 16px; font-size: 12.5px; }
+      .btn-lg-primary { font-size: 12px; padding: 8px 18px; }
+      .footer-brand { grid-column: 1 / -1; }
     }
   </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <a href="#" class="brand">
-        <img src="assets/icon.png" alt="PureUtils" />
+  <main class="page">
+    <!-- Top Editorial Intro -->
+    <header class="intro">
+      <div class="intro-top">
+        <img class="app-icon" src="assets/icon.png" alt="PureUtils" width="64" height="64" draggable="false" />
+        <div class="top-tools">
+          <button type="button" class="lang-pill" id="langTop" aria-label="Switch language">EN</button>
+          <div class="theme-switch" role="group" aria-label="Color theme">
+            <button type="button" class="theme-opt" data-theme="light" aria-label="Light mode">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></svg>
+            </button>
+            <button type="button" class="theme-opt" data-theme="dark" aria-label="Dark mode">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <h1>
         <span>PureUtils</span>
         <span class="brand-ver">v1.3.1</span>
-      </a>
-      <div class="nav-right">
-        <nav class="nav-links">
-          <a href="#features" data-i18n="nav_features">功能</a>
-          <a href="#architecture" data-i18n="nav_arch">架构</a>
-          <a href="#download" data-i18n="nav_download">下载</a>
-        </nav>
-        <span class="nav-sep"></span>
-        <div class="nav-tools">
-          <button id="langToggle" class="text-toggle" type="button">EN</button>
-          <button id="themeToggle" class="text-toggle" type="button">深色</button>
-          <a class="gh-link" href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener">GitHub ↗</a>
+      </h1>
+      <p class="tagline" data-i18n="tagline">轻快、克制的 Windows 原生效率套件。</p>
+      <p class="bio" data-i18n="bio">截图、剪贴板、看图、视频、压缩与硬件监控，融于单一原生应用。零 WebView，按需启停。</p>
+
+      <div class="cta-row">
+        <div class="dl-split" id="dlSplit">
+          <a class="dl-main" href="https://github.com/WangsYi/PureUtils/releases/latest/download/PureUtils-1.3.1-setup.exe" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.43 10 4.4v7.1H3zM10.95 4.27 21 2.8v8.7H10.95zM3 12.5h7v7.1L3 18.57zM10.95 12.5H21v8.7l-10.05-1.47z" /></svg>
+            <span data-i18n="cta_download">下载安装程序 · v1.3.1</span>
+          </a>
+          <button type="button" class="dl-toggle" id="dlToggle" aria-haspopup="true" aria-expanded="false" aria-label="Download options">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="dl-menu" id="dlMenu" role="menu">
+            <a class="dl-item" role="menuitem" href="https://github.com/WangsYi/PureUtils/releases/latest/download/PureUtils-1.3.1-setup.exe" rel="noopener">
+              <span>Windows x64</span>
+              <span class="dl-item-sub">PureUtils-1.3.1-setup.exe (15.4 MB)</span>
+            </a>
+            <a class="dl-item" role="menuitem" href="https://github.com/WangsYi/PureUtils/releases/latest/download/SHA256SUMS.txt" rel="noopener">
+              <span>SHA-256</span>
+              <span class="dl-item-sub">SHA256SUMS.txt</span>
+            </a>
+            <a class="dl-item" role="menuitem" href="https://github.com/WangsYi/PureUtils/releases" target="_blank" rel="noopener">
+              <span>GitHub Releases</span>
+              <span class="dl-item-sub">↗</span>
+            </a>
+          </div>
         </div>
+
+        <a class="pill-secondary" href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener">
+          <span>GitHub</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7" /><path d="M7 7h10v10" /></svg>
+        </a>
+      </div>
+    </header>
+
+    <!-- Hero Screenshot Carousel -->
+    <div class="hero-shot-wrap">
+      <div class="shot" id="heroShot" role="region" aria-roledescription="carousel" aria-label="PureUtils screenshots">
+        <div class="shot-track">
+          <img class="shot-slide is-active" src="screenshots/overlay.png" data-title-zh="PureShot · 截图标注与桌面贴图" data-title-en="PureShot · Capture & Pins" data-kbd="F1" alt="PureShot 截图标注与取色放大镜" draggable="false" />
+          <img class="shot-slide" src="screenshots/monitor.png" data-title-zh="PureMonitor · 硬件与帧率监控" data-title-en="PureMonitor · Hardware & FPS" data-kbd="--monitor" alt="PureMonitor 硬件与游戏帧率监控" loading="lazy" draggable="false" />
+          <img class="shot-slide" src="screenshots/viewer.png" data-title-zh="PureImage · 多格式极速看图" data-title-en="PureImage · 40+ Image & RAW" data-kbd="Space" alt="PureImage 看图与 EXIF 面板" loading="lazy" draggable="false" />
+          <img class="shot-slide" src="screenshots/history.png" data-title-zh="PureClip · 即时检索剪贴板" data-title-en="PureClip · Clipboard History" data-kbd="Ctrl+Shift+V" alt="PureClip 剪贴板历史" loading="lazy" draggable="false" />
+          <img class="shot-slide" src="screenshots/zip.png" data-title-zh="PureZip · 轻量压缩与智能解压" data-title-en="PureZip · Archive Manager" data-kbd="Ctrl+F" alt="PureZip 压缩管理" loading="lazy" draggable="false" />
+          <img class="shot-slide" src="screenshots/video.png" data-title-zh="PureVideo · 内置 libmpv 硬解" data-title-en="PureVideo · Built-in libmpv" data-kbd="Space" alt="PureVideo 极速视频浏览" loading="lazy" draggable="false" />
+          <img class="shot-slide" src="screenshots/launcher.png" data-title-zh="全局上下文启动器" data-title-en="Contextual Launcher" data-kbd="Alt+Space" alt="Alt+Space 全局上下文启动器" loading="lazy" draggable="false" />
+          <img class="shot-slide" src="screenshots/settings.png" data-title-zh="模块热开关与双语设置" data-title-en="Live Modules & Settings" data-kbd="Settings" alt="PureUtils 系统设置" loading="lazy" draggable="false" />
+        </div>
+        <button class="shot-nav shot-prev" id="shotPrev" type="button" aria-label="Previous screenshot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
+        </button>
+        <button class="shot-nav shot-next" id="shotNext" type="button" aria-label="Next screenshot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+        <div class="shot-dots" id="shotDots" aria-label="Choose screenshot"></div>
+      </div>
+      <div class="shot-meta">
+        <span id="heroCaption">PureShot · 截图标注与桌面贴图</span>
+        <span class="kbd-pill" id="heroKbd">F1</span>
       </div>
     </div>
-  </header>
 
-  <main class="container">
-    <!-- Hero -->
-    <section class="hero">
-      <div class="hero-copy">
-        <h1 data-i18n="hero_title">轻快、克制的 Windows 原生效率工具集。</h1>
-        <p class="hero-desc" data-i18n="hero_desc">
-          把日常高频的截图贴图、剪贴板历史、多格式看图、极速视频浏览、压缩管理与硬件/帧率监控收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪、设置页实时开关与自动更新。
-        </p>
-        <div class="hero-actions">
-          <a class="btn-primary" href="https://github.com/WangsYi/PureUtils/releases/latest" target="_blank" rel="noopener" data-i18n="cta_download">下载安装程序 · v1.3.1</a>
-          <a class="btn-secondary" href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener" data-i18n="cta_repo">GitHub 仓库</a>
-        </div>
-        <p class="hero-spec" data-i18n="hero_spec">
-          Windows 10/11 64 位 · 原生 GPU 渲染（零 WebView） · GNU AGPL-3.0 开源 · 单用户安装免管理员权限
-        </p>
+    <!-- Hairline Separator 1 -->
+    <div class="section-wrap hairline-sep">
+      <span class="line"></span>
+      <span class="sep-label" data-i18n="sep_modules">六大模块</span>
+      <span class="line"></span>
+    </div>
+
+    <!-- Section 1: 6-Module Bento Grid -->
+    <section class="section-wrap modules-sec">
+      <div class="sec-head">
+        <h2 data-i18n="mod_title">六款工具，一次到位。</h2>
+        <p data-i18n="mod_sub">按需安装，设置页实时启停。</p>
       </div>
 
-      <div class="studio-mat hero-mat" id="heroStageWrap">
-        <img id="heroPreviewImg" class="win-shot" src="screenshots/launcher.png" alt="PureUtils 界面展示" />
-      </div>
-
-      <div class="hero-controls">
-        <div class="stage-tabs" role="tablist">
-          <button class="stage-tab active" data-shot="screenshots/launcher.png" data-key="launcher" data-i18n="tab_launcher">全局启动器</button>
-          <button class="stage-tab" data-shot="screenshots/history.png" data-key="history" data-i18n="tab_history">剪贴板历史</button>
-          <button class="stage-tab" data-shot="screenshots/overlay.png" data-key="overlay" data-i18n="tab_overlay">截图标注</button>
-          <button class="stage-tab" data-shot="screenshots/viewer.png" data-key="viewer" data-i18n="tab_viewer">极速看图</button>
-          <button class="stage-tab" data-shot="screenshots/video.png" data-key="video" data-i18n="tab_video">极速视频</button>
-          <button class="stage-tab" data-shot="screenshots/zip.png" data-key="zip" data-i18n="tab_zip">压缩管理</button>
-          <button class="stage-tab" data-shot="screenshots/monitor.png" data-key="monitor" data-i18n="tab_monitor">硬件监控</button>
-          <button class="stage-tab" data-shot="screenshots/settings.png" data-key="settings" data-i18n="tab_settings">系统设置</button>
-        </div>
-        <div class="stage-caption-row">
-          <span id="stageCaption">识别资源管理器选中项与剪贴板内容，一键智能解压、看图或检索历史</span>
-          <span id="stageShortcut"><kbd>Alt</kbd>+<kbd>Space</kbd></span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Features Story Chapters -->
-    <section id="features" class="section">
-      <div class="section-head">
-        <h2 data-i18n="feat_title">六大独立组件，按需协同</h2>
-        <p data-i18n="feat_sub">每个工具都可独立启用或彻底裁剪；当同时开启时，通过统一能力总线自然衔接操作流。</p>
-      </div>
-
-      <!-- 01 PureClip -->
-      <article class="chapter">
-        <div class="chapter-copy">
-          <div class="chapter-kicker">01 · PureClip</div>
-          <h3 data-i18n="pc_title">呼出即搜的剪贴板历史</h3>
-          <p data-i18n="pc_desc">提供精简浮窗与双栏详情两种视图，呼出瞬间自动聚焦搜索框；直接键入关键词即可在本地历史中完成即时多词过滤。</p>
-          <ul class="chapter-points">
-            <li data-i18n="pc_li1">文本、富文本、图片与文件路径分栏筛选与星标收藏</li>
-            <li data-i18n="pc_li2">大图与列表缩略图后台解码缓存，打字翻页不卡顿</li>
-            <li data-i18n="pc_li3">支持忽略密码管理器等隐私进程，支持一键用 PureImage 查看大图或贴到桌面</li>
-          </ul>
-          <div class="chapter-keys">
-            <kbd>Ctrl+Shift+V</kbd>
-            <kbd>Ctrl+1–9</kbd>
-            <kbd>Tab</kbd>
+      <div class="module-grid">
+        <article class="feat-card">
+          <div class="feat-img zoom-src" data-src="screenshots/overlay.png">
+            <img src="screenshots/overlay.png" alt="PureShot" loading="lazy" draggable="false" />
           </div>
-        </div>
-        <div class="chapter-media">
-          <div class="studio-mat stacked-stage">
-            <div class="stack-wrap">
-              <img class="stack-back zoomable" src="screenshots/history.png" alt="PureClip 双栏详情模式" />
-              <img class="stack-front zoomable" src="screenshots/history-compact.png" alt="PureClip 精简浮窗模式" />
+          <div class="feat-card-meta">
+            <div class="feat-title-row">
+              <h3 class="feat-card-title">PureShot</h3>
+              <span class="kbd-pill">F1</span>
             </div>
+            <p class="feat-card-desc" data-i18n="m_shot">截图标注、取色放大镜与桌面贴图。</p>
           </div>
-        </div>
-      </article>
+        </article>
 
-      <!-- 02 PureShot -->
-      <article class="chapter rev">
-        <div class="chapter-copy">
-          <div class="chapter-kicker">02 · PureShot</div>
-          <h3 data-i18n="ps_title">截图、矢量标注与桌面悬浮贴图</h3>
-          <p data-i18n="ps_desc">按下热键即刻冻结当前屏幕并智能吸附窗口边界，自带实时像素级放大镜辅助对齐与取色。</p>
-          <ul class="chapter-points">
-            <li data-i18n="ps_li1">9 种标注工具（矩形、椭圆、直线、箭头、画笔、高亮、文字、马赛克、序号）</li>
-            <li data-i18n="ps_li2">取色器按 C 静默复制 HEX 色值，不污染剪贴板历史队列</li>
-            <li data-i18n="ps_li3">支持把截图或剪贴板内容贴为置顶悬浮窗，支持滚轮缩放与鼠标穿透</li>
-          </ul>
-          <div class="chapter-keys">
-            <kbd>F1</kbd>
-            <kbd>Ctrl+F1</kbd>
-            <kbd>F3</kbd>
-            <kbd>C</kbd>
+        <article class="feat-card">
+          <div class="feat-img zoom-src" data-src="screenshots/history.png">
+            <img src="screenshots/history.png" alt="PureClip" loading="lazy" draggable="false" />
           </div>
-        </div>
-        <div class="chapter-media">
-          <div class="studio-mat">
-            <img class="win-shot zoomable" src="screenshots/overlay.png" alt="PureShot 截图标注与取色器" />
+          <div class="feat-card-meta">
+            <div class="feat-title-row">
+              <h3 class="feat-card-title">PureClip</h3>
+              <span class="kbd-pill">Ctrl+Shift+V</span>
+            </div>
+            <p class="feat-card-desc" data-i18n="m_clip">呼出即搜，图文文件剪贴板历史。</p>
           </div>
-        </div>
-      </article>
+        </article>
 
-      <!-- 03 PureImage -->
-      <article class="chapter">
-        <div class="chapter-copy">
-          <div class="chapter-kicker">
-            <img src="assets/image.png" alt="PureImage" />
-            <span>03 · PureImage</span>
+        <article class="feat-card">
+          <div class="feat-img zoom-src" data-src="screenshots/viewer.png">
+            <img src="screenshots/viewer.png" alt="PureImage" loading="lazy" draggable="false" />
           </div>
-          <h3 data-i18n="pi_title">多格式极速看图与空格预览</h3>
-          <p data-i18n="pi_desc">无边框沉浸画布与透明网格底衬，开箱支持 40 余种图片与相机原始格式，并可在 Windows 资源管理器按空格秒开预览。</p>
-          <ul class="chapter-points">
-            <li data-i18n="pi_li1">支持常见大图、动图、HEIC/AVIF/WebP/JXL 及 24 种相机 RAW</li>
-            <li data-i18n="pi_li2">内置原生解码引擎（pureimage_codecs.dll），自动解析 EXIF 参数并支持 JPEG 快速缩略采样</li>
-            <li data-i18n="pi_li3">看图窗口内按 P 可将当前画面直接转为 PureShot 桌面贴图</li>
-          </ul>
-          <div class="chapter-keys">
-            <kbd>Space</kbd>
-            <kbd>P</kbd>
+          <div class="feat-card-meta">
+            <div class="feat-title-row">
+              <h3 class="feat-card-title">PureImage</h3>
+              <span class="kbd-pill">Space</span>
+            </div>
+            <p class="feat-card-desc" data-i18n="m_img">40+ 图片与 RAW，原生解码与空格预览。</p>
           </div>
-        </div>
-        <div class="chapter-media">
-          <div class="studio-mat">
-            <img class="win-shot zoomable" src="screenshots/viewer.png" alt="PureImage 看图与 EXIF 详情" />
-          </div>
-        </div>
-      </article>
+        </article>
 
-      <!-- 04 PureVideo -->
-      <article class="chapter rev">
-        <div class="chapter-copy">
-          <div class="chapter-kicker">
-            <img src="assets/video.png" alt="PureVideo" />
-            <span>04 · PureVideo</span>
+        <article class="feat-card">
+          <div class="feat-img zoom-src" data-src="screenshots/video.png">
+            <img src="screenshots/video.png" alt="PureVideo" loading="lazy" draggable="false" />
           </div>
-          <h3 data-i18n="pv_title">内置 libmpv 的极速视频浏览</h3>
-          <p data-i18n="pv_desc">安装包直接内置精简裁剪版 libmpv-2.dll 硬件解码内核，双击秒开主流及冷门封装格式，无需额外配置外部解码器包。</p>
-          <ul class="chapter-points">
-            <li data-i18n="pv_li1">开箱支持 21 种视频格式（MP4 / MKV / MOV / HEVC / FLV / WebM 等）与外挂字幕自动加载</li>
-            <li data-i18n="pv_li2">支持逐帧步进、0.5×–2× 倍速切换、单曲循环、进度/音量平滑拖拽与同目录上下切换</li>
-            <li data-i18n="pv_li3">支持将 21 种格式写入系统“打开方式”与快捷设为默认视频播放器</li>
-          </ul>
-          <div class="chapter-keys">
-            <kbd>Space</kbd>
-            <kbd>←/→</kbd>
-            <kbd>.</kbd>
-            <kbd>PgUp/PgDn</kbd>
-            <kbd>F</kbd>
+          <div class="feat-card-meta">
+            <div class="feat-title-row">
+              <h3 class="feat-card-title">PureVideo</h3>
+              <span class="kbd-pill">libmpv</span>
+            </div>
+            <p class="feat-card-desc" data-i18n="m_vid">内置 libmpv 硬解，21 种格式即开即播。</p>
           </div>
-        </div>
-        <div class="chapter-media">
-          <div class="studio-mat">
-            <img class="win-shot zoomable" src="screenshots/video.png" alt="PureVideo 内置 libmpv 极速视频浏览" />
-          </div>
-        </div>
-      </article>
+        </article>
 
-      <!-- 05 PureZip -->
-      <article class="chapter">
-        <div class="chapter-copy">
-          <div class="chapter-kicker">
-            <img src="assets/zip.png" alt="PureZip" />
-            <span>05 · PureZip</span>
+        <article class="feat-card">
+          <div class="feat-img zoom-src" data-src="screenshots/zip.png">
+            <img src="screenshots/zip.png" alt="PureZip" loading="lazy" draggable="false" />
           </div>
-          <h3 data-i18n="pz_title">轻量压缩与智能解压管理器</h3>
-          <p data-i18n="pz_desc">目录树、面包屑与包内即时搜索三位一体；面对单一顶层文件夹智能直出，散落多文件自动新建同名目录归拢。</p>
-          <ul class="chapter-points">
-            <li data-i18n="pz_li1">覆盖 ZIP、7Z、RAR（只读）与 TAR 家族压缩格式，支持 AES-256 加密与文件名编码切换</li>
-            <li data-i18n="pz_li2">双击压缩包内图片直接调用 PureImage 浏览，免去手动先解压</li>
-            <li data-i18n="pz_li3">内置清晰的资源管理器右键级联菜单，安装时可按需开启</li>
-          </ul>
-          <div class="chapter-keys">
-            <kbd>Ctrl+F</kbd>
-            <kbd>Enter</kbd>
+          <div class="feat-card-meta">
+            <div class="feat-title-row">
+              <h3 class="feat-card-title">PureZip</h3>
+              <span class="kbd-pill">Ctrl+F</span>
+            </div>
+            <p class="feat-card-desc" data-i18n="m_zip">ZIP / 7Z / TAR / RAR 浏览与智能解压。</p>
           </div>
-        </div>
-        <div class="chapter-media">
-          <div class="studio-mat">
-            <img class="win-shot zoomable" src="screenshots/zip.png" alt="PureZip 压缩文件管理器" />
-          </div>
-        </div>
-      </article>
+        </article>
 
-      <!-- 06 PureMonitor -->
-      <article class="chapter rev">
-        <div class="chapter-copy">
-          <div class="chapter-kicker">
-            <img src="assets/monitor.png" alt="PureMonitor" />
-            <span>06 · PureMonitor</span>
+        <article class="feat-card">
+          <div class="feat-img zoom-src" data-src="screenshots/monitor.png">
+            <img src="screenshots/monitor.png" alt="PureMonitor" loading="lazy" draggable="false" />
           </div>
-          <h3 data-i18n="pm_title">任务栏监控、可收起悬浮胶囊与硬件传感器面板</h3>
-          <p data-i18n="pm_desc">常驻系统任务栏或贴边自动收起为轻量迷你胶囊，实时呈现处理器、显卡、内存、磁盘、网速与温度功耗，并支持零注入 ETW 游戏帧率悬浮监控。</p>
-          <ul class="chapter-points">
-            <li data-i18n="pm_li1">任务栏紧凑监控条与边缘感知收起胶囊，支持自选 1–2 项收起核心指标</li>
-            <li data-i18n="pm_li2">集成 AMD ADL、NVML、PDH 与可选 PawnIO / 提权传感器采集，实时记录曲线</li>
-            <li data-i18n="pm_li3">原生零注入 ETW 游戏帧率（FPS / 1% Low / Frametime）HUD 与完整硬件规格面板</li>
-          </ul>
-          <div class="chapter-keys">
-            <kbd>--monitor</kbd>
+          <div class="feat-card-meta">
+            <div class="feat-title-row">
+              <h3 class="feat-card-title">PureMonitor</h3>
+              <span class="kbd-pill">ETW FPS</span>
+            </div>
+            <p class="feat-card-desc" data-i18n="m_mon">任务栏监控、悬浮胶囊与游戏帧率 HUD。</p>
           </div>
-        </div>
-        <div class="chapter-media">
-          <div class="studio-mat">
-            <img class="win-shot zoomable" src="screenshots/monitor.png" alt="PureMonitor 硬件监控与传感器面板" />
-          </div>
-        </div>
-      </article>
+        </article>
+      </div>
+    </section>
 
-      <!-- 07 Launcher + Settings & Auto-Update -->
-      <div class="duo-grid">
-        <div class="duo-card">
-          <div class="studio-mat duo-mat">
-            <img class="win-shot zoomable" src="screenshots/launcher.png" alt="Alt+Space 全局上下文启动器" />
-          </div>
-          <div class="duo-copy">
-            <h3 data-i18n="l_title">全局上下文启动器</h3>
-            <p data-i18n-html="l_desc_html">按下 <kbd>Alt+Space</kbd> 实时感知当前资源管理器选中文件与剪贴板内容，给出智能解压、看图、看视频或贴图建议，并支持统一检索插件功能与剪贴板历史。</p>
-          </div>
+    <!-- Section 2: Keyboard-First Workflow -->
+    <section class="section-wrap workflow-sec">
+      <div class="sec-head is-center">
+        <h2 data-i18n="wf_title">顺手，且彼此联动。</h2>
+        <p data-i18n="wf_sub">快捷键一步直达，模块之间自然衔接。</p>
+      </div>
+
+      <div class="workflow-grid">
+        <div class="workflow-stage" id="wfStage">
+          <img id="wfImg" src="screenshots/launcher.png" alt="Context Launcher" draggable="false" />
         </div>
 
-        <div class="duo-card">
-          <div class="studio-mat duo-mat">
-            <img class="win-shot zoomable" src="screenshots/settings.png" alt="PureUtils 系统设置与自动更新" />
+        <div class="palette-grid" role="tablist" aria-label="Workflow shortcuts">
+          <button type="button" class="palette-card is-active" role="tab" aria-selected="true" data-img="screenshots/launcher.png">
+            <div>
+              <p class="feat-card-title" data-i18n="wf1_t">全局启动器</p>
+              <p class="feat-card-desc" data-i18n="wf1_d">感知选中文件与剪贴板，一键执行。</p>
+            </div>
+            <div class="palette-card-foot">
+              <span class="kbd-pill">Alt+Space</span>
+            </div>
+          </button>
+
+          <button type="button" class="palette-card" role="tab" aria-selected="false" data-img="screenshots/viewer.png">
+            <div>
+              <p class="feat-card-title" data-i18n="wf2_t">空格秒开预览</p>
+              <p class="feat-card-desc" data-i18n="wf2_d">资源管理器选中图片，按空格即看。</p>
+            </div>
+            <div class="palette-card-foot">
+              <span class="kbd-pill">Space</span>
+            </div>
+          </button>
+
+          <button type="button" class="palette-card" role="tab" aria-selected="false" data-img="screenshots/overlay.png">
+            <div>
+              <p class="feat-card-title" data-i18n="wf3_t">一键桌面贴图</p>
+              <p class="feat-card-desc" data-i18n="wf3_d">截图、看图或剪贴板直接置顶悬浮。</p>
+            </div>
+            <div class="palette-card-foot">
+              <span class="kbd-pill">F3 / P</span>
+            </div>
+          </button>
+
+          <button type="button" class="palette-card" role="tab" aria-selected="false" data-img="screenshots/history-compact.png">
+            <div>
+              <p class="feat-card-title" data-i18n="wf4_t">精简 / 双栏视图</p>
+              <p class="feat-card-desc" data-i18n="wf4_d">剪贴板精简浮窗与双栏详情秒切。</p>
+            </div>
+            <div class="palette-card-foot">
+              <span class="kbd-pill">Tab</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Recessed Highlights Panel -->
+    <section class="section-wrap panel-sec">
+      <div class="panel-box">
+        <div class="panel-grid">
+          <div>
+            <div class="sec-head">
+              <h2 data-i18n="hl_title">原生轻量，按需裁剪。</h2>
+              <p data-i18n="hl_sub">只保留你真正需要的部分。</p>
+            </div>
+
+            <ul class="agent-list" role="tablist" aria-label="Architecture highlights">
+              <li>
+                <button type="button" class="agent-item is-active" role="tab" aria-selected="true" data-img="screenshots/settings.png">
+                  <span class="agent-dot"></span>
+                  <span class="agent-item-text">
+                    <span class="agent-item-title" data-i18n="hl1_t">原生 GPU，零 WebView</span>
+                    <span class="agent-item-desc" data-i18n="hl1_d">无浏览器内核常驻，冷启动即用，单安装包轻巧克制。</span>
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="agent-item" role="tab" aria-selected="false" data-img="screenshots/viewer.png">
+                  <span class="agent-dot"></span>
+                  <span class="agent-item-text">
+                    <span class="agent-item-title" data-i18n="hl2_t">内置原生解码引擎</span>
+                    <span class="agent-item-desc" data-i18n="hl2_d">自带 pureimage_codecs.dll 与裁剪版 libmpv，免配外部解码包。</span>
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="agent-item" role="tab" aria-selected="false" data-img="screenshots/settings.png">
+                  <span class="agent-dot"></span>
+                  <span class="agent-item-text">
+                    <span class="agent-item-title" data-i18n="hl3_t">模块化安装与热开关</span>
+                    <span class="agent-item-desc" data-i18n="hl3_d">安装时自由勾选或设置中实时启停，停用即释放热键与内存。</span>
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="agent-item" role="tab" aria-selected="false" data-img="screenshots/monitor.png">
+                  <span class="agent-dot"></span>
+                  <span class="agent-item-text">
+                    <span class="agent-item-title" data-i18n="hl4_t">热键接管与免 UAC 自启</span>
+                    <span class="agent-item-desc" data-i18n="hl4_d">支持录制 Win+ 热键、一键管理员重启与免 UAC 开机自启。</span>
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="agent-item" role="tab" aria-selected="false" data-img="screenshots/launcher.png">
+                  <span class="agent-dot"></span>
+                  <span class="agent-item-text">
+                    <span class="agent-item-title" data-i18n="hl5_t">双语切换与校验更新</span>
+                    <span class="agent-item-desc" data-i18n="hl5_d">中英实时切换无需重启，内置 GitHub Release SHA-256 更新。</span>
+                  </span>
+                </button>
+              </li>
+            </ul>
           </div>
-          <div class="duo-copy">
-            <h3 data-i18n="s_title">模块热开关、双语切换、热键接管与提权自启</h3>
-            <p data-i18n-html="s_desc_html">设置中心支持实时启停六大组件、中英双语（简体中文 / English）无需重启切换、录制并接管 <kbd>Win+</kbd> 热键、一键管理员重启与免 UAC 自启，并内置应用内自动更新与 SHA-256 校验。</p>
+
+          <div class="agent-stage" id="hlStage">
+            <img id="hlImg" src="screenshots/settings.png" alt="PureUtils Highlights" draggable="false" />
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Visual Architecture Diagram -->
-    <section id="architecture" class="section">
-      <div class="section-head">
-        <h2 data-i18n="arch_title">模块化架构设计</h2>
-        <p data-i18n="arch_sub">宿主调度、功能模块与原生系统底座严格分层。模块之间通过统一能力总线解耦协作，停用任意模块都不会破坏整体运行。</p>
-      </div>
-
-      <div class="arch-board">
-        <svg class="arch-svg" viewBox="0 0 960 510" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PureUtils Architecture Diagram">
-          <defs>
-            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 1 2 L 8 5 L 1 8 z" fill="var(--ink-muted)" />
-            </marker>
-            <marker id="arrowAccent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 1 2 L 8 5 L 1 8 z" fill="var(--accent)" />
-            </marker>
-          </defs>
-
-          <!-- Layer 1: Entry Points -->
-          <text id="svgL1" x="24" y="24" fill="var(--ink-muted)" font-size="11.5" font-weight="600" letter-spacing="0.04em" font-family="var(--mono)">01 · 系统交互入口 / ENTRY TRIGGERS</text>
-
-          <rect x="24" y="36" width="218" height="58" rx="8" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text id="svgE1T" x="133" y="61" text-anchor="middle" fill="var(--ink)" font-size="13.5" font-weight="600" font-family="var(--sans)">全局快捷键</text>
-          <text id="svgE1S" x="133" y="80" text-anchor="middle" fill="var(--ink-secondary)" font-size="11.5" font-family="var(--mono)">Alt+Space / F1 / Win+…</text>
-
-          <rect x="255" y="36" width="218" height="58" rx="8" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text id="svgE2T" x="364" y="61" text-anchor="middle" fill="var(--ink)" font-size="13.5" font-weight="600" font-family="var(--sans)">系统托盘常驻</text>
-          <text id="svgE2S" x="364" y="80" text-anchor="middle" fill="var(--ink-secondary)" font-size="11.5" font-family="var(--sans)">动态菜单 · 监听状态控制</text>
-
-          <rect x="486" y="36" width="218" height="58" rx="8" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text id="svgE3T" x="595" y="61" text-anchor="middle" fill="var(--ink)" font-size="13.5" font-weight="600" font-family="var(--sans)">资源管理器集成</text>
-          <text id="svgE3S" x="595" y="80" text-anchor="middle" fill="var(--ink-secondary)" font-size="11.5" font-family="var(--sans)">空格快速预览 · 右键压缩解压</text>
-
-          <rect x="717" y="36" width="219" height="58" rx="8" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text id="svgE4T" x="826" y="61" text-anchor="middle" fill="var(--ink)" font-size="13.5" font-weight="600" font-family="var(--sans)">命令行与文件关联</text>
-          <text id="svgE4S" x="826" y="80" text-anchor="middle" fill="var(--ink-secondary)" font-size="11.5" font-family="var(--sans)">单实例接管 · 双击图片/视频/压缩包</text>
-
-          <!-- Connectors Layer 1 -> Layer 2 -->
-          <line x1="133" y1="94" x2="133" y2="128" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="364" y1="94" x2="364" y2="128" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="595" y1="94" x2="595" y2="128" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="826" y1="94" x2="826" y2="128" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-
-          <!-- Layer 2: Unified Host -->
-          <rect x="24" y="132" width="912" height="74" rx="10" fill="var(--surface)" stroke="var(--border-strong)" stroke-width="1.5" />
-          <text id="svgHTitle" x="480" y="159" text-anchor="middle" fill="var(--ink)" font-size="15" font-weight="650" font-family="var(--sans)">统一原生桌面宿主（Unified Desktop Host）</text>
-          <text id="svgHSub" x="480" y="185" text-anchor="middle" fill="var(--ink-secondary)" font-size="12" font-family="var(--sans)">单实例调度   ·   上下文启动器   ·   热键与 Win 键接管   ·   模块热开关   ·   免 UAC 提权自启   ·   自动更新</text>
-
-          <!-- Connectors Layer 2 -> Layer 3 -->
-          <line x1="95" y1="206" x2="95" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="249" y1="206" x2="249" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="403" y1="206" x2="403" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="557" y1="206" x2="557" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="711" y1="206" x2="711" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-          <line x1="865" y1="206" x2="865" y2="246" stroke="var(--ink-muted)" stroke-width="1.4" marker-end="url(#arrow)" />
-
-          <!-- Layer 3: Six Independent Modules -->
-          <text id="svgL3" x="24" y="236" fill="var(--ink-muted)" font-size="11.5" font-weight="600" letter-spacing="0.04em" font-family="var(--mono)">02 · 可插拔功能模块（零互相依赖，支持独立裁剪与热开关）</text>
-
-          <rect x="24" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="34" y="278" fill="var(--ink)" font-size="12.5" font-weight="650" font-family="var(--sans)">PureShot</text>
-          <text x="156" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">capture</text>
-          <text id="svgM1" x="34" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">区域冻结 · 9种标注</text>
-          <text id="svgM1b" x="34" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">取色器 · 悬浮贴图</text>
-
-          <rect x="178" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="188" y="278" fill="var(--ink)" font-size="12.5" font-weight="650" font-family="var(--sans)">PureClip</text>
-          <text x="310" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">history</text>
-          <text id="svgM2" x="188" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">历史记录 · 即时检索</text>
-          <text id="svgM2b" x="188" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">分类收藏 · 隐私忽略</text>
-
-          <rect x="332" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="342" y="278" fill="var(--ink)" font-size="12.5" font-weight="650" font-family="var(--sans)">PureImage</text>
-          <text x="464" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">viewer</text>
-          <text id="svgM3" x="342" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">40+ 图片与相机 RAW</text>
-          <text id="svgM3b" x="342" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">EXIF · 空格秒开预览</text>
-
-          <rect x="486" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="496" y="278" fill="var(--ink)" font-size="12.5" font-weight="650" font-family="var(--sans)">PureVideo</text>
-          <text x="618" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">video</text>
-          <text id="svgM4" x="496" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">内置 libmpv 硬解</text>
-          <text id="svgM4b" x="496" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">21种格式 · 外挂字幕</text>
-
-          <rect x="640" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="650" y="278" fill="var(--ink)" font-size="12.5" font-weight="650" font-family="var(--sans)">PureZip</text>
-          <text x="772" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">zip</text>
-          <text id="svgM5" x="650" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">ZIP/7Z/TAR/RAR</text>
-          <text id="svgM5b" x="650" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">智能解压 · AES 加密</text>
-
-          <rect x="794" y="250" width="142" height="86" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text x="804" y="278" fill="var(--ink)" font-size="12" font-weight="650" font-family="var(--sans)">PureMonitor</text>
-          <text x="926" y="278" text-anchor="end" fill="var(--accent)" font-size="9.5" font-family="var(--mono)">monitor</text>
-          <text id="svgM6" x="804" y="302" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">任务栏 · 边缘胶囊</text>
-          <text id="svgM6b" x="804" y="321" fill="var(--ink-secondary)" font-size="10" font-family="var(--sans)">传感器 · ETW 帧率</text>
-
-          <!-- Bus Links Modules <-> Bus Rail -->
-          <line x1="95" y1="336" x2="95" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="249" y1="336" x2="249" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="403" y1="336" x2="403" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="557" y1="336" x2="557" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="711" y1="336" x2="711" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-          <line x1="865" y1="336" x2="865" y2="364" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#arrowAccent)" marker-end="url(#arrowAccent)" />
-
-          <!-- Capability Collaboration Bus -->
-          <rect x="24" y="366" width="912" height="52" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.2" />
-          <text id="svgBusTitle" x="480" y="388" text-anchor="middle" fill="var(--ink)" font-size="13" font-weight="650" font-family="var(--sans)">跨模块能力协作总线（Capability Bus · 按需联动，禁用自动降级）</text>
-          <text id="svgBusSub" x="480" y="407" text-anchor="middle" fill="var(--ink-secondary)" font-size="12" font-family="var(--sans)">剪贴板 / 压缩包直连 PureImage 看图   ·   看图 / 剪贴板转为 PureShot 贴图   ·   启动器上下文路由 PureVideo 播放</text>
-
-          <!-- Layer 4: Native Foundation -->
-          <rect x="24" y="432" width="912" height="62" rx="10" fill="var(--bg-band)" stroke="var(--border-strong)" />
-          <text id="svgBaseTitle" x="480" y="457" text-anchor="middle" fill="var(--ink)" font-size="13.5" font-weight="650" font-family="var(--sans)">原生运行时底座（Native Desktop Foundation）</text>
-          <text id="svgBaseSub" x="480" y="479" text-anchor="middle" fill="var(--ink-secondary)" font-size="12" font-family="var(--sans)">原生 GPU 图形渲染（无 WebView 开销）   ·   模块隔离存储与只读兼容   ·   共享剪贴板事件流   ·   Windows 窗口与外壳服务</text>
-        </svg>
-      </div>
-
-      <div class="arch-pillars">
-        <div class="pillar">
-          <h4 data-i18n="pil_1_t">三层自由组合</h4>
-          <p data-i18n="pil_1_d">安装时可只选需要的工具，运行时可在设置里直接开关任意组件；未启用的模块不注册托盘、不占热键与内存。</p>
-        </div>
-        <div class="pillar">
-          <h4 data-i18n="pil_2_t">解耦协作与优雅降级</h4>
-          <p data-i18n="pil_2_d">例如在剪贴板或压缩包中一键呼出看图、在看图窗中一键桌面贴图；若目标组件未安装，入口会自动隐藏。</p>
-        </div>
-        <div class="pillar">
-          <h4 data-i18n="pil_3_t">纯原生轻量体验</h4>
-          <p data-i18n="pil_3_d">全套界面直接依托原生 GPU 管线绘制，不嵌入 Web 浏览器内核，安装目录干净独立且兼容已有历史记录。</p>
-        </div>
+    <!-- Section 4: Closing Download Band -->
+    <section class="section-wrap closing-cta">
+      <h2 data-i18n="dl_title">开始使用 PureUtils</h2>
+      <p data-i18n="dl_sub">Windows 10/11 64 位 · 免管理员安装 · GNU AGPL-3.0 开源</p>
+      <div class="closing-btns">
+        <a class="btn-lg-primary" href="https://github.com/WangsYi/PureUtils/releases/latest/download/PureUtils-1.3.1-setup.exe" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.43 10 4.4v7.1H3zM10.95 4.27 21 2.8v8.7H10.95zM3 12.5h7v7.1L3 18.57zM10.95 12.5H21v8.7l-10.05-1.47z" /></svg>
+          <span data-i18n="dl_btn">PureUtils-1.3.1-setup.exe (15.4 MB)</span>
+        </a>
+        <a class="btn-lg-secondary" href="https://github.com/WangsYi/PureUtils/releases" target="_blank" rel="noopener">
+          <span>GitHub Releases</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7" /><path d="M7 7h10v10" /></svg>
+        </a>
       </div>
     </section>
 
-    <!-- Download -->
-    <section id="download" class="download-band">
-      <div>
-        <h2 data-i18n="dl_title">下载与开源许可</h2>
-        <p data-i18n="dl_desc">PureUtils 以 GNU AGPL-3.0 协议开源，提供单用户安装程序，可自由选择完整套件或单独安装任意组件。</p>
+    <!-- Hairline Separator 2 -->
+    <div class="section-wrap hairline-sep">
+      <span class="line"></span>
+      <span class="sep-label" data-i18n="sep_about">关于</span>
+      <span class="line"></span>
+    </div>
+
+    <!-- Clean Footer -->
+    <footer class="section-wrap footer-sec">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <img src="assets/icon.png" alt="PureUtils" width="34" height="34" draggable="false" />
+          <p data-i18n="f_desc">Windows 原生效率套件。</p>
+        </div>
+
+        <nav aria-label="Product">
+          <h3 class="footer-h" data-i18n="f_product">产品</h3>
+          <ul class="footer-list">
+            <li><a class="footer-link" href="https://github.com/WangsYi/PureUtils/releases" target="_blank" rel="noopener" data-i18n="f_releases">版本发布</a></li>
+            <li><a class="footer-link" id="footerArchLink" href="https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener" data-i18n="f_arch">架构文档</a></li>
+            <li><a class="footer-link" href="https://github.com/WangsYi/PureUtils/releases/tag/pureimage-codecs" target="_blank" rel="noopener" data-i18n="f_codecs">原生解码库</a></li>
+            <li><a class="footer-link" href="https://github.com/WangsYi/PureUtils/issues" target="_blank" rel="noopener" data-i18n="f_issues">问题反馈</a></li>
+          </ul>
+        </nav>
+
+        <nav aria-label="Open Source">
+          <h3 class="footer-h" data-i18n="f_oss">开源</h3>
+          <ul class="footer-list">
+            <li><a class="footer-link" href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a class="footer-link" href="https://github.com/WangsYi/PureUtils/blob/main/LICENSE" target="_blank" rel="noopener">GNU AGPL-3.0</a></li>
+            <li><a class="footer-link" href="https://github.com/WangsYi/PureUtils/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener" data-i18n="f_notices">第三方许可</a></li>
+            <li><a class="footer-link" href="https://github.com/WangsYi/PureUtils/blob/main/SECURITY.md" target="_blank" rel="noopener" data-i18n="f_security">安全说明</a></li>
+          </ul>
+        </nav>
+
+        <div>
+          <h3 class="footer-h" data-i18n="f_platform">平台</h3>
+          <ul class="footer-list">
+            <li class="footer-meta">Windows 10 / 11 x64</li>
+            <li class="footer-meta" data-i18n="f_peruser">免管理员单用户安装</li>
+            <li class="footer-meta" data-i18n="f_noweb">零 WebView 运行时</li>
+          </ul>
+        </div>
       </div>
-      <div class="hero-actions" style="margin-bottom:0">
-        <a class="btn-primary" href="https://github.com/WangsYi/PureUtils/releases/latest" target="_blank" rel="noopener" data-i18n="dl_btn">下载 PureUtils-1.3.1-setup.exe (15.4 MB)</a>
-        <a class="btn-secondary" href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener" data-i18n="dl_gh">访问 GitHub</a>
+
+      <div class="footer-bar">
+        <p class="footer-copy">PureUtils · GNU AGPL-3.0</p>
+        <div class="footer-controls">
+          <button type="button" class="lang-pill" id="langBottom" aria-label="Switch language">EN</button>
+          <div class="theme-switch" role="group" aria-label="Color theme">
+            <button type="button" class="theme-opt" data-theme="light" aria-label="Light mode">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></svg>
+            </button>
+            <button type="button" class="theme-opt" data-theme="dark" aria-label="Dark mode">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+            </button>
+          </div>
+        </div>
       </div>
-    </section>
+    </footer>
   </main>
 
-  <footer>
-    <div class="container footer-inner">
-      <div>PureUtils · Windows Desktop Suite · GNU AGPL-3.0</div>
-      <div class="footer-links">
-        <a href="https://github.com/WangsYi/PureUtils" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://github.com/WangsYi/PureUtils/releases" target="_blank" rel="noopener">Releases</a>
-        <a href="https://github.com/WangsYi/PureUtils/issues" target="_blank" rel="noopener">Issues</a>
-        <a id="footerArchLink" href="https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener" data-i18n="f_arch">详细架构</a>
-        <a href="https://github.com/WangsYi/PureUtils/blob/main/LICENSE" target="_blank" rel="noopener">AGPL-3.0 LICENSE</a>
-      </div>
-    </div>
-  </footer>
-
-  <div id="lightbox" class="lightbox" aria-hidden="true">
+  <div class="lightbox" id="lightbox" aria-hidden="true">
     <img id="lightboxImg" src="" alt="Screenshot preview" />
   </div>
 
   <script>
-    const STAGE_META = {
-      zh: {
-        launcher: {
-          caption: "识别资源管理器选中项与剪贴板内容，一键智能解压、看图或检索历史",
-          keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> · <kbd>Ctrl+1–9</kbd>"
-        },
-        history: {
-          caption: "呼出后直接输入过滤文本，支持双栏预览、分类标签与一键粘贴",
-          keys: "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> · <kbd>Tab</kbd>"
-        },
-        overlay: {
-          caption: "冻结屏幕选区并智能吸附窗口，支持 9 种标注工具与取色放大镜",
-          keys: "<kbd>F1</kbd> · <kbd>C</kbd> 复制色值"
-        },
-        viewer: {
-          caption: "开箱支持 40+ 图片及相机 RAW 格式，支持 EXIF 查看与空格秒开预览",
-          keys: "<kbd>Space</kbd> · <kbd>P</kbd> 贴到桌面"
-        },
-        video: {
-          caption: "内置裁剪版 libmpv 硬件解码，开箱支持 21 种视频格式、外挂字幕与逐帧步进",
-          keys: "<kbd>Space</kbd> · <kbd>←/→</kbd> · <kbd>F</kbd>"
-        },
-        zip: {
-          caption: "多格式压缩包目录浏览、包内直接预览图片与智能解压归档",
-          keys: "<kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>Enter</kbd>"
-        },
-        monitor: {
-          caption: "任务栏监控条、贴边收起迷你胶囊、硬件传感器与零注入 ETW 游戏帧率 HUD",
-          keys: "<kbd>--monitor</kbd>"
-        },
-        settings: {
-          caption: "按组件独立划分设置分区，支持自定义热键、提权重启与免 UAC 自启、实时启停模块与自动更新",
-          keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> → 设置"
-        }
-      },
-      en: {
-        launcher: {
-          caption: "Detects Explorer selection and clipboard content for instant actions and history search",
-          keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> · <kbd>Ctrl+1–9</kbd>"
-        },
-        history: {
-          caption: "Type immediately on open with split preview, category filters, and quick paste",
-          keys: "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> · <kbd>Tab</kbd>"
-        },
-        overlay: {
-          caption: "Frozen capture with window snapping, 9 vector tools, and pixel magnifier",
-          keys: "<kbd>F1</kbd> · <kbd>C</kbd> Copy HEX"
-        },
-        viewer: {
-          caption: "40+ image & camera RAW formats with EXIF overlay and Explorer Spacebar preview",
-          keys: "<kbd>Space</kbd> · <kbd>P</kbd> Pin to Desktop"
-        },
-        video: {
-          caption: "Bundled trimmed libmpv hardware decoding for 21 video formats, subtitles, and frame stepping",
-          keys: "<kbd>Space</kbd> · <kbd>←/→</kbd> · <kbd>F</kbd>"
-        },
-        zip: {
-          caption: "Multi-format archive tree navigation, in-archive image preview, and smart extract",
-          keys: "<kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>Enter</kbd>"
-        },
-        monitor: {
-          caption: "Taskbar telemetry, edge-docked floating pill, hardware sensors, and zero-injection ETW game FPS HUD",
-          keys: "<kbd>--monitor</kbd>"
-        },
-        settings: {
-          caption: "Clean per-module tabs with hotkey conflict detection, elevated restart, live toggles, and auto-updater",
-          keys: "<kbd>Alt</kbd>+<kbd>Space</kbd> → Settings"
-        }
-      }
-    };
-
-    const SVG_I18N = {
-      zh: {
-        svgL1: "01 · 系统交互入口 / ENTRY TRIGGERS",
-        svgE1T: "全局快捷键",
-        svgE1S: "Alt+Space / F1 / Win+…",
-        svgE2T: "系统托盘常驻",
-        svgE2S: "动态菜单 · 监听状态控制",
-        svgE3T: "资源管理器集成",
-        svgE3S: "空格快速预览 · 右键压缩解压",
-        svgE4T: "命令行与文件关联",
-        svgE4S: "单实例接管 · 双击图片/视频/压缩包",
-        svgHTitle: "统一原生桌面宿主（Unified Desktop Host）",
-        svgHSub: "单实例调度   ·   上下文启动器   ·   热键与 Win 键接管   ·   模块热开关   ·   免 UAC 提权自启   ·   自动更新",
-        svgL3: "02 · 可插拔功能模块（零互相依赖，支持独立裁剪与热开关）",
-        svgM1: "区域冻结 · 9种标注",
-        svgM1b: "取色器 · 悬浮贴图",
-        svgM2: "历史记录 · 即时检索",
-        svgM2b: "分类收藏 · 隐私忽略",
-        svgM3: "40+ 图片与相机 RAW",
-        svgM3b: "EXIF · 空格秒开预览",
-        svgM4: "内置 libmpv 硬解",
-        svgM4b: "21种格式 · 外挂字幕",
-        svgM5: "ZIP/7Z/TAR/RAR",
-        svgM5b: "智能解压 · AES 加密",
-        svgM6: "任务栏 · 边缘胶囊",
-        svgM6b: "传感器 · ETW 帧率",
-        svgBusTitle: "跨模块能力协作总线（Capability Bus · 按需联动，禁用自动降级）",
-        svgBusSub: "剪贴板 / 压缩包直连 PureImage 看图   ·   看图 / 剪贴板转为 PureShot 贴图   ·   启动器上下文路由 PureVideo 播放",
-        svgBaseTitle: "原生运行时底座（Native Desktop Foundation）",
-        svgBaseSub: "原生 GPU 图形渲染（无 WebView 开销）   ·   模块隔离存储与只读兼容   ·   共享剪贴板事件流   ·   Windows 窗口与外壳服务"
-      },
-      en: {
-        svgL1: "01 · SYSTEM ENTRY TRIGGERS",
-        svgE1T: "Global Hotkeys",
-        svgE1S: "Alt+Space / F1 / Win+…",
-        svgE2T: "System Tray",
-        svgE2S: "Dynamic Menu & Monitor Switch",
-        svgE3T: "Explorer Integration",
-        svgE3S: "Spacebar Preview & Right-Click Menu",
-        svgE4T: "CLI & File Associations",
-        svgE4S: "Single Instance · Images/Video/Zips",
-        svgHTitle: "Unified Native Desktop Host",
-        svgHSub: "Single-Instance   ·   Context Launcher   ·   Hotkey Arbiter   ·   Live Toggles   ·   Admin Logon   ·   Auto-Updater",
-        svgL3: "02 · DECOUPLED FUNCTIONAL MODULES (INDEPENDENT & HOT-TOGGLEABLE)",
-        svgM1: "Snap · 9 Tools",
-        svgM1b: "Magnifier · Pins",
-        svgM2: "History · Search",
-        svgM2b: "Filters · Privacy",
-        svgM3: "40+ Image / RAW",
-        svgM3b: "EXIF · Space View",
-        svgM4: "Built-in libmpv",
-        svgM4b: "21 Formats · Subs",
-        svgM5: "ZIP/7Z/TAR/RAR",
-        svgM5b: "Smart Extract · AES",
-        svgM6: "Taskbar · Edge Pill",
-        svgM6b: "Sensors · ETW FPS",
-        svgBusTitle: "Cross-Module Capability Bus (Optional Collaboration with Graceful Fallback)",
-        svgBusSub: "Clip / Zip → PureImage View   ·   Image / Clip → PureShot Pin   ·   Launcher Routes Context → PureVideo",
-        svgBaseTitle: "Native Desktop Runtime Foundation",
-        svgBaseSub: "Native GPU UI Rendering (Zero WebView)   ·   Isolated Data & Legacy Compatibility   ·   Clipboard Stream   ·   Windows Shell Services"
-      }
-    };
-
     const I18N = {
       zh: {
-        _title: "PureUtils — Windows 原生效率工具集",
-        nav_features: "功能",
-        nav_arch: "架构",
-        nav_download: "下载",
-        hero_title: "轻快、克制的 Windows 原生效率工具集。",
-        hero_desc: "把日常高频的截图贴图、剪贴板历史、多格式看图、极速视频浏览、压缩管理与硬件/帧率监控收拢在一个原生桌面应用里。无浏览器内核常驻，冷启动即用，支持按需裁剪、设置页实时开关与自动更新。",
+        _title: "PureUtils — Windows 原生效率套件",
+        tagline: "轻快、克制的 Windows 原生效率套件。",
+        bio: "截图、剪贴板、看图、视频、压缩与硬件监控，融于单一原生应用。零 WebView，按需启停。",
         cta_download: "下载安装程序 · v1.3.1",
-        cta_repo: "GitHub 仓库",
-        hero_spec: "Windows 10/11 64 位 · 原生 GPU 渲染（零 WebView） · GNU AGPL-3.0 开源 · 单用户安装免管理员权限",
-        tab_launcher: "全局启动器",
-        tab_history: "剪贴板历史",
-        tab_overlay: "截图标注",
-        tab_viewer: "极速看图",
-        tab_video: "极速视频",
-        tab_zip: "压缩管理",
-        tab_monitor: "硬件监控",
-        tab_settings: "系统设置",
-        feat_title: "六大独立组件，按需协同",
-        feat_sub: "每个工具都可独立启用或彻底裁剪；当同时开启时，通过统一能力总线自然衔接操作流。",
-        pc_title: "呼出即搜的剪贴板历史",
-        pc_desc: "提供精简浮窗与双栏详情两种视图，呼出瞬间自动聚焦搜索框；直接键入关键词即可在本地历史中完成即时多词过滤。",
-        pc_li1: "文本、富文本、图片与文件路径分栏筛选与星标收藏",
-        pc_li2: "大图与列表缩略图后台解码缓存，打字翻页不卡顿",
-        pc_li3: "支持忽略密码管理器等隐私进程，支持一键用 PureImage 查看大图或贴到桌面",
-        ps_title: "截图、矢量标注与桌面悬浮贴图",
-        ps_desc: "按下热键即刻冻结当前屏幕并智能吸附窗口边界，自带实时像素级放大镜辅助对齐与取色。",
-        ps_li1: "9 种标注工具（矩形、椭圆、直线、箭头、画笔、高亮、文字、马赛克、序号）",
-        ps_li2: "取色器按 C 静默复制 HEX 色值，不污染剪贴板历史队列",
-        ps_li3: "支持把截图或剪贴板内容贴为置顶悬浮窗，支持滚轮缩放与鼠标穿透",
-        pi_title: "多格式极速看图与空格预览",
-        pi_desc: "无边框沉浸画布与透明网格底衬，开箱支持 40 余种图片与相机原始格式，并可在 Windows 资源管理器按空格秒开预览。",
-        pi_li1: "支持常见大图、动图、HEIC/AVIF/WebP/JXL 及 24 种相机 RAW",
-        pi_li2: "内置原生解码引擎（pureimage_codecs.dll），自动解析 EXIF 参数并支持 JPEG 快速缩略采样",
-        pi_li3: "看图窗口内按 P 可将当前画面直接转为 PureShot 桌面贴图",
-        pv_title: "内置 libmpv 的极速视频浏览",
-        pv_desc: "安装包直接内置精简裁剪版 libmpv-2.dll 硬件解码内核，双击秒开主流及冷门封装格式，无需额外配置外部解码器包。",
-        pv_li1: "开箱支持 21 种视频格式（MP4 / MKV / MOV / HEVC / FLV / WebM 等）与外挂字幕自动加载",
-        pv_li2: "支持逐帧步进、0.5×–2× 倍速切换、单曲循环、进度/音量平滑拖拽与同目录上下切换",
-        pv_li3: "支持将 21 种格式写入系统“打开方式”与快捷设为默认视频播放器",
-        pz_title: "轻量压缩与智能解压管理器",
-        pz_desc: "目录树、面包屑与包内即时搜索三位一体；面对单一顶层文件夹智能直出，散落多文件自动新建同名目录归拢。",
-        pz_li1: "覆盖 ZIP、7Z、RAR（只读）与 TAR 家族压缩格式，支持 AES-256 加密与文件名编码切换",
-        pz_li2: "双击压缩包内图片直接调用 PureImage 浏览，免去手动先解压",
-        pz_li3: "内置清晰的资源管理器右键级联菜单，安装时可按需开启",
-        pm_title: "任务栏监控、可收起悬浮胶囊与硬件传感器面板",
-        pm_desc: "常驻系统任务栏或贴边自动收起为轻量迷你胶囊，实时呈现处理器、显卡、内存、磁盘、网速与温度功耗，并支持零注入 ETW 游戏帧率悬浮监控。",
-        pm_li1: "任务栏紧凑监控条与边缘感知收起胶囊，支持自选 1–2 项收起核心指标",
-        pm_li2: "集成 AMD ADL、NVML、PDH 与可选 PawnIO / 提权传感器采集，实时记录曲线",
-        pm_li3: "原生零注入 ETW 游戏帧率（FPS / 1% Low / Frametime）HUD 与完整硬件规格面板",
-        l_title: "全局上下文启动器",
-        l_desc_html: '按下 <kbd>Alt+Space</kbd> 实时感知当前资源管理器选中文件与剪贴板内容，给出智能解压、看图、看视频或贴图建议，并支持统一检索插件功能与剪贴板历史。',
-        s_title: "模块热开关、双语切换、热键接管与提权自启",
-        s_desc_html: '设置中心支持实时启停六大组件、中英双语（简体中文 / English）无需重启切换、录制并接管 <kbd>Win+</kbd> 热键、一键管理员重启与免 UAC 自启，并内置应用内自动更新与 SHA-256 校验。',
-        arch_title: "模块化架构设计",
-        arch_sub: "宿主调度、功能模块与原生系统底座严格分层。模块之间通过统一能力总线解耦协作，停用任意模块都不会破坏整体运行。",
-        pil_1_t: "三层自由组合",
-        pil_1_d: "安装时可只选需要的工具，运行时可在设置里直接开关任意组件；未启用的模块不注册托盘、不占热键与内存。",
-        pil_2_t: "解耦协作与优雅降级",
-        pil_2_d: "例如在剪贴板或压缩包中一键呼出看图、在看图窗中一键桌面贴图；若目标组件未安装，入口会自动隐藏。",
-        pil_3_t: "纯原生轻量体验",
-        pil_3_d: "全套界面直接依托原生 GPU 管线绘制，不嵌入 Web 浏览器内核，安装目录干净独立且兼容已有历史记录。",
-        dl_title: "下载与开源许可",
-        dl_desc: "PureUtils 以 GNU AGPL-3.0 协议开源，提供单用户安装程序，可自由选择完整套件或单独安装任意组件。",
-        dl_btn: "下载 PureUtils-1.3.1-setup.exe (15.4 MB)",
-        dl_gh: "访问 GitHub",
-        f_arch: "详细架构"
+        sep_modules: "六大模块",
+        mod_title: "六款工具，一次到位。",
+        mod_sub: "按需安装，设置页实时启停。",
+        m_shot: "截图标注、取色放大镜与桌面贴图。",
+        m_clip: "呼出即搜，图文文件剪贴板历史。",
+        m_img: "40+ 图片与 RAW，原生解码与空格预览。",
+        m_vid: "内置 libmpv 硬解，21 种格式即开即播。",
+        m_zip: "ZIP / 7Z / TAR / RAR 浏览与智能解压。",
+        m_mon: "任务栏监控、悬浮胶囊与游戏帧率 HUD。",
+        wf_title: "顺手，且彼此联动。",
+        wf_sub: "快捷键一步直达，模块之间自然衔接。",
+        wf1_t: "全局启动器",
+        wf1_d: "感知选中文件与剪贴板，一键执行。",
+        wf2_t: "空格秒开预览",
+        wf2_d: "资源管理器选中图片，按空格即看。",
+        wf3_t: "一键桌面贴图",
+        wf3_d: "截图、看图或剪贴板直接置顶悬浮。",
+        wf4_t: "精简 / 双栏视图",
+        wf4_d: "剪贴板精简浮窗与双栏详情秒切。",
+        hl_title: "原生轻量，按需裁剪。",
+        hl_sub: "只保留你真正需要的部分。",
+        hl1_t: "原生 GPU，零 WebView",
+        hl1_d: "无浏览器内核常驻，冷启动即用，单安装包轻巧克制。",
+        hl2_t: "内置原生解码引擎",
+        hl2_d: "自带 pureimage_codecs.dll 与裁剪版 libmpv，免配外部解码包。",
+        hl3_t: "模块化安装与热开关",
+        hl3_d: "安装时自由勾选或设置中实时启停，停用即释放热键与内存。",
+        hl4_t: "热键接管与免 UAC 自启",
+        hl4_d: "支持录制 Win+ 热键、一键管理员重启与免 UAC 开机自启。",
+        hl5_t: "双语切换与校验更新",
+        hl5_d: "中英实时切换无需重启，内置 GitHub Release SHA-256 更新。",
+        dl_title: "开始使用 PureUtils",
+        dl_sub: "Windows 10/11 64 位 · 免管理员安装 · GNU AGPL-3.0 开源",
+        dl_btn: "PureUtils-1.3.1-setup.exe (15.4 MB)",
+        sep_about: "关于",
+        f_desc: "Windows 原生效率套件。",
+        f_product: "产品",
+        f_releases: "版本发布",
+        f_arch: "架构文档",
+        f_codecs: "原生解码库",
+        f_issues: "问题反馈",
+        f_oss: "开源",
+        f_notices: "第三方许可",
+        f_security: "安全说明",
+        f_platform: "平台",
+        f_peruser: "免管理员单用户安装",
+        f_noweb: "零 WebView 运行时"
       },
       en: {
-        _title: "PureUtils — Native Desktop Utilities for Windows",
-        nav_features: "Features",
-        nav_arch: "Architecture",
-        nav_download: "Download",
-        hero_title: "Fast, focused native utilities for Windows.",
-        hero_desc: "Screenshot & desktop pins, clipboard history, fast image & video browsing, archive management, and hardware/FPS monitoring unified in one native desktop app. Zero embedded browser engine, instant launch, live module toggles, and built-in auto-updates.",
+        _title: "PureUtils — A native Windows utility suite",
+        tagline: "A native, focused Windows utility suite.",
+        bio: "Capture, clipboard, image, video, archive, and hardware telemetry in one native app. Zero WebView.",
         cta_download: "Download Installer · v1.3.1",
-        cta_repo: "GitHub Repository",
-        hero_spec: "Windows 10/11 x64 · Native GPU UI (Zero WebView) · GNU AGPL-3.0 · Per-user installer",
-        tab_launcher: "Launcher",
-        tab_history: "Clipboard",
-        tab_overlay: "Capture",
-        tab_viewer: "Viewer",
-        tab_video: "Video",
-        tab_zip: "Archive",
-        tab_monitor: "Monitor",
-        tab_settings: "Settings",
-        feat_title: "Six Independent Modules, Connected When Needed",
-        feat_sub: "Install only what you need or switch tools live inside Settings. Enabled modules cooperate smoothly across a shared capability bus.",
-        pc_title: "Instant Keyboard-First Clipboard History",
-        pc_desc: "Switch cleanly between a compact quick popup and a dual-column inspector. Search focuses immediately on open and filters multi-word queries across local history in real time.",
-        pc_li1: "Filter by text, rich text, images, files, or starred favorites",
-        pc_li2: "Background thumbnail and image decoding prevents typing stutter",
-        pc_li3: "Ignores password managers automatically and hands images off to PureImage or PureShot pins",
-        ps_title: "Region Capture, Vector Annotations & Pins",
-        ps_desc: "Freezes your display on hotkey with automatic window-edge snapping and a pixel-accurate color magnifier.",
-        ps_li1: "9 annotation tools: rectangle, ellipse, line, arrow, freehand, highlight, text, mosaic, and step badges",
-        ps_li2: "Press C on the magnifier to copy HEX color quietly without cluttering clipboard history",
-        ps_li3: "Pin captures or clipboard items as always-on-top floating windows with zoom and click-through",
-        pi_title: "40+ Format Image Viewer & Spacebar Preview",
-        pi_desc: "Borderless canvas with transparency grid supporting 40+ image & camera RAW formats plus instant Windows Explorer Spacebar preview.",
-        pi_li1: "Opens common photos, animated GIF/WebP/APNG, HEIC, AVIF, JXL, and 24 camera RAW formats",
-        pi_li2: "Built-in native codec engine (pureimage_codecs.dll) with EXIF readout and fast JPEG downscaling",
-        pi_li3: "Press P inside the viewer to pin the active image directly onto your desktop",
-        pv_title: "Fast Video Browser Powered by Built-in libmpv",
-        pv_desc: "Ships a Tier 1 trimmed libmpv-2.dll hardware decoding engine right inside the installer so videos play instantly with zero external codec packs.",
-        pv_li1: "Supports 21 video formats out of the box (MP4, MKV, MOV, HEVC, FLV, WebM, etc.) with external subtitle autoloading",
-        pv_li2: "Frame stepping, 0.5×–2× speed presets, single-file loop, smooth timeline/volume scrubbing, and folder next/prev navigation",
-        pv_li3: "Registers per-user HKCU Open With associations across all 21 video formats for quick Windows Default Apps setup",
-        pz_title: "Lightweight Archive Manager & Smart Extract",
-        pz_desc: "Folder tree, breadcrumbs, and instant search inside archives. Smart Extract unwraps single root folders directly or groups loose files cleanly.",
-        pz_li1: "Handles ZIP, 7Z, TAR families, and RAR (read), with AES-256 encryption and filename encoding switching",
-        pz_li2: "Double-click archived images to preview directly in PureImage without extracting first",
-        pz_li3: "Ships a clean cascading Windows Explorer right-click menu configurable during setup",
-        pm_title: "Taskbar Strip, Collapsible Edge Pill & Hardware Sensor Dashboard",
-        pm_desc: "Sits unobtrusively on the taskbar or collapses into a sleek screen-edge pill, tracking CPU, GPU, RAM, disk, network, temps/power, and zero-injection ETW game FPS overlays.",
-        pm_li1: "Compact taskbar monitor and edge-aware collapsed pill with 1–2 customizable metrics",
-        pm_li2: "Unified AMD ADL, NVML, PDH, and optional PawnIO / elevated sensor collection with sparkline history",
-        pm_li3: "Zero-injection ETW game FPS / 1% Low / frametime HUD alongside detailed hardware inventory",
-        l_title: "Global Contextual Launcher",
-        l_desc_html: 'Press <kbd>Alt+Space</kbd> to detect selected Explorer files and clipboard items, surfacing Smart Extract, Image View, Video Playback, Pin, and live history matches in one panel.',
-        s_title: "Live Modules, Bilingual i18n, Hotkeys & Admin Logon",
-        s_desc_html: 'Toggle all six modules live, switch between English and Simplified Chinese without restarting, intercept <kbd>Win+</kbd> hotkeys, restart elevated or enable UAC-free admin logon, and update in-app via GitHub Releases with SHA-256 verification.',
-        arch_title: "Modular Layered Architecture",
-        arch_sub: "The desktop host, independent feature modules, and native platform foundation sit in clean layers. Sibling modules stay strictly decoupled and degrade gracefully when turned off.",
-        pil_1_t: "Flexible Composition",
-        pil_1_d: "Select components at install time or toggle them live in Settings. Disabled tools release their tray entries, hotkeys, and background footprint.",
-        pil_2_t: "Decoupled Collaboration",
-        pil_2_d: "Jump from Clipboard or Archive to PureImage, or pin images to desktop via PureShot—all mediated cleanly over the Capability Bus.",
-        pil_3_t: "True Native Footprint",
-        pil_3_d: "Every window renders directly via native GPU graphics with zero embedded browser runtime, keeping startup instant and data isolated.",
-        dl_title: "Download & Open Source License",
-        dl_desc: "PureUtils is open source under GNU AGPL-3.0. Download the per-user installer and customize your active toolset freely.",
-        dl_btn: "Download PureUtils-1.3.1-setup.exe (15.4 MB)",
-        dl_gh: "View on GitHub",
-        f_arch: "Architecture Docs"
+        sep_modules: "SIX MODULES",
+        mod_title: "Six tools, one native binary.",
+        mod_sub: "Install only what you need, toggle live anytime.",
+        m_shot: "Snap capture, 9 tools, magnifier, pins.",
+        m_clip: "Instant search across text, image, file history.",
+        m_img: "40+ image & RAW formats, Spacebar preview.",
+        m_vid: "Bundled libmpv hardware decode, 21 formats.",
+        m_zip: "Browse ZIP, 7Z, TAR, RAR with Smart Extract.",
+        m_mon: "Taskbar bar, edge pill, zero-injection FPS HUD.",
+        wf_title: "Every action, a shortcut away.",
+        wf_sub: "Stay on the keyboard. Modules hand off quietly.",
+        wf1_t: "Context Launcher",
+        wf1_d: "Detects Explorer selection & clipboard.",
+        wf2_t: "Spacebar Preview",
+        wf2_d: "Preview images straight from Explorer.",
+        wf3_t: "Pin Anything",
+        wf3_d: "Float captures, images, or clips on top.",
+        wf4_t: "Compact & Split",
+        wf4_d: "Flip compact popup and split inspector.",
+        hl_title: "Native, modular, zero bloat.",
+        hl_sub: "Keep only what you actually reach for.",
+        hl1_t: "Native GPU, zero WebView",
+        hl1_d: "Direct GPU UI with instant launch and a compact single installer.",
+        hl2_t: "Built-in native codecs",
+        hl2_d: "Ships pureimage_codecs.dll and trimmed libmpv—no codec packs needed.",
+        hl3_t: "Modular & live toggles",
+        hl3_d: "Select at setup or toggle live; disabled modules free hotkeys & RAM.",
+        hl4_t: "Win+ hotkeys & admin logon",
+        hl4_d: "Win+ capture, one-click elevation, and UAC-free logon autostart.",
+        hl5_t: "Bilingual & verified updates",
+        hl5_d: "Live EN/ZH toggle and in-app SHA-256 verified GitHub updates.",
+        dl_title: "Get PureUtils",
+        dl_sub: "Free & open source for Windows 10/11 x64 · Per-user installer · AGPL-3.0",
+        dl_btn: "PureUtils-1.3.1-setup.exe (15.4 MB)",
+        sep_about: "ABOUT",
+        f_desc: "Native desktop utilities for Windows.",
+        f_product: "Product",
+        f_releases: "Releases",
+        f_arch: "Architecture",
+        f_codecs: "Native Codecs",
+        f_issues: "Issues",
+        f_oss: "Open Source",
+        f_notices: "Third-Party Notices",
+        f_security: "Security",
+        f_platform: "Platform",
+        f_peruser: "Per-user Installer",
+        f_noweb: "Zero WebView"
       }
     };
 
     let currentLang = "zh";
-    let currentTheme = "light";
-    let activeShotKey = "launcher";
+    let slideIndex = 0;
 
-    function updateHeroMeta() {
-      const m = STAGE_META[currentLang][activeShotKey];
-      if (!m) return;
-      document.getElementById("stageCaption").textContent = m.caption;
-      document.getElementById("stageShortcut").innerHTML = m.keys;
+    function updateSlideBadge() {
+      const slides = document.querySelectorAll("#heroShot .shot-slide");
+      const cap = document.getElementById("heroCaption");
+      const kbd = document.getElementById("heroKbd");
+      const active = slides[slideIndex];
+      if (!active || !cap || !kbd) return;
+      cap.textContent = active.getAttribute(currentLang === "zh" ? "data-title-zh" : "data-title-en") || "";
+      kbd.textContent = active.getAttribute("data-kbd") || "";
     }
 
     function applyLang(lang) {
@@ -1261,43 +1414,36 @@
         const key = el.getAttribute("data-i18n");
         if (dict[key]) el.textContent = dict[key];
       });
-      document.querySelectorAll("[data-i18n-html]").forEach((el) => {
-        const key = el.getAttribute("data-i18n-html");
-        if (dict[key]) el.innerHTML = dict[key];
-      });
 
-      const svgDict = SVG_I18N[currentLang];
-      Object.keys(svgDict).forEach((id) => {
-        const node = document.getElementById(id);
-        if (node) node.textContent = svgDict[id];
-      });
+      const pillText = currentLang === "zh" ? "EN" : "中文";
+      document.getElementById("langTop").textContent = pillText;
+      document.getElementById("langBottom").textContent = pillText;
 
-      document.getElementById("langToggle").textContent = currentLang === "zh" ? "EN" : "中文";
-      document.getElementById("themeToggle").textContent = currentTheme === "dark"
-        ? (currentLang === "zh" ? "浅色" : "Light")
-        : (currentLang === "zh" ? "深色" : "Dark");
-
-      const footerArch = document.getElementById("footerArchLink");
-      if (footerArch) {
-        footerArch.href = currentLang === "zh"
+      const arch = document.getElementById("footerArchLink");
+      if (arch) {
+        arch.href = currentLang === "zh"
           ? "https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.md"
           : "https://github.com/WangsYi/PureUtils/blob/main/docs/ARCHITECTURE.en.md";
       }
-      updateHeroMeta();
+
+      updateSlideBadge();
       try { localStorage.setItem("pureutils_lang", currentLang); } catch {}
     }
 
     function applyTheme(theme) {
-      currentTheme = theme === "dark" ? "dark" : "light";
-      document.documentElement.setAttribute("data-theme", currentTheme);
-      document.getElementById("themeToggle").textContent = currentTheme === "dark"
-        ? (currentLang === "zh" ? "浅色" : "Light")
-        : (currentLang === "zh" ? "深色" : "Dark");
-      try { localStorage.setItem("pureutils_theme", currentTheme); } catch {}
+      const next = theme === "dark" ? "dark" : "light";
+      document.documentElement.classList.toggle("dark", next === "dark");
+      document.documentElement.setAttribute("data-theme", next);
+      document.querySelectorAll(".theme-opt").forEach((btn) => {
+        btn.setAttribute("aria-pressed", btn.getAttribute("data-theme") === next ? "true" : "false");
+      });
+      try { localStorage.setItem("pureutils_theme", next); } catch {}
     }
 
+    // Init lang & theme from URL / localStorage / OS preference
     const params = new URLSearchParams(window.location.search);
     const urlLang = params.get("lang");
+    const urlTheme = params.get("theme");
     let savedLang = null;
     let savedTheme = null;
     try {
@@ -1305,40 +1451,139 @@
       savedTheme = localStorage.getItem("pureutils_theme");
     } catch {}
     const sysDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    applyTheme(savedTheme || (sysDark ? "dark" : "light"));
-    applyLang(urlLang || savedLang || "zh");
+    applyTheme(urlTheme === "dark" || urlTheme === "light" ? urlTheme : (savedTheme || (sysDark ? "dark" : "light")));
+    applyLang(urlLang === "en" || urlLang === "zh" ? urlLang : (savedLang || "zh"));
 
-    document.getElementById("langToggle").addEventListener("click", () => {
-      applyLang(currentLang === "zh" ? "en" : "zh");
+    [document.getElementById("langTop"), document.getElementById("langBottom")].forEach((btn) => {
+      btn.addEventListener("click", () => applyLang(currentLang === "zh" ? "en" : "zh"));
     });
-    document.getElementById("themeToggle").addEventListener("click", () => {
-      applyTheme(currentTheme === "dark" ? "light" : "dark");
+    document.querySelectorAll(".theme-opt").forEach((btn) => {
+      btn.addEventListener("click", () => applyTheme(btn.getAttribute("data-theme")));
     });
 
-    const heroImg = document.getElementById("heroPreviewImg");
-    document.querySelectorAll(".stage-tab").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".stage-tab").forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        heroImg.src = btn.getAttribute("data-shot");
-        activeShotKey = btn.getAttribute("data-key");
-        updateHeroMeta();
+    // Split download menu
+    const dlSplit = document.getElementById("dlSplit");
+    const dlToggle = document.getElementById("dlToggle");
+    function closeDlMenu() {
+      dlSplit.classList.remove("is-open");
+      dlToggle.setAttribute("aria-expanded", "false");
+    }
+    dlToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = dlSplit.classList.toggle("is-open");
+      dlToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    document.addEventListener("click", (e) => {
+      if (!dlSplit.contains(e.target)) closeDlMenu();
+    });
+
+    // Hero Carousel
+    const heroShot = document.getElementById("heroShot");
+    const slides = Array.from(heroShot.querySelectorAll(".shot-slide"));
+    const dotsWrap = document.getElementById("shotDots");
+    slides.forEach((_, i) => {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = "shot-dot" + (i === 0 ? " is-active" : "");
+      dot.setAttribute("aria-label", "Slide " + (i + 1));
+      dot.addEventListener("click", () => {
+        stopAutoCarousel();
+        goSlide(i);
+      });
+      dotsWrap.appendChild(dot);
+    });
+    const dots = Array.from(dotsWrap.querySelectorAll(".shot-dot"));
+
+    function goSlide(next) {
+      slideIndex = (next + slides.length) % slides.length;
+      slides.forEach((img, i) => img.classList.toggle("is-active", i === slideIndex));
+      dots.forEach((dot, i) => dot.classList.toggle("is-active", i === slideIndex));
+      updateSlideBadge();
+    }
+
+    let carouselTimer = null;
+    function stopAutoCarousel() {
+      if (carouselTimer) {
+        clearInterval(carouselTimer);
+        carouselTimer = null;
+      }
+    }
+    const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reducedMotion) {
+      carouselTimer = setInterval(() => goSlide(slideIndex + 1), 5500);
+      heroShot.addEventListener("mouseenter", stopAutoCarousel);
+      heroShot.addEventListener("focusin", stopAutoCarousel);
+    }
+
+    document.getElementById("shotPrev").addEventListener("click", () => {
+      stopAutoCarousel();
+      goSlide(slideIndex - 1);
+    });
+    document.getElementById("shotNext").addEventListener("click", () => {
+      stopAutoCarousel();
+      goSlide(slideIndex + 1);
+    });
+
+    // Workflow 2x2 palette switcher
+    const wfImg = document.getElementById("wfImg");
+    const wfCards = Array.from(document.querySelectorAll(".palette-card"));
+    wfCards.forEach((card) => {
+      card.addEventListener("click", () => {
+        wfCards.forEach((c) => {
+          c.classList.remove("is-active");
+          c.setAttribute("aria-selected", "false");
+        });
+        card.classList.add("is-active");
+        card.setAttribute("aria-selected", "true");
+        wfImg.src = card.getAttribute("data-img");
       });
     });
 
-    const lb = document.getElementById("lightbox");
-    const lbImg = document.getElementById("lightboxImg");
-    function openLightbox(src) {
-      lbImg.src = src;
-      lb.classList.add("open");
-    }
-    document.getElementById("heroStageWrap").addEventListener("click", () => openLightbox(heroImg.src));
-    document.querySelectorAll(".zoomable").forEach((img) => {
-      img.addEventListener("click", () => openLightbox(img.src));
+    // Highlights interactive list
+    const hlImg = document.getElementById("hlImg");
+    const hlItems = Array.from(document.querySelectorAll(".agent-item"));
+    hlItems.forEach((item) => {
+      item.addEventListener("click", () => {
+        hlItems.forEach((el) => {
+          el.classList.remove("is-active");
+          el.setAttribute("aria-selected", "false");
+        });
+        item.classList.add("is-active");
+        item.setAttribute("aria-selected", "true");
+        hlImg.src = item.getAttribute("data-img");
+      });
     });
-    lb.addEventListener("click", () => lb.classList.remove("open"));
+
+    // Lightbox
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+    function openLightbox(src, alt) {
+      lightboxImg.src = src;
+      lightboxImg.alt = alt || "Screenshot preview";
+      lightbox.classList.add("is-open");
+      lightbox.setAttribute("aria-hidden", "false");
+    }
+    function closeLightbox() {
+      lightbox.classList.remove("is-open");
+      lightbox.setAttribute("aria-hidden", "true");
+    }
+
+    slides.forEach((img) => img.addEventListener("click", () => openLightbox(img.src, img.alt)));
+    document.querySelectorAll(".zoom-src").forEach((box) => {
+      box.addEventListener("click", () => {
+        const img = box.querySelector("img");
+        openLightbox(box.getAttribute("data-src") || img.src, img ? img.alt : "");
+      });
+    });
+    document.getElementById("wfStage").addEventListener("click", () => openLightbox(wfImg.src, wfImg.alt));
+    document.getElementById("hlStage").addEventListener("click", () => openLightbox(hlImg.src, hlImg.alt));
+
+    lightbox.addEventListener("click", closeLightbox);
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") lb.classList.remove("open");
+      if (e.key === "Escape") {
+        closeLightbox();
+        closeDlMenu();
+      }
     });
   </script>
 </body>
