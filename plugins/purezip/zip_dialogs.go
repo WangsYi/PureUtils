@@ -101,6 +101,7 @@ func (a *Plugin) openZipDialogWindow(title string, w, h int, view func(c *ui.Con
 		Hidden:            true,
 		DisableMaximize:   true,
 		DisableFullScreen: true,
+		Vibrancy:          mygo.VibrancyMica,
 		Content:           ui.View(view),
 	})
 	a.applyZipWindowIdentity(win)

@@ -569,6 +569,8 @@ func (h *historyView) putPreviewCache(id int64, cp cachedPreview) {
 	h.previewCache[id] = cp
 }
 
+type clipSelPill struct{}
+
 func (h *historyView) view(c *ui.Context) {
 	if h.closed {
 		return
@@ -600,7 +602,11 @@ func (h *historyView) view(c *ui.Context) {
 	if h.compact {
 		h.compactView(c, pal)
 	} else {
-		ui.Column(c).Fill().Background(pal.Bg).Radius(14).Border(1, pal.BorderStrong).InsetShadow(0, 1, 0, 0, pal.Specular).Clip().Children(func() {
+		shellRadius := float32(14)
+		if pal.Vibrant {
+			shellRadius = 8
+		}
+		ui.Column(c).Fill().Background(pal.Bg).Radius(shellRadius).Border(1, pal.BorderStrong).InsetShadow(0, 1, 0, 0, pal.Specular).Clip().Children(func() {
 			h.searchHeader(c, pal)
 			h.filterRow(c, pal)
 			ui.Box(c).Grow(1).MinHeight(0).Children(func() {
@@ -737,6 +743,9 @@ func (h *historyView) searchHeader(c *ui.Context, pal pureui.Palette) {
 	ui.Row(c).Height(height).Padding(8, 12).Gap(7).AlignItems(ui.Center).Background(pal.BgElevated).DragWindow().Children(func() {
 		field := ui.SearchField(c, &h.query).Placeholder(placeholder).Grow(1).MinWidth(120).Bind(&h.search).
 			Background(pal.ControlBg).Border(0, ui.Transparent).FocusRing(false)
+		if pal.Vibrant {
+			field.Border(1, pal.Border)
+		}
 		if h.focusSearch {
 			h.search.Focus()
 			h.focusSearch = false
@@ -767,7 +776,7 @@ func (h *historyView) searchHeader(c *ui.Context, pal pureui.Palette) {
 			monLabel = i18n.S("已暂停", "Paused")
 			monTip = i18n.S("剪贴板监听已暂停（点击恢复）", "Clipboard monitoring paused (click to resume)")
 		}
-		monBtn := ui.ButtonBase(c).Size(24, 24).Radius(6).Center().Label(monLabel).Tooltip(monTip)
+		monBtn := ui.ButtonBase(c).Size(24, 24).Radius(6).Center().Label(monLabel).Tooltip(monTip).Transition(pureui.HoverTransition)
 		if monBtn.Pressed() {
 			monBtn.Background(pal.CardActive)
 		} else if monBtn.Hovered() {
@@ -839,7 +848,7 @@ func (h *historyView) filterRow(c *ui.Context, pal pureui.Palette) {
 	ui.Row(c).Height(34).Padding(0, 12).Gap(4).AlignItems(ui.Center).Background(pal.Bg).Children(func() {
 		for i, label := range filters {
 			active := h.filter == i
-			btn := ui.ButtonBase(c).Padding(3, pillPadX).Radius(7).Center().Label(label)
+			btn := ui.ButtonBase(c.Key(i)).Padding(3, pillPadX).Radius(7).Center().Label(label).Transition(pureui.HoverTransition)
 			fg := pal.TextMuted
 			bg := ui.Transparent
 			weight := 500
@@ -850,6 +859,7 @@ func (h *historyView) filterRow(c *ui.Context, pal pureui.Palette) {
 				if pal.Dark {
 					fg = pal.AccentHover
 				}
+				btn.Border(1, pal.AccentBorder)
 			} else if btn.Hovered() {
 				bg = pal.CardHover
 				fg = pal.Text
@@ -870,7 +880,7 @@ func (h *historyView) filterRow(c *ui.Context, pal pureui.Palette) {
 		if h.compact {
 			countText = fmt.Sprintf("%d", len(h.items))
 		}
-		ui.Text(c, countText).FontSize(10.5).SingleLine().TextColor(pal.TextMuted.Alpha(0.75))
+		ui.Text(c, countText).FontSize(10.5).SingleLine().TextColor(pal.TextMuted.Alpha(0.75)).ContentTransition(ui.ContentTransition{Numeric: true})
 	})
 	ui.Box(c).Height(1).FillWidth().Background(pal.Border)
 }
@@ -992,7 +1002,11 @@ func (h *historyView) rowContextMenu(r ui.Element, rec Record) {
 }
 
 func (h *historyView) compactView(c *ui.Context, pal pureui.Palette) {
-	ui.Column(c).Fill().Background(pal.Bg).Radius(12).Border(1, pal.BorderStrong).InsetShadow(0, 1, 0, 0, pal.Specular).Clip().Children(func() {
+	shellRadius := float32(12)
+	if pal.Vibrant {
+		shellRadius = 8
+	}
+	ui.Column(c).Fill().Background(pal.Bg).Radius(shellRadius).Border(1, pal.BorderStrong).InsetShadow(0, 1, 0, 0, pal.Specular).Clip().Children(func() {
 		h.searchHeader(c, pal)
 		h.filterRow(c, pal)
 		ui.Box(c).Grow(1).MinHeight(0).Children(func() {
@@ -1037,7 +1051,7 @@ func (h *historyView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg u
 	c := row.Context
 	selected := row.Selected()
 
-	r := ui.Row(c).Padding(6, 9).Gap(9).Radius(8).AlignItems(ui.Center)
+	r := ui.Row(c).Padding(6, 9, 6, 6).Gap(9).Radius(8).AlignItems(ui.Center).Transition(pureui.HoverTransition)
 	bg := ui.Transparent
 	if selected {
 		bg = selectedBg
@@ -1047,7 +1061,17 @@ func (h *historyView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg u
 	r.Background(bg)
 	h.rowContextMenu(r, rec)
 
+	pillCol := pal.Accent
+	if pal.Dark {
+		pillCol = pal.AccentHover
+	}
 	r.Children(func() {
+		ui.Box(c).Size(3, 18).Shrink(0).Center().Children(func() {
+			if selected {
+				ui.Box(c.Key("clip-sel-pill")).Size(3, 18).Radius(1.5).Background(pillCol).
+					Transition(ui.ElementTransition{Match: clipSelPill{}, Animation: &pureui.NavPillSpring})
+			}
+		})
 		switch rec.Kind {
 		case core.KindImage:
 			if thumb := h.loadThumbnail(&rec); thumb != nil {
@@ -1107,7 +1131,7 @@ func (h *historyView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg u
 }
 
 func softActionButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active, danger bool, size float32, pal pureui.Palette) ui.Element {
-	b := ui.ButtonBase(c).Size(size, size).Radius(8).Center().Label(label)
+	b := ui.ButtonBase(c).Size(size, size).Radius(8).Center().Label(label).Transition(pureui.HoverTransition)
 	if tooltip != "" {
 		b.Tooltip(tooltip)
 	}
@@ -1132,6 +1156,7 @@ func softActionButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active
 			fg = pal.Danger
 		}
 	default:
+		b.Border(1, pal.Border)
 		if pressed {
 			bg = pal.CardActive
 			fg = pal.Text
@@ -1160,7 +1185,9 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 		var bodyStr string
 
 		// 1. Clean preview stage
-		ui.Column(c).Grow(1).MinHeight(0).Children(func() {
+		ui.Column(c.Key(rec.ID)).Grow(1).MinHeight(0).
+			Transition(ui.ElementTransition{Enter: &ui.Motion{Y: 6}, Duration: 150 * time.Millisecond, Ease: ui.EaseOut}).
+			Children(func() {
 			switch rec.Kind {
 			case core.KindImage:
 				h.renderPreviewImage(c, rec, pal)
@@ -1173,7 +1200,7 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 			case core.KindFiles:
 				payload = DecodePayload(rec.PayloadJSON)
 				leftMeta = i18n.F("%d 个文件", "%d files", len(payload.Files))
-				ui.Box(c).Fill().Padding(10, 12).Radius(10).Background(pal.CardBg).Children(func() {
+				ui.Box(c).Fill().Padding(10, 12).Radius(10).Background(pal.CardBg).Border(1, pal.Border).Children(func() {
 					ui.Scroll(c).Fill().Children(func() {
 						ui.Column(c).Gap(6).Children(func() {
 							for _, p := range payload.Files {
@@ -1207,7 +1234,7 @@ func (h *historyView) previewPane(c *ui.Context, pal pureui.Palette) {
 				lines := strings.Count(bodyStr, "\n") + 1
 				chars := utf8.RuneCountInString(bodyStr)
 				leftMeta = i18n.F("%d 字符 · %d 行", "%d chars · %d lines", chars, lines)
-				ui.Box(c).Fill().Padding(12, 14).Radius(10).Background(pal.CardBg).Children(func() {
+				ui.Box(c).Fill().Padding(12, 14).Radius(10).Background(pal.CardBg).Border(1, pal.Border).Children(func() {
 					ui.Scroll(c).Fill().Children(func() {
 						ui.Text(c, bodyStr).FontSize(12.5).LineHeight(1.55).Selectable().TextColor(pal.Text)
 					})
@@ -1377,7 +1404,11 @@ func (h *historyView) previewPopoverView(c *ui.Context) {
 		}
 	}
 
-	ui.Column(c).Fill().Background(pal.Bg).Radius(12).Border(1, pal.BorderStrong).InsetShadow(0, 1, 0, 0, pal.Specular).Clip().Children(func() {
+	shellRadius := float32(12)
+	if pal.Vibrant {
+		shellRadius = 8
+	}
+	ui.Column(c).Fill().Background(pal.Bg).Radius(shellRadius).Border(1, pal.BorderStrong).InsetShadow(0, 1, 0, 0, pal.Specular).Clip().Children(func() {
 		// Header
 		ui.Row(c).Height(34).Padding(0, 12).Gap(6).AlignItems(ui.Center).Background(pal.BgElevated).Children(func() {
 			ui.Text(c, kindLabel).FontSize(10.5).FontWeight(600).SingleLine().TextColor(kindFg)
@@ -1428,7 +1459,7 @@ func (h *historyView) previewPopoverView(c *ui.Context) {
 				})
 
 			default:
-				ui.Box(c).Grow(1).MinHeight(0).Padding(10, 12).Radius(9).Background(pal.BgInset).Children(func() {
+				ui.Box(c).Grow(1).MinHeight(0).Padding(10, 12).Radius(9).Background(pal.BgInset).Border(1, pal.Border).Children(func() {
 					ui.Scroll(c).Fill().Children(func() {
 						ui.Text(c, bodyStr).FontSize(12).LineHeight(1.50).TextColor(pal.Text)
 					})
@@ -2048,6 +2079,7 @@ func (a *Plugin) ShowHistory() {
 		Height:            compactHistoryHeight,
 		Hidden:            true,
 		Frameless:         true,
+		Transparent:       true,
 		Panel:             true,
 		AlwaysOnTop:       true,
 		SkipTaskbar:       true,
@@ -2055,7 +2087,8 @@ func (a *Plugin) ShowHistory() {
 		DisableMinimize:   true,
 		DisableMaximize:   true,
 		DisableFullScreen: true,
-		CornerRadius:      12,
+		Vibrancy:          mygo.VibrancyAcrylic,
+		CornerRadius:      8,
 		BackgroundColor:   "#00000000",
 		Content:           ui.View(h.view),
 	})
@@ -2149,8 +2182,9 @@ func (a *Plugin) syncHistoryPreview(h *historyView) {
 			Height:       ph,
 			Focusable:    false,
 			Hidden:       true,
-			Shadow:       false,
-			CornerRadius: 12,
+			Shadow:       true,
+			Vibrancy:     mygo.VibrancyAcrylic,
+			CornerRadius: 8,
 			Content:      ui.View(h.previewPopoverView),
 		})
 		fw.OnClose(func(_ *mygo.CloseEvent) {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -41,9 +42,10 @@ func TestGenerateHostScreenshots(t *testing.T) {
 	a.paths.Home = `%LOCALAPPDATA%\PureUtils`
 
 	sv := newSettingsView(a, "")
-	st := ui.NewTester(sv.view, 860, 620)
+	st := ui.NewTester(sv.view, 920, 660)
 	st.SetDark(true)
 	st.Frame()
+	st.Advance(500 * time.Millisecond)
 	saveHostShowcasePNG(t, st.Image(), filepath.Join("..", "..", "docs", "screenshots", "settings.png"))
 
 	lv := newLauncherView(a, purekit.MatchContext{
@@ -53,5 +55,6 @@ func TestGenerateHostScreenshots(t *testing.T) {
 	lt := ui.NewTester(lv.view, launcherWidth, launcherHeight)
 	lt.SetDark(true)
 	lt.Frame()
+	lt.Advance(500 * time.Millisecond)
 	saveHostShowcasePNG(t, lt.Image(), filepath.Join("..", "..", "docs", "screenshots", "launcher.png"))
 }

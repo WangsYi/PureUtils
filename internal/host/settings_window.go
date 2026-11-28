@@ -16,6 +16,8 @@ import (
 	pureui "pureutils/pkg/purekit/ui"
 )
 
+type settingsNavPill struct{}
+
 type settingsSection struct {
 	id         string
 	pluginID   string
@@ -85,13 +87,16 @@ func (a *App) ShowSettings(tabID string) {
 	}
 
 	win := mygo.NewWindow(mygo.WindowOptions{
-		Title:     i18n.S("PureUtils 设置", "PureUtils Settings"),
-		Width:     860,
-		Height:    640,
-		MinWidth:  720,
-		MinHeight: 540,
-		StateKey:  "settings",
-		Content:   ui.View(h.view),
+		Title:          i18n.S("PureUtils 设置", "PureUtils Settings"),
+		Width:          920,
+		Height:         660,
+		MinWidth:       720,
+		MinHeight:      540,
+		StateKey:       "settings",
+		Vibrancy:       mygo.VibrancyTabbed,
+		TitleBarStyle:  mygo.TitleBarHidden,
+		TitleBarHeight: 40,
+		Content:        ui.View(h.view),
 	})
 	_ = win.SetIcon(iconPNG)
 	h.win = win
@@ -278,44 +283,91 @@ func (h *settingsView) tabIndex(id string) int {
 
 func (h *settingsView) view(c *ui.Context) {
 	pal := pureui.ApplyTheme(c)
-	ui.Row(c).Fill().Background(pal.Bg).Children(func() {
-		h.sidebar(c, pal)
-		ui.Box(c).Width(1).FillHeight().Background(pal.Border)
-		h.contentPane(c, pal)
+	if idx := h.tabIndex(h.section); idx != h.tab {
+		h.tab = idx
+	}
+	ui.Column(c).Fill().Background(pal.Bg).Children(func() {
+		pureui.WindowTitleBar(c, pal, pureui.IconSettings, pal.Accent, pal.AccentEnd,
+			i18n.S("PureUtils 设置", "PureUtils Settings"), core.ShortVersion(core.AppVersion), 40, nil)
+		ui.Row(c).Grow(1).MinHeight(0).FillWidth().Children(func() {
+			h.sidebar(c, pal)
+			if !pal.Vibrant {
+				ui.Box(c).Width(1).FillHeight().Background(pal.Border)
+			}
+			h.contentPane(c, pal)
+		})
 	})
 }
 
 func (h *settingsView) sidebar(c *ui.Context, pal pureui.Palette) {
-	ui.Column(c).Width(216).FillHeight().Background(pal.SidebarBg).Children(func() {
-		ui.Row(c).Padding(18, 16, 12, 16).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Box(c).Size(30, 30).Radius(8).Gradient(pal.Accent, pal.AccentEnd, 135).
-				InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.25)).Center().Children(func() {
-				ui.Icon(c, pureui.IconSettings).Size(15, 15).TextColor(pal.AccentText)
-			})
-			ui.Column(c).Gap(1).Children(func() {
-				ui.Row(c).Gap(5).AlignItems(ui.Center).Children(func() {
-					ui.Text(c, "PureUtils").FontSize(14).FontWeight(700).TextColor(pal.Text)
-					pureui.PillBadge(c, core.ShortVersion(core.AppVersion), pal.Accent, pal.AccentSoft)
-				})
-				ui.Text(c, i18n.S("系统设置", "Settings")).FontSize(11).TextColor(pal.TextMuted)
+	sideBg := pal.SidebarBg
+	if pal.Vibrant {
+		sideBg = ui.Transparent
+	}
+	pillCol := pal.Accent
+	if pal.Dark {
+		pillCol = pal.AccentHover
+	}
+	hoverBg := pal.CardBg
+	if !pal.Dark && !pal.Vibrant {
+		hoverBg = pal.CardHover
+	}
+
+	ui.Column(c).Width(220).FillHeight().Background(sideBg).Children(func() {
+		ui.Scroll(c).Grow(1).Children(func() {
+			ui.Column(c).Padding(4, 10, 10, 10).Gap(3).Children(func() {
+				ui.Text(c, i18n.S("设置分类", "Sections")).FontSize(10.5).FontWeight(600).Padding(4, 12, 4, 12).TextColor(pal.TextMuted)
+				for i, sec := range h.sections {
+					i := i
+					sec := sec
+					active := h.section == sec.id
+					btn := ui.ButtonBase(c.Key(sec.id)).FillWidth().Height(36).Padding(0, 12, 0, 8).Radius(7).
+						Gap(10).AlignItems(ui.Center).Label(sec.label).Transition(pureui.HoverTransition)
+
+					bg := ui.Transparent
+					fg := pal.TextSecondary
+					iconFg := pal.TextMuted
+					weight := 500
+					switch {
+					case active:
+						bg = pal.CardHover
+						fg = pal.Text
+						iconFg = pillCol
+						weight = 600
+						if btn.Pressed() {
+							bg = pal.CardActive
+						}
+					case btn.Pressed():
+						bg = pal.CardActive
+						fg = pal.Text
+						iconFg = pal.TextSecondary
+					case btn.Hovered():
+						bg = hoverBg
+						fg = pal.Text
+						iconFg = pal.TextSecondary
+					}
+					btn.Background(bg)
+					btn.Children(func() {
+						ui.Box(c).Size(3, 16).Shrink(0).Center().Children(func() {
+							if active {
+								ui.Box(c.Key("nav-pill")).Size(3, 16).Radius(1.5).Background(pillCol).
+									Transition(ui.ElementTransition{Match: settingsNavPill{}, Animation: &pureui.NavPillSpring})
+							}
+						})
+						ui.Icon(c, sec.icon).Size(15, 15).TextColor(iconFg).Shrink(0)
+						ui.Text(c, sec.label).FontSize(13).FontWeight(weight).SingleLine().TextColor(fg).Grow(1).MinWidth(0)
+					})
+					btn.OnClick(func() {
+						h.section = sec.id
+						h.tab = i
+						h.invalidate()
+					})
+				}
 			})
 		})
 
-		sb := ui.Sidebar(c, &h.section, func() {
-			ui.SidebarSection(c, i18n.S("设置分类", "Sections"), nil, func() {
-				for _, sec := range h.sections {
-					ui.SidebarItem(c, sec.id, sec.icon, sec.label)
-				}
-			})
-		}).Grow(1).Background(pal.SidebarBg)
-		if sb.Changed() {
-			h.tab = h.tabIndex(h.section)
-		} else if idx := h.tabIndex(h.section); idx != h.tab {
-			h.tab = idx
-		}
-
-		ui.Column(c).Margin(8, 12, 12, 12).Padding(10).Gap(4).Radius(10).
-			Background(pal.CardBg).Children(func() {
+		ui.Column(c).Margin(6, 10, 12, 10).Padding(10, 12).Gap(4).Radius(10).
+			Background(pal.CardBg).Border(1, pal.Border).InsetShadow(0, 1, 0, 0, pal.Specular).Children(func() {
 			h.renderSidebarStatus(c, pal)
 			ui.Text(c, h.app.Paths().Home).FontSize(10).SingleLine().TextColor(pal.TextMuted)
 		})
@@ -357,21 +409,19 @@ func (h *settingsView) renderSidebarStatus(c *ui.Context, pal pureui.Palette) {
 
 func (h *settingsView) contentPane(c *ui.Context, pal pureui.Palette) {
 	sec := h.sections[clampInt(h.tab, 0, len(h.sections)-1)]
-	ui.Column(c).Grow(1).FillHeight().Background(pal.Bg).Children(func() {
-		hdr := ui.Column(c).Padding(14, 22, 10, 22).Gap(2)
-		if sec.sub == "" {
-			hdr = ui.Column(c).Padding(14, 22, 12, 22)
-		}
-		hdr.Children(func() {
-			ui.Text(c, sec.title).FontSize(19).FontWeight(700).TextColor(pal.Text)
+	ui.Column(c).Grow(1).MinWidth(0).FillHeight().Background(pal.Bg).Children(func() {
+		ui.Column(c).Padding(6, 26, 10, 26).Gap(3).Children(func() {
+			ui.Text(c, sec.title).FontSize(24).FontWeight(600).TextColor(pal.Text).ContentTransition(ui.ContentTransition{})
 			if sec.sub != "" {
 				ui.Text(c, sec.sub).FontSize(12).TextColor(pal.TextMuted)
 			}
 		})
-		ui.Box(c).Height(1).FillWidth().Background(pal.Border)
+		if !pal.Vibrant {
+			ui.Box(c).Height(1).FillWidth().Background(pal.Border)
+		}
 
 		ui.Scroll(c).Grow(1).Children(func() {
-			ui.Column(c).Padding(14, 22).Gap(12).Children(func() {
+			ui.Column(c.Key(sec.id)).Padding(6, 26, 18, 26).Gap(14).Transition(pureui.PageEnterTransition).Children(func() {
 				switch sec.id {
 				case "general":
 					h.general(c, pal)
@@ -398,23 +448,23 @@ func (h *settingsView) bottomSaveBar(c *ui.Context, pal pureui.Palette) {
 			case h.recordingID != "":
 				if h.recordingErr != "" {
 					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Danger).Shrink(0)
-					ui.Text(c, h.recordingErr).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Danger)
+					ui.Text(c, h.recordingErr).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Danger).ContentTransition(ui.ContentTransition{})
 				} else {
 					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Accent).Shrink(0)
-					ui.Text(c, i18n.S("录制中…请按下组合键（按 Esc 取消）", "Recording… press a key combination (Esc to cancel)")).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Accent)
+					ui.Text(c, i18n.S("录制中…请按下组合键（按 Esc 取消）", "Recording… press a key combination (Esc to cancel)")).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Accent).ContentTransition(ui.ContentTransition{})
 				}
 			case dirty:
 				if h.statusIsRecorded && h.status != "" {
 					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Accent).Shrink(0)
-					ui.Text(c, h.status).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Accent)
+					ui.Text(c, h.status).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Accent).ContentTransition(ui.ContentTransition{})
 				} else {
 					ui.Box(c).Size(7, 7).Radius(3.5).Background(pal.Warning).Shrink(0)
-					ui.Text(c, i18n.S("有未保存的更改", "Unsaved changes")).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Warning)
+					ui.Text(c, i18n.S("有未保存的更改", "Unsaved changes")).FontSize(11).FontWeight(500).SingleLine().TextColor(pal.Warning).ContentTransition(ui.ContentTransition{})
 				}
 			case h.status != "":
-				ui.Text(c, h.status).FontSize(11).SingleLine().TextColor(pal.TextMuted)
+				ui.Text(c, h.status).FontSize(11).SingleLine().TextColor(pal.TextMuted).ContentTransition(ui.ContentTransition{})
 			default:
-				ui.Text(c, i18n.S("配置保存后立即生效", "Changes take effect immediately after saving")).FontSize(11).SingleLine().TextColor(pal.TextMuted)
+				ui.Text(c, i18n.S("配置保存后立即生效", "Changes take effect immediately after saving")).FontSize(11).SingleLine().TextColor(pal.TextMuted).ContentTransition(ui.ContentTransition{})
 			}
 		})
 		ui.Button(c, i18n.S("放弃更改", "Discard")).Disabled(!dirty).Shrink(0).OnClick(func() {
@@ -500,7 +550,8 @@ func (h *settingsView) hotkeyRow(c *ui.Context, idx int, pal pureui.Palette) {
 			ui.TextInput(c, &entry.draft).Width(148).Label(i18n.S("快捷键：", "Shortcut: ") + spec.Label).Border(0, ui.Transparent).FocusRing(false)
 
 			recBtn := ui.ButtonBase(c).Padding(5, 11).Radius(7).Gap(5).AlignItems(ui.Center).Shrink(0).
-				Label(i18n.S("录制", "Record ") + spec.Label).Tooltip(i18n.S("按下组合键录制热键", "Press key combination to record"))
+				Label(i18n.S("录制", "Record ") + spec.Label).Tooltip(i18n.S("按下组合键录制热键", "Press key combination to record")).
+				Transition(pureui.HoverTransition)
 			recBg := pal.ControlBg
 			recFg := pal.TextSecondary
 			recText := i18n.S("录制", "Record")
@@ -508,11 +559,14 @@ func (h *settingsView) hotkeyRow(c *ui.Context, idx int, pal pureui.Palette) {
 				recBg = pal.AccentSoft
 				recFg = pal.Accent
 				recText = i18n.S("停止", "Stop")
-			} else if recBtn.Pressed() {
-				recBg = pal.CardActive
-			} else if recBtn.Hovered() {
-				recBg = pal.CardHover
-				recFg = pal.Text
+			} else {
+				recBtn.Border(1, pal.Border)
+				if recBtn.Pressed() {
+					recBg = pal.CardActive
+				} else if recBtn.Hovered() {
+					recBg = pal.CardHover
+					recFg = pal.Text
+				}
 			}
 			recBtn.Background(recBg)
 			recBtn.Children(func() {
@@ -600,7 +654,7 @@ func (h *settingsView) advanced(c *ui.Context, pal pureui.Palette) {
 					pureui.PillBadge(c, i18n.S("管理员权限", "Administrator"), pal.Success, pal.SuccessSoft)
 				} else {
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						pureui.PillBadge(c, i18n.S("普通权限", "Standard User"), pal.TextMuted, pal.Bg)
+						pureui.PillBadge(c, i18n.S("普通权限", "Standard User"), pal.TextMuted, pal.ControlBg)
 						ui.Button(c, i18n.S("以管理员身份重启", "Restart as Admin")).OnClick(func() {
 							if err := h.app.RestartAsAdmin(); err != nil {
 								h.statusIsRecorded = false

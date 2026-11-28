@@ -543,14 +543,17 @@ func (p *Plugin) OpenZipManager(path string) {
 		return
 	}
 	win := mygo.NewWindow(mygo.WindowOptions{
-		Title:     "PureZip",
-		Width:     1000,
-		Height:    660,
-		MinWidth:  720,
-		MinHeight: 460,
-		Hidden:    true,
-		StateKey:  "zip",
-		Content:   zipViewContent(v),
+		Title:          "PureZip",
+		Width:          1000,
+		Height:         660,
+		MinWidth:       720,
+		MinHeight:      460,
+		Hidden:         true,
+		StateKey:       "zip",
+		Vibrancy:       mygo.VibrancyTabbed,
+		TitleBarStyle:  mygo.TitleBarHidden,
+		TitleBarHeight: 38,
+		Content:        zipViewContent(v),
 	})
 	p.applyZipWindowIdentity(win)
 	v.win = win

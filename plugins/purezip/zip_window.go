@@ -884,6 +884,15 @@ func (v *zipView) view(c *ui.Context) {
 	root := ui.Column(c).Fill().Background(pal.Bg)
 	over := root.FileDragOver()
 	root.Children(func() {
+		title := "PureZip"
+		badge := ""
+		if v.path != "" {
+			title = filepath.Base(v.path) + " — PureZip"
+			if v.arc != nil {
+				badge = v.info.Format.Label()
+			}
+		}
+		pureui.WindowTitleBar(c, pal, iconArchive, ui.Hex("#FBBF24"), ui.Hex("#EA580C"), title, badge, 38, nil)
 		v.toolbar(c, pal)
 		ui.Box(c).Height(1).FillWidth().Background(pal.Border)
 		switch {
@@ -951,7 +960,7 @@ func (v *zipView) view(c *ui.Context) {
 }
 
 func (v *zipView) toolButton(c *ui.Context, pal pureui.Palette, icon *ui.SVG, label, tip string, disabled bool, onClick func()) ui.Element {
-	b := ui.ButtonBase(c).Padding(5, 8).Radius(8).Label(label).Disabled(disabled).Tooltip(tip)
+	b := ui.ButtonBase(c).Padding(5, 8).Radius(8).Label(label).Disabled(disabled).Tooltip(tip).Transition(pureui.HoverTransition)
 	fg := pal.TextSecondary
 	iconFg := pal.Accent
 	switch {
@@ -983,7 +992,7 @@ func (v *zipView) toolbar(c *ui.Context, pal pureui.Palette) {
 		v.toolButton(c, pal, iconCompress, i18n.S("新建", "New"), i18n.S("新建压缩文件 (Ctrl+N)", "New Archive (Ctrl+N)"), false, func() { v.plugin.ShowCompressDialog(nil, "") })
 		ui.Box(c).Width(1).Height(34).Margin(0, 6).Background(pal.Border)
 		v.toolButton(c, pal, iconExtract, i18n.S("解压", "Extract"), i18n.S("解压到… (Ctrl+E)", "Extract To… (Ctrl+E)"), !hasArc, func() { v.extractDialog(-1) })
-		qb := ui.ButtonBase(c).Size(18, 44).Radius(6).Label(i18n.S("解压选项", "Extract Options")).Disabled(!hasArc).Tooltip(i18n.S("快速解压", "Quick Extract")).Center()
+		qb := ui.ButtonBase(c).Size(18, 44).Radius(6).Label(i18n.S("解压选项", "Extract Options")).Disabled(!hasArc).Tooltip(i18n.S("快速解压", "Quick Extract")).Center().Transition(pureui.HoverTransition)
 		if qb.Hovered() && hasArc {
 			qb.Background(pal.CardHover)
 		}
@@ -1018,7 +1027,7 @@ func (v *zipView) toolbar(c *ui.Context, pal pureui.Palette) {
 		ui.Box(c).Grow(1)
 		if v.arc != nil {
 			ui.SearchField(c, &v.query).Bind(&v.searchHandle).Width(190).Placeholder(i18n.S("在压缩包中搜索", "Search archive")).Label(i18n.S("搜索压缩包", "Search archive")).
-				Background(pal.ControlBg).Border(0, ui.Transparent).FocusRing(false)
+				Background(pal.ControlBg).Border(1, pal.Border).FocusRing(false)
 		}
 		if pureui.IconButton(c, pureui.IconSettings, i18n.S("PureZip 设置", "PureZip Settings"), i18n.S("打开 PureZip 设置", "Open PureZip Settings"), false, false, pal).Clicked() {
 			if v.plugin.host != nil { v.plugin.host.OpenSettings(PluginID) }
@@ -1044,7 +1053,7 @@ func (v *zipView) pathBar(c *ui.Context, pal pureui.Palette) {
 			items = append(items, strings.Split(v.cwd, "/")...)
 		}
 		v.crumb = len(items) - 1
-		ui.Row(c).Grow(1).MinWidth(0).Padding(5, 10).Radius(8).Background(pal.ControlBg).AlignItems(ui.Center).Gap(6).Children(func() {
+		ui.Row(c).Grow(1).MinWidth(0).Padding(5, 10).Radius(8).Background(pal.ControlBg).Border(1, pal.Border).AlignItems(ui.Center).Gap(6).Children(func() {
 			ui.Icon(c, iconArchive).Size(14, 14).TextColor(ui.Hex("#F97316"))
 			if ui.Breadcrumbs(c, items, &v.crumb).Label(i18n.S("压缩包路径", "Archive path")).Grow(1).Changed() {
 				v.navigate(strings.Join(items[1:v.crumb+1], "/"))
@@ -1060,7 +1069,7 @@ func (v *zipView) pathBar(c *ui.Context, pal pureui.Palette) {
 				encText = v.info.Encoding
 			}
 			eb := ui.ButtonBase(c).Padding(4, 10).Radius(8).Label(i18n.S("文件名编码", "Filename Encoding")).Tooltip(i18n.S("切换 ZIP 文件名编码（解决中文/日文乱码）", "Switch ZIP filename encoding (fix garbled names)")).
-				Background(pal.ControlBg)
+				Background(pal.ControlBg).Border(1, pal.Border).Transition(pureui.HoverTransition)
 			if eb.Hovered() {
 				eb.Background(pal.CardHover)
 			}
@@ -1089,7 +1098,11 @@ func (v *zipView) pathBar(c *ui.Context, pal pureui.Palette) {
 }
 
 func (v *zipView) treePane(c *ui.Context, pal pureui.Palette) {
-	ui.Column(c).Fill().Background(pal.SidebarBg).Children(func() {
+	treeBg := pal.SidebarBg
+	if pal.Vibrant {
+		treeBg = ui.Transparent
+	}
+	ui.Column(c).Fill().Background(treeBg).Children(func() {
 		ui.Scroll(c).Grow(1).Children(func() {
 			ui.Column(c).Padding(6).Children(func() {
 				ui.Tree(c, func() { v.treeNode(c, "", filepath.Base(v.path)) })
@@ -1194,7 +1207,10 @@ func (v *zipView) tablePane(c *ui.Context, pal pureui.Palette, over bool) {
 		}
 		v.rowMenu(m, row)
 	}
-	box := ui.Column(c).Fill()
+	box := ui.Column(c).Fill().Transition(pureui.HoverTransition)
+	if pal.Vibrant {
+		box.Background(pal.CardBg)
+	}
 	if over && v.editable() {
 		box.Border(2, pal.Accent)
 	}
@@ -1378,7 +1394,8 @@ func (v *zipView) statusBar(c *ui.Context, pal pureui.Palette) {
 
 func (v *zipView) startPage(c *ui.Context, pal pureui.Palette, over bool) {
 	ui.Column(c).Grow(1).Padding(28, 36).Gap(18).Children(func() {
-		zone := ui.Column(c).Height(220).Radius(16).Center().Gap(12).Background(pal.CardBg).Border(1.5, pal.BorderStrong)
+		zone := ui.Column(c).Height(220).Radius(16).Center().Gap(12).Background(pal.CardBg).
+			Border(1.5, pal.BorderStrong).InsetShadow(0, 1, 0, 0, pal.Specular).Transition(pureui.HoverTransition)
 		if over {
 			zone.Background(pal.AccentSoft).Border(2, pal.Accent)
 		}
@@ -1405,7 +1422,7 @@ func (v *zipView) startPage(c *ui.Context, pal pureui.Palette, over bool) {
 				ui.Column(c).Gap(2).Children(func() {
 					for _, p := range recent {
 						p := p
-						r := ui.ButtonBase(c.Key(p)).Padding(7, 10).Radius(8).Label(p)
+						r := ui.ButtonBase(c.Key(p)).Padding(7, 10).Radius(8).Label(p).Transition(pureui.HoverTransition)
 						if r.Hovered() {
 							r.Background(pal.CardHover)
 						}

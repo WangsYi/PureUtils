@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -66,6 +67,7 @@ func TestGeneratePureZipScreenshots(t *testing.T) {
 
 	v.navigate("PureUtils-v1.0-release")
 	tt.Frame()
+	tt.Advance(500 * time.Millisecond)
 
 	saveZipShowcasePNG(t, tt.Image(), filepath.Join("..", "..", "docs", "screenshots", "zip.png"))
 }

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -102,6 +103,7 @@ func TestGeneratePureClipScreenshots(t *testing.T) {
 	tt := ui.NewTester(hv.view, 840, 560)
 	tt.SetDark(true)
 	tt.Frame()
+	tt.Advance(500 * time.Millisecond)
 	saveShowcaseRGBA(t, tt.Image(), filepath.Join("..", "..", "docs", "screenshots", "history.png"))
 
 	// Render compact floating Ditto-style history panel
@@ -109,5 +111,6 @@ func TestGeneratePureClipScreenshots(t *testing.T) {
 	ct := ui.NewTester(cv.view, compactHistoryWidth, compactHistoryHeight)
 	ct.SetDark(true)
 	ct.Frame()
+	ct.Advance(500 * time.Millisecond)
 	saveShowcaseRGBA(t, ct.Image(), filepath.Join("..", "..", "docs", "screenshots", "history-compact.png"))
 }

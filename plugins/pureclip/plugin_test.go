@@ -651,3 +651,56 @@ func TestPureClipInstantSearchAndCacheRetention(t *testing.T) {
 		t.Fatalf("expected deleted record %d to be removed from thumbCache", imgID)
 	}
 }
+
+func TestPureClipVibrantRender(t *testing.T) {
+	h := newTestHost(t, nil)
+	p := NewPlugin()
+	if err := p.Init(h); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = p.Stop() }()
+
+	_ = h.io.Write(&core.ClipboardContent{Text: "fluent acrylic item"})
+	h.watcher.Fire()
+	h.clip.FlushPending()
+	_ = h.clip.WriteImage(encodeTestPNG(t, 10, 10, color.RGBA{G: 200, A: 255}), "pureshot")
+
+	cv := newCompactHistoryView(p)
+	ct := ui.NewTester(cv.view, compactHistoryWidth, compactHistoryHeight)
+	ct.SetVibrancy(true)
+	for _, dark := range []bool{true, false} {
+		ct.SetDark(dark)
+		ct.Frame()
+		if !ct.HasText("PNG 10×10 ·") || !ct.HasText("fluent acrylic item") {
+			t.Fatalf("compact vibrant dark=%v missing items: %v", dark, ct.Texts())
+		}
+	}
+
+	hv := newHistoryView(p)
+	ht := ui.NewTester(hv.view, 840, 600)
+	ht.SetVibrancy(true)
+	for _, dark := range []bool{true, false} {
+		ht.SetDark(dark)
+		ht.Frame()
+		if !ht.HasText("粘贴 ↵") {
+			t.Fatalf("expanded vibrant dark=%v missing action bar: %v", dark, ht.Texts())
+		}
+	}
+
+	hv.selected = 0
+	if rec := hv.selectedRecord(); rec != nil && rec.Kind == core.KindImage {
+		hv.loadPreview(rec)
+	}
+	pt := ui.NewTester(hv.previewPopoverView, 360, 280)
+	pt.SetVibrancy(true)
+	for _, dark := range []bool{true, false} {
+		pt.SetDark(dark)
+		pt.Frame()
+		if !pt.HasText("Tab Full View") && !pt.HasText("Tab 完整视图") {
+			t.Fatalf("popover vibrant dark=%v missing footer: %v", dark, pt.Texts())
+		}
+	}
+}

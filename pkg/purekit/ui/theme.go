@@ -5,9 +5,11 @@ import "github.com/egoist/mygo/ui"
 // Palette holds PureUtils's unified Obsidian (dark) and Porcelain (light)
 // design tokens alongside semantic and HUD colors.
 type Palette struct {
-	Dark bool
+	Dark    bool
+	Vibrant bool
 
 	Bg            ui.Color
+	BgSolid       ui.Color
 	SidebarBg     ui.Color
 	BgElevated    ui.Color
 	BgInset       ui.Color
@@ -57,8 +59,14 @@ type Palette struct {
 	HudHighlight ui.Color
 }
 
-// PaletteFor returns the light or dark design-token palette.
+// PaletteFor returns the opaque light or dark design-token palette.
 func PaletteFor(dark bool) Palette {
+	return PaletteForSurface(dark, false)
+}
+
+// PaletteForSurface returns light or dark design tokens tuned either for an
+// opaque window surface or a translucent Windows 11 Mica/Acrylic backdrop.
+func PaletteForSurface(dark, vibrant bool) Palette {
 	hud := struct {
 		HudTint      ui.Color
 		HudBorder    ui.Color
@@ -79,10 +87,12 @@ func PaletteFor(dark bool) Palette {
 		HudHighlight: ui.RGBA(255, 255, 255, 0.14),
 	}
 
+	var pal Palette
 	if dark {
-		return Palette{
+		pal = Palette{
 			Dark:          true,
 			Bg:            ui.Hex("#0E1015"),
+			BgSolid:       ui.Hex("#151821"),
 			SidebarBg:     ui.Hex("#12151C"),
 			BgElevated:    ui.Hex("#151821"),
 			BgInset:       ui.Hex("#0B0D12"),
@@ -131,67 +141,109 @@ func PaletteFor(dark bool) Palette {
 			HudDivider:   hud.HudDivider,
 			HudHighlight: hud.HudHighlight,
 		}
+	} else {
+		pal = Palette{
+			Dark:          false,
+			Bg:            ui.Hex("#F3F5F9"),
+			BgSolid:       ui.Hex("#FFFFFF"),
+			SidebarBg:     ui.Hex("#ECEFF4"),
+			BgElevated:    ui.Hex("#FFFFFF"),
+			BgInset:       ui.Hex("#E9EDF4"),
+			CardBg:        ui.Hex("#FFFFFF"),
+			ControlBg:     ui.Hex("#EEF1F6"),
+			CardHover:     ui.Hex("#E4E9F2"),
+			CardActive:    ui.Hex("#DAE1EE"),
+			Border:        ui.RGBA(15, 23, 42, 0.055),
+			BorderStrong:  ui.RGBA(15, 23, 42, 0.11),
+			Specular:      ui.RGBA(255, 255, 255, 0.85),
+			Text:          ui.Hex("#111827"),
+			TextSecondary: ui.Hex("#374151"),
+			TextMuted:     ui.Hex("#6B7280"),
+
+			Accent:        ui.Hex("#2563EB"),
+			AccentEnd:     ui.Hex("#1D4ED8"),
+			AccentHover:   ui.Hex("#1D4ED8"),
+			AccentPressed: ui.Hex("#1E40AF"),
+			AccentText:    ui.Hex("#FFFFFF"),
+			AccentSoft:    ui.RGBA(37, 99, 235, 0.10),
+			AccentBorder:  ui.RGBA(37, 99, 235, 0.36),
+
+			Success:     ui.Hex("#16A34A"),
+			SuccessSoft: ui.RGBA(22, 163, 74, 0.12),
+			Warning:     ui.Hex("#D97706"),
+			WarningSoft: ui.RGBA(217, 119, 6, 0.12),
+			Danger:      ui.Hex("#DC2626"),
+			DangerSoft:  ui.RGBA(220, 38, 38, 0.11),
+
+			KindText:      ui.Hex("#2563EB"),
+			KindTextSoft:  ui.RGBA(37, 99, 235, 0.11),
+			KindRich:      ui.Hex("#9333EA"),
+			KindRichSoft:  ui.RGBA(147, 51, 234, 0.11),
+			KindImage:     ui.Hex("#059669"),
+			KindImageSoft: ui.RGBA(5, 150, 105, 0.11),
+			KindFiles:     ui.Hex("#D97706"),
+			KindFilesSoft: ui.RGBA(217, 119, 6, 0.12),
+			Favorite:      ui.Hex("#F59E0B"),
+
+			HudTint:      hud.HudTint,
+			HudBorder:    hud.HudBorder,
+			HudText:      hud.HudText,
+			HudMuted:     hud.HudMuted,
+			HudHover:     hud.HudHover,
+			HudWell:      hud.HudWell,
+			HudDivider:   hud.HudDivider,
+			HudHighlight: hud.HudHighlight,
+		}
 	}
 
-	return Palette{
-		Dark:          false,
-		Bg:            ui.Hex("#F3F5F9"),
-		SidebarBg:     ui.Hex("#ECEFF4"),
-		BgElevated:    ui.Hex("#FFFFFF"),
-		BgInset:       ui.Hex("#E9EDF4"),
-		CardBg:        ui.Hex("#FFFFFF"),
-		ControlBg:     ui.Hex("#EEF1F6"),
-		CardHover:     ui.Hex("#E4E9F2"),
-		CardActive:    ui.Hex("#DAE1EE"),
-		Border:        ui.RGBA(15, 23, 42, 0.055),
-		BorderStrong:  ui.RGBA(15, 23, 42, 0.11),
-		Specular:      ui.RGBA(255, 255, 255, 0.85),
-		Text:          ui.Hex("#111827"),
-		TextSecondary: ui.Hex("#374151"),
-		TextMuted:     ui.Hex("#6B7280"),
-
-		Accent:        ui.Hex("#2563EB"),
-		AccentEnd:     ui.Hex("#1D4ED8"),
-		AccentHover:   ui.Hex("#1D4ED8"),
-		AccentPressed: ui.Hex("#1E40AF"),
-		AccentText:    ui.Hex("#FFFFFF"),
-		AccentSoft:    ui.RGBA(37, 99, 235, 0.10),
-		AccentBorder:  ui.RGBA(37, 99, 235, 0.36),
-
-		Success:     ui.Hex("#16A34A"),
-		SuccessSoft: ui.RGBA(22, 163, 74, 0.12),
-		Warning:     ui.Hex("#D97706"),
-		WarningSoft: ui.RGBA(217, 119, 6, 0.12),
-		Danger:      ui.Hex("#DC2626"),
-		DangerSoft:  ui.RGBA(220, 38, 38, 0.11),
-
-		KindText:      ui.Hex("#2563EB"),
-		KindTextSoft:  ui.RGBA(37, 99, 235, 0.11),
-		KindRich:      ui.Hex("#9333EA"),
-		KindRichSoft:  ui.RGBA(147, 51, 234, 0.11),
-		KindImage:     ui.Hex("#059669"),
-		KindImageSoft: ui.RGBA(5, 150, 105, 0.11),
-		KindFiles:     ui.Hex("#D97706"),
-		KindFilesSoft: ui.RGBA(217, 119, 6, 0.12),
-		Favorite:      ui.Hex("#F59E0B"),
-
-		HudTint:      hud.HudTint,
-		HudBorder:    hud.HudBorder,
-		HudText:      hud.HudText,
-		HudMuted:     hud.HudMuted,
-		HudHover:     hud.HudHover,
-		HudWell:      hud.HudWell,
-		HudDivider:   hud.HudDivider,
-		HudHighlight: hud.HudHighlight,
+	if !vibrant {
+		return pal
 	}
+
+	pal.Vibrant = true
+	pal.Bg = ui.Transparent
+	if dark {
+		pal.BgSolid = ui.Hex("#191D28")
+		pal.SidebarBg = ui.RGBA(255, 255, 255, 0.028)
+		pal.BgElevated = ui.RGBA(255, 255, 255, 0.048)
+		pal.BgInset = ui.RGBA(0, 0, 0, 0.24)
+		pal.CardBg = ui.RGBA(255, 255, 255, 0.052)
+		pal.ControlBg = ui.RGBA(255, 255, 255, 0.072)
+		pal.CardHover = ui.RGBA(255, 255, 255, 0.095)
+		pal.CardActive = ui.RGBA(255, 255, 255, 0.13)
+		pal.Border = ui.RGBA(255, 255, 255, 0.075)
+		pal.BorderStrong = ui.RGBA(255, 255, 255, 0.14)
+		pal.Specular = ui.RGBA(255, 255, 255, 0.09)
+		pal.Text = ui.Hex("#F8FAFC")
+		pal.TextSecondary = ui.RGBA(255, 255, 255, 0.78)
+		pal.TextMuted = ui.RGBA(255, 255, 255, 0.56)
+	} else {
+		pal.BgSolid = ui.Hex("#FCFCFD")
+		pal.SidebarBg = ui.RGBA(255, 255, 255, 0.44)
+		pal.BgElevated = ui.RGBA(255, 255, 255, 0.64)
+		pal.BgInset = ui.RGBA(15, 23, 42, 0.04)
+		pal.CardBg = ui.RGBA(255, 255, 255, 0.72)
+		pal.ControlBg = ui.RGBA(255, 255, 255, 0.80)
+		pal.CardHover = ui.RGBA(15, 23, 42, 0.048)
+		pal.CardActive = ui.RGBA(15, 23, 42, 0.078)
+		pal.Border = ui.RGBA(15, 23, 42, 0.075)
+		pal.BorderStrong = ui.RGBA(15, 23, 42, 0.13)
+		pal.Specular = ui.RGBA(255, 255, 255, 0.90)
+		pal.Text = ui.Hex("#111827")
+		pal.TextSecondary = ui.Hex("#374151")
+		pal.TextMuted = ui.Hex("#5B6475")
+	}
+	return pal
 }
 
 // ApplyTheme builds and applies PureUtils's customized MyGo Theme derived from
-// the current light/dark mode so system/manual theme changes and tests both work.
+// the current light/dark mode and window vibrancy so system/manual theme
+// changes, Mica/Acrylic surfaces, and tests all work seamlessly.
 func ApplyTheme(c *ui.Context) Palette {
 	cur := c.Theme()
 	dark := cur != nil && cur.Dark
-	pal := PaletteFor(dark)
+	vibrant := c.Vibrancy()
+	pal := PaletteForSurface(dark, vibrant)
 
 	var base *ui.Theme
 	if dark {
@@ -201,7 +253,11 @@ func ApplyTheme(c *ui.Context) Palette {
 	}
 	t := *base
 	t.Dark = dark
-	t.Background = pal.Bg
+	if vibrant {
+		t.Background = pal.BgSolid
+	} else {
+		t.Background = pal.Bg
+	}
 	t.Surface = pal.ControlBg
 	t.SurfaceHover = pal.CardHover
 	t.SurfacePressed = pal.CardActive
@@ -221,7 +277,7 @@ func ApplyTheme(c *ui.Context) Palette {
 	t.Spacing = 4
 	t.ScrollbarWidth = 6
 	if dark {
-		t.Inverse = pal.CardActive
+		t.Inverse = ui.Hex("#262C3C")
 		t.InverseText = pal.Text
 		t.Scrollbar = ui.RGBA(255, 255, 255, 0.25)
 	} else {
@@ -230,5 +286,9 @@ func ApplyTheme(c *ui.Context) Palette {
 		t.Scrollbar = ui.RGBA(17, 24, 39, 0.24)
 	}
 	c.SetTheme(&t)
+	if vibrant {
+		// Leave the root surface clear after SetTheme so DWM Mica/Acrylic shows through.
+		c.Root().Background(ui.Transparent)
+	}
 	return pal
 }

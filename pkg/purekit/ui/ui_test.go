@@ -149,3 +149,55 @@ func TestInfoTipAndSettingTipsHover(t *testing.T) {
 		}
 	}
 }
+
+func TestVibrantPaletteAndWindowTitleBar(t *testing.T) {
+	for _, dark := range []bool{true, false} {
+		pal := PaletteForSurface(dark, true)
+		if !pal.Vibrant {
+			t.Fatalf("dark=%v expected Vibrant=true", dark)
+		}
+		if pal.Bg != mygoui.Transparent {
+			t.Fatalf("dark=%v vibrant Bg = %v, want Transparent", dark, pal.Bg)
+		}
+		if pal.BgSolid.A != 255 {
+			t.Fatalf("dark=%v vibrant BgSolid should be opaque, got A=%d", dark, pal.BgSolid.A)
+		}
+	}
+
+	var gotVibrant bool
+	view := func(c *mygoui.Context) {
+		pal := ApplyTheme(c)
+		gotVibrant = pal.Vibrant
+		mygoui.Column(c).Fill().Background(pal.Bg).Children(func() {
+			WindowTitleBar(c, pal, IconSettings, pal.Accent, pal.AccentEnd, "PureUtils Settings", "1.4.0", 40, nil)
+			SettingCard(c, "Appearance", "", pal, func() {
+				SettingRow(c, "Material", "Windows 11 Mica", pal, func() {
+					PillBadge(c, "Active", pal.Accent, pal.AccentSoft)
+				})
+			})
+		})
+	}
+
+	tt := mygoui.NewTester(view, 720, 480)
+	if gotVibrant {
+		t.Fatal("expected Vibrant=false before SetVibrancy(true)")
+	}
+	tt.SetVibrancy(true)
+	tt.SetTitleBar(mygoui.TitleBar{Height: 40, Right: 138})
+	for _, dark := range []bool{true, false} {
+		tt.SetDark(dark)
+		tt.Frame()
+		if !gotVibrant {
+			t.Fatalf("dark=%v expected ApplyTheme to detect vibrancy=true after SetVibrancy(true)", dark)
+		}
+		for _, want := range []string{"PureUtils Settings", "1.4.0", "Appearance", "Material"} {
+			if !tt.HasText(want) {
+				t.Fatalf("dark=%v vibrant view missing %q; got %v", dark, want, tt.Texts())
+			}
+		}
+		r, ok := tt.Find("PureUtils Settings")
+		if !ok || r.X+r.W > 720-138 {
+			t.Fatalf("dark=%v titlebar text overlapped caption area: ok=%v rect=%+v", dark, ok, r)
+		}
+	}
+}

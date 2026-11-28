@@ -1,11 +1,58 @@
 package ui
 
 import (
+	"time"
+
 	"github.com/egoist/mygo/ui"
 
 	"pureutils/pkg/purekit/core"
 	"pureutils/pkg/purekit/i18n"
 )
+
+// Fluent 2 motion presets shared across PureUtils desktop windows.
+var (
+	HoverTransition     = ui.ElementTransition{Colors: true, Duration: 130 * time.Millisecond, Ease: ui.EaseOut}
+	NavPillSpring       = ui.Animation{Spring: ui.SpringOptions{Duration: 260 * time.Millisecond, Bounce: 0.14}}
+	PageEnterTransition = ui.ElementTransition{Enter: &ui.Motion{Y: 14}, Animation: &ui.Animation{Duration: 220 * time.Millisecond, Ease: ui.EaseOut}}
+	RibbonTransition    = ui.ElementTransition{Enter: &ui.Motion{Collapse: true}, Exit: &ui.Motion{Collapse: true}, Duration: 180 * time.Millisecond, Ease: ui.EaseOut}
+)
+
+// WindowTitleBar draws an integrated Fluent 2 title bar that clears native
+// caption buttons reported by c.TitleBar() and supports window dragging.
+func WindowTitleBar(c *ui.Context, pal Palette, icon *ui.SVG, gradStart, gradEnd ui.Color, title, badge string, minHeight float32, trailing func()) ui.Element {
+	bar := c.TitleBar()
+	if minHeight <= 0 {
+		minHeight = 38
+	}
+	h := bar.Height
+	if h < minHeight {
+		h = minHeight
+	}
+	padLeft := bar.Left + 14
+	if bar.Left <= 0 {
+		padLeft = 14
+	}
+	padRight := bar.Right + 10
+	if bar.Right <= 0 {
+		padRight = 14
+	}
+	return ui.Row(c).Height(h).FillWidth().Padding(0, padRight, 0, padLeft).Gap(8).AlignItems(ui.Center).DragWindow().Children(func() {
+		if icon != nil {
+			ui.Box(c).Size(20, 20).Radius(6).Gradient(gradStart, gradEnd, 135).
+				InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.25)).Center().Shrink(0).Children(func() {
+				ui.Icon(c, icon).Size(11, 11).TextColor(pal.AccentText)
+			})
+		}
+		ui.Text(c, title).FontSize(12).FontWeight(600).SingleLine().TextColor(pal.Text).Shrink(1).MinWidth(0)
+		if badge != "" {
+			PillBadge(c, badge, pal.Accent, pal.AccentSoft)
+		}
+		ui.Spacer(c)
+		if trailing != nil {
+			trailing()
+		}
+	})
+}
 
 // KindVisual maps a ClipboardKind to its icon, localized label, foreground
 // accent color and soft background tint.
@@ -26,7 +73,7 @@ func KindVisual(k core.ClipboardKind, pal Palette) (icon *ui.SVG, label string, 
 
 // IconButton builds a square icon button with hover, pressed, active and danger states.
 func IconButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active, danger bool, pal Palette) ui.Element {
-	b := ui.ButtonBase(c).Size(28, 28).Radius(7).Center().Label(label)
+	b := ui.ButtonBase(c).Size(28, 28).Radius(7).Center().Label(label).Transition(HoverTransition)
 	if tooltip != "" {
 		b.Tooltip(tooltip)
 	}
@@ -67,7 +114,7 @@ func IconButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active, dang
 
 // FramedIconButton builds a tonal square action button suited for elevated toolbars.
 func FramedIconButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active, danger bool, size float32, pal Palette) ui.Element {
-	b := ui.ButtonBase(c).Size(size, size).Radius(9).Center().Label(label)
+	b := ui.ButtonBase(c).Size(size, size).Radius(9).Center().Label(label).Transition(HoverTransition)
 	if tooltip != "" {
 		b.Tooltip(tooltip)
 	}
@@ -92,6 +139,7 @@ func FramedIconButton(c *ui.Context, icon *ui.SVG, label, tooltip string, active
 			fg = pal.Danger
 		}
 	default:
+		b.Border(1, pal.Border)
 		if pressed {
 			bg = pal.CardActive
 			fg = pal.Text
@@ -183,7 +231,7 @@ func InfoTip(c *ui.Context, tip string, pal Palette) ui.Element {
 		return ui.Element{}
 	}
 	b := ui.ButtonBase(c).Size(18, 18).Radius(9).Center().Shrink(0).
-		Label(i18n.S("说明", "Info")).Description(tip).FocusRing(false)
+		Label(i18n.S("说明", "Info")).Description(tip).FocusRing(false).Transition(HoverTransition)
 	hovered := b.Hovered()
 	bg := ui.Transparent
 	fg := pal.TextMuted
@@ -196,7 +244,7 @@ func InfoTip(c *ui.Context, tip string, pal Palette) ui.Element {
 		ui.Icon(c, IconInfo).Size(13, 13).TextColor(fg)
 	})
 	if hovered {
-		fill := pal.CardActive
+		fill := pal.BgSolid
 		textCol := pal.Text
 		borderCol := pal.BorderStrong
 		if !pal.Dark {
@@ -219,9 +267,10 @@ func InfoTip(c *ui.Context, tip string, pal Palette) ui.Element {
 }
 
 func settingCardBody(c *ui.Context, pal Palette, body func()) {
-	card := ui.Column(c).Padding(12, 14).Gap(7).Radius(12).Background(pal.CardBg)
+	card := ui.Column(c).Padding(12, 14).Gap(7).Radius(10).Background(pal.CardBg).
+		Border(1, pal.Border).InsetShadow(0, 1, 0, 0, pal.Specular)
 	if !pal.Dark {
-		card.Shadow(0, 1, 4, 0, ui.RGBA(15, 23, 42, 0.045))
+		card.Shadow(0, 1, 3, 0, ui.RGBA(15, 23, 42, 0.04))
 	}
 	card.Children(body)
 }

@@ -319,3 +319,76 @@ func TestChineseLauncherLayout(t *testing.T) {
 	lt.Frame()
 	checkLayoutBounds(t, lt, launcherWidth, "", false)
 }
+
+func TestFluentVibrancyAndTitleBarLayout(t *testing.T) {
+	prevPref := i18n.Preference()
+	prevLang := i18n.Current()
+	defer func() {
+		i18n.SetPreference(prevPref)
+		i18n.Set(prevLang)
+	}()
+
+	a := testHostWithModules(t, CompiledModules(), nil, nil)
+	a.Start([]string{"--background"})
+	a.paths.Home = `%LOCALAPPDATA%\PureUtils`
+
+	i18n.SetPreference(i18n.PrefZH)
+	i18n.Set(i18n.LangZH)
+
+	sv := newSettingsView(a, "general")
+	for _, size := range []struct {
+		w, h int
+	}{
+		{860, 640},
+		{720, 540},
+	} {
+		tt := ui.NewTester(sv.view, size.w, size.h)
+		tt.SetVibrancy(true)
+		tt.SetTitleBar(ui.TitleBar{Height: 40, Right: 138})
+		for _, dark := range []bool{true, false} {
+			tt.SetDark(dark)
+			tt.Frame()
+			checkLayoutBounds(t, tt, float32(size.w), "", false)
+
+			if err := tt.Click("高级"); err != nil {
+				t.Fatalf("%dx%d dark=%v click 高级: %v", size.w, size.h, dark, err)
+			}
+			tt.Frame()
+			if !tt.HasText("高级与维护") {
+				t.Fatalf("%dx%d dark=%v expected 高级与维护 heading, got %v", size.w, size.h, dark, tt.Texts())
+			}
+			checkLayoutBounds(t, tt, float32(size.w), "", false)
+
+			if err := tt.Click("常规"); err != nil {
+				t.Fatalf("%dx%d dark=%v click 常规: %v", size.w, size.h, dark, err)
+			}
+			tt.Frame()
+			checkLayoutBounds(t, tt, float32(size.w), "", false)
+		}
+		if r, ok := tt.Find("PureUtils 设置"); !ok || r.X+r.W > float32(size.w-138) {
+			t.Fatalf("%dx%d title overlapped caption buttons: ok=%v rect=%+v", size.w, size.h, ok, r)
+		}
+	}
+
+	lv := newLauncherView(a, purekit.MatchContext{
+		SelectedFiles: []string{`D:\Workspaces\Project\PureUtils-Bundle.zip`},
+		Clipboard:     &core.ClipboardContent{ImagePNG: encodeTinyPNG(t)},
+	})
+	lt := ui.NewTester(lv.view, launcherWidth, launcherHeight)
+	lt.SetVibrancy(true)
+	for _, dark := range []bool{true, false} {
+		lt.SetDark(dark)
+		lt.Frame()
+		lt.Key(0, ui.KeyDown)
+		lt.Frame()
+		checkLayoutBounds(t, lt, launcherWidth, "", false)
+	}
+	if err := lt.Click("清除上下文"); err != nil {
+		t.Fatalf("click 清除上下文: %v", err)
+	}
+	lt.Frame()
+	if lv.hasContext() {
+		t.Fatal("expected launcher context cleared")
+	}
+	checkLayoutBounds(t, lt, launcherWidth, "", false)
+}

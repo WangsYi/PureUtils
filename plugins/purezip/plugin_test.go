@@ -486,3 +486,37 @@ func TestZipMatchersForArchiveAndRegularFiles(t *testing.T) {
 		t.Fatalf("expected only compress match for regular file, got %+v", res2)
 	}
 }
+
+func TestPureZipVibrantAndTitleBarRender(t *testing.T) {
+	p, _ := newTestPlugin(t)
+	v := newZipView(p)
+	t.Cleanup(func() { v.closed = true; v.closeArchive() })
+
+	tt := ui.NewTester(v.view, 960, 620)
+	tt.SetVibrancy(true)
+	tt.SetTitleBar(ui.TitleBar{Height: 38, Right: 138})
+	for _, dark := range []bool{true, false} {
+		tt.SetDark(dark)
+		tt.Frame()
+		if !tt.HasText("PureZip") || !tt.HasText("最近打开") {
+			t.Fatalf("vibrant start dark=%v missing expected texts: %v", dark, tt.Texts())
+		}
+		if r, ok := tt.Find("PureZip"); !ok || r.X+r.W > 960-138 {
+			t.Fatalf("vibrant start dark=%v titlebar overlapped caption buttons: ok=%v rect=%+v", dark, ok, r)
+		}
+	}
+
+	arcPath := seedTestArchive(t, archive.FormatZip, "")
+	v.load(arcPath, "")
+	for _, dark := range []bool{true, false} {
+		tt.SetDark(dark)
+		tt.Frame()
+		wantTitle := filepath.Base(arcPath) + " — PureZip"
+		if !tt.HasText(wantTitle) || !tt.HasText("docs") {
+			t.Fatalf("vibrant archive dark=%v missing title/entry: %v", dark, tt.Texts())
+		}
+		if r, ok := tt.Find(wantTitle); !ok || r.X+r.W > 960-138 {
+			t.Fatalf("vibrant archive dark=%v titlebar overlapped caption buttons: ok=%v rect=%+v", dark, ok, r)
+		}
+	}
+}

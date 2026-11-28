@@ -92,6 +92,7 @@ func (a *App) ShowLauncher() {
 		Height:            launcherHeight,
 		Hidden:            true,
 		Frameless:         true,
+		Transparent:       true,
 		Panel:             true,
 		AlwaysOnTop:       true,
 		SkipTaskbar:       true,
@@ -99,7 +100,8 @@ func (a *App) ShowLauncher() {
 		DisableMinimize:   true,
 		DisableMaximize:   true,
 		DisableFullScreen: true,
-		CornerRadius:      14,
+		Vibrancy:          mygo.VibrancyAcrylic,
+		CornerRadius:      8,
 		BackgroundColor:   "#00000000",
 		Content:           ui.View(lv.view),
 	})
@@ -480,6 +482,8 @@ type launcherView struct {
 	needFocus bool
 }
 
+type launcherSelPill struct{}
+
 func newLauncherView(a *App, ctx purekit.MatchContext) *launcherView {
 	l := &launcherView{
 		app:       a,
@@ -590,7 +594,14 @@ func (l *launcherView) view(c *ui.Context) {
 		}
 	}
 
-	ui.Column(c).Fill().Radius(14).Background(pal.BgElevated).
+	shellRadius := float32(14)
+	shellBg := pal.BgElevated
+	if pal.Vibrant {
+		shellRadius = 8
+		shellBg = ui.Transparent
+	}
+
+	ui.Column(c).Fill().Radius(shellRadius).Background(shellBg).
 		Border(1, pal.BorderStrong).InsetShadow(0, 1, 0, 0, pal.Specular).Clip().Children(func() {
 		// Seamless command search header
 		ui.Row(c).Height(54).Padding(10, 14).Gap(10).AlignItems(ui.Center).
@@ -625,8 +636,10 @@ func (l *launcherView) view(c *ui.Context) {
 
 		// Contextual ribbon when Explorer files or clipboard items are attached
 		if l.hasContext() {
-			l.contextRibbon(c, pal)
-			ui.Box(c).Height(1).FillWidth().Background(pal.Border)
+			ui.Column(c.Key("launcher-ctx")).Transition(pureui.RibbonTransition).Children(func() {
+				l.contextRibbon(c, pal)
+				ui.Box(c).Height(1).FillWidth().Background(pal.Border)
+			})
 		}
 
 		// Results list
@@ -642,6 +655,12 @@ func (l *launcherView) view(c *ui.Context) {
 			selectedBg := pal.CardBg.Mix(pal.Accent, 0.08)
 			if pal.Dark {
 				selectedBg = pal.Bg.Mix(pal.Accent, 0.18)
+			}
+			if pal.Vibrant {
+				selectedBg = pal.AccentSoft
+				if pal.Dark {
+					selectedBg = ui.RGBA(59, 130, 246, 0.18)
+				}
 			}
 			listTheme := *c.Theme()
 			listTheme.Accent = selectedBg
@@ -718,7 +737,7 @@ func (l *launcherView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg 
 	c := row.Context
 	selected := row.Selected()
 
-	r := ui.Row(c).Height(48).Padding(6, 10).Gap(10).Radius(9).AlignItems(ui.Center)
+	r := ui.Row(c).Height(48).Padding(6, 10, 6, 7).Gap(10).Radius(9).AlignItems(ui.Center).Transition(pureui.HoverTransition)
 	bg := ui.Transparent
 	if selected {
 		bg = selectedBg
@@ -732,6 +751,10 @@ func (l *launcherView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg 
 		return
 	}
 
+	pillCol := pal.Accent
+	if pal.Dark {
+		pillCol = pal.AccentHover
+	}
 	iconBg := pal.ControlBg
 	iconFg := pal.TextSecondary
 	if selected || item.IsMatch {
@@ -744,6 +767,12 @@ func (l *launcherView) renderRow(row ui.ListRow, pal pureui.Palette, selectedBg 
 	}
 
 	r.Children(func() {
+		ui.Box(c).Size(3, 20).Shrink(0).Center().Children(func() {
+			if selected {
+				ui.Box(c.Key("launcher-sel-pill")).Size(3, 20).Radius(1.5).Background(pillCol).
+					Transition(ui.ElementTransition{Match: launcherSelPill{}, Animation: &pureui.NavPillSpring})
+			}
+		})
 		ui.Box(c).Size(30, 30).Radius(8).Background(iconBg).Center().Shrink(0).Children(func() {
 			ui.Icon(c, icon).Size(15, 15).TextColor(iconFg)
 		})
