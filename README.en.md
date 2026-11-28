@@ -66,7 +66,7 @@ Screenshot & Pinning · Clipboard History · Fast Image & Video Browser · Archi
 
 ## Installation
 
-- Download the modular installer `PureUtils-1.4.0-setup.exe` (with bundled trimmed `libmpv-2.dll` and source-built `pureimage_codecs.dll`) from [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases).
+- Download the modular installer `PureUtils-1.5.0-setup.exe` (with bundled trimmed `libmpv-2.dll` and source-built `pureimage_codecs.dll`) from [**GitHub Releases**](https://github.com/WangsYi/PureUtils/releases).
 - Installs per-user (`%LOCALAPPDATA%\Programs\PureUtils`, no UAC required) with customizable components: **Full Suite / PureShot+PureClip / PureImage only / PureVideo only / PureZip only**, `PureMonitor`, Explorer context menus, and HKCU file associations.
 
 ---

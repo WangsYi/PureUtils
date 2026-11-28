@@ -715,7 +715,7 @@ func sortedKeys[V any](m map[uint16]V) []uint16 {
 func buildManifest() string {
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity type="win32" name="com.pureutils.app" version="1.4.0.0" processorArchitecture="*"/>
+  <assemblyIdentity type="win32" name="com.pureutils.app" version="1.5.0.0" processorArchitecture="*"/>
   <dependency>
     <dependentAssembly>
       <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/>
@@ -742,7 +742,7 @@ func buildVersionInfo() []byte {
 	le := binary.LittleEndian
 	le.PutUint32(fixed[0:], 0xFEEF04BD)
 	le.PutUint32(fixed[4:], 0x00010000)
-	le.PutUint32(fixed[8:], uint32(1)<<16|uint32(4))
+	le.PutUint32(fixed[8:], uint32(1)<<16|uint32(5))
 	le.PutUint32(fixed[12:], uint32(0)<<16|uint32(0))
 	copy(fixed[16:24], fixed[8:16])
 	le.PutUint32(fixed[24:], 0x3F)
@@ -753,12 +753,12 @@ func buildVersionInfo() []byte {
 	for _, s := range [][2]string{
 		{"CompanyName", "PureUtils"},
 		{"FileDescription", "PureUtils"},
-		{"FileVersion", "1.4.0"},
+		{"FileVersion", "1.5.0"},
 		{"InternalName", "PureUtils.exe"},
 		{"LegalCopyright", "© 2026 PureUtils"},
 		{"OriginalFilename", "PureUtils.exe"},
 		{"ProductName", "PureUtils"},
-		{"ProductVersion", "1.4.0"},
+		{"ProductVersion", "1.5.0"},
 		{"MyGoIdentifier", "com.pureutils.app"},
 	} {
 		text := utf16.Encode([]rune(s[1] + "\x00"))
