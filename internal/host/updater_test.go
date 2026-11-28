@@ -17,6 +17,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"pureutils/pkg/purekit/config"
+	"pureutils/pkg/purekit/core"
 )
 
 func buildFakeSetupEXE(size int, fill byte) ([]byte, string) {
@@ -242,13 +243,16 @@ func TestUpdaterRedirectFallbackSHA256RejectAndCleanup(t *testing.T) {
 
 func TestUpdaterUpToDateAndSettingsCardUI(t *testing.T) {
 	setupBytes, setupSHA := buildFakeSetupEXE(4096, 0x11)
+	curVer := core.ShortVersion(core.AppVersion)
+	const newerVer = "99.0.0"
+	const newerTag = "v99.0.0"
 	var srvURL string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/same":
-			fmt.Fprintf(w, `{"tag_name":"v1.0.0","assets":[{"name":"PureUtils-1.0.0-setup.exe","size":%d,"browser_download_url":"%s/setup.exe"}]}`, len(setupBytes), srvURL)
+			fmt.Fprintf(w, `{"tag_name":"v%s","assets":[{"name":"PureUtils-%s-setup.exe","size":%d,"browser_download_url":"%s/setup.exe"}]}`, curVer, curVer, len(setupBytes), srvURL)
 		case "/api/newer":
-			fmt.Fprintf(w, `{"tag_name":"v1.5.0","body":"Fast update notes","assets":[{"name":"PureUtils-1.5.0-setup.exe","size":%d,"digest":"sha256:%s","browser_download_url":"%s/setup.exe"}]}`, len(setupBytes), setupSHA, srvURL)
+			fmt.Fprintf(w, `{"tag_name":"%s","body":"Fast update notes","assets":[{"name":"PureUtils-%s-setup.exe","size":%d,"digest":"sha256:%s","browser_download_url":"%s/setup.exe"}]}`, newerTag, newerVer, len(setupBytes), setupSHA, srvURL)
 		case "/setup.exe":
 			_, _ = w.Write(setupBytes)
 		default:
@@ -276,15 +280,15 @@ func TestUpdaterUpToDateAndSettingsCardUI(t *testing.T) {
 	v := newSettingsView(a, "advanced")
 	tt := ui.NewTester(v.view, 860, 640)
 	tt.Frame()
-	if !tt.HasText("软件更新") || !tt.HasText("发现新版本 v1.5.0") {
+	if !tt.HasText("软件更新") || !tt.HasText("发现新版本 "+newerTag) {
 		t.Fatalf("expected Software Update card in Settings > Advanced, texts=%v", tt.Texts())
 	}
 	if err := tt.Click("忽略此版本"); err != nil {
 		t.Fatalf("click skip version: %v", err)
 	}
 	tt.Frame()
-	if got := a.HostConfig().Update.SkippedVersion; got != "v1.5.0" {
-		t.Fatalf("SkippedVersion = %q, want v1.5.0", got)
+	if got := a.HostConfig().Update.SkippedVersion; got != newerTag {
+		t.Fatalf("SkippedVersion = %q, want %s", got, newerTag)
 	}
 
 	if err := tt.Click("开关：自动下载更新"); err != nil {
